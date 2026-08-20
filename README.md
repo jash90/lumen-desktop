@@ -33,6 +33,26 @@ włącznik, White Ambiance dodatkowo temperaturę, a kolorowa — pełny picker.
 
 Interfejs jest w języku polskim.
 
+## Widżet macOS
+
+Aplikacja zawiera rozszerzenie WidgetKit — widżet z podglądem stanu oświetlenia,
+dostępny w Centrum powiadomień i na pulpicie. Dwa rozmiary:
+
+- **mały** — ile lamp świeci się z ilu wszystkich,
+- **średni** — lista pokoi z jasnością każdego z nich.
+
+Aby go dodać: kliknij prawym przyciskiem na pulpicie → *Edytuj widżety*, znajdź
+**Hue Desktop** i przeciągnij wybrany rozmiar. Aplikacja musi być w `/Applications`.
+
+Widżet jest **wyłącznie do odczytu i nie łączy się z Bridge'em**. Aplikacja zapisuje
+mały zrzut stanu do wspólnego kontenera App Group, a widżet tylko go czyta — dzięki
+temu klucz aplikacji Hue nie opuszcza magazynu chronionego Keychainem i nigdy nie
+trafia do drugiego procesu.
+
+> Rozszerzenie działa wyłącznie w podpisanej, zainstalowanej paczce. W trybie
+> deweloperskim (`npm start`) nie ma bundla aplikacji, więc system nie ma czego
+> zarejestrować.
+
 ## Instalacja
 
 Pobierz najnowszą wersję z [Releases](../../releases).
@@ -73,7 +93,7 @@ z Bridge'em pod wskazanym adresem:
 HUE_BRIDGE_IP=192.168.1.42 npm test
 ```
 
-Podpisany i notaryzowany build macOS:
+Podpisany i notaryzowany build macOS, razem z widżetem:
 
 ```bash
 HUE_SIGN=1 \
@@ -82,6 +102,12 @@ APPLE_API_KEY_ID=XXXXXXXX \
 APPLE_API_ISSUER=<issuer-uuid> \
 npm run make
 ```
+
+Rozszerzenie widżetu jest budowane samym `swiftc` i składane ręcznie w `.appex`
+(`widget/build-widget.sh`) — nie ma projektu Xcode, bo to jeden plik Swifta, a
+`.appex` to zwykły bundle z `Info.plist` i binarką. Cały build jest odtwarzalny
+z linii poleceń. Przy forku podmień `HUE_TEAM_ID` oraz identyfikator App Group
+w `widget/HueWidget.swift` i `src/main/widget/WidgetBridge.ts`.
 
 ## Architektura
 
@@ -127,6 +153,8 @@ Renderer nie wie, czym jest HTTPS, mDNS, CIE xy ani `hue-application-key`. Zna w
 - **Linux bez systemowego magazynu haseł**: gdy `safeStorage` zgłasza backend `basic_text`,
   aplikacja wyświetla ostrzeżenie, że klucz nie jest realnie chroniony.
 - Sceny, tray, globalne skróty i automatyzacje nie wchodzą w skład tej wersji.
+- Widżet macOS wymaga systemu **macOS 14 lub nowszego** i jest dostępny wyłącznie
+  na macOS.
 
 ## Roadmapa
 

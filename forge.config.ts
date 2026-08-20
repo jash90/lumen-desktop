@@ -7,6 +7,8 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 
 /** Also the prefix for the widget extension and its App Group. */
 export const BUNDLE_ID = 'com.bartlomiejzimny.huedesktop';
@@ -28,16 +30,6 @@ const config: ForgeConfig = {
           optionsForFile: () => ({ entitlements: 'build/entitlements.plist' }),
         }
       : undefined,
-    // Notarisation needs App Store Connect API credentials; without them the
-    // build is signed but not stapled.
-    osxNotarize:
-      process.env.HUE_SIGN && process.env.APPLE_API_ISSUER
-        ? {
-            appleApiKey: process.env.APPLE_API_KEY_PATH as string,
-            appleApiKeyId: process.env.APPLE_API_KEY_ID as string,
-            appleApiIssuer: process.env.APPLE_API_ISSUER,
-          }
-        : undefined,
   },
   rebuildConfig: {},
   makers: [
@@ -83,6 +75,24 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+};
+
+/**
+ * The macOS widget extension is embedded here rather than in packagerConfig,
+ * because it must land in the bundle after Electron's own binaries are signed but
+ * before the app is notarised.
+ */
+config.hooks = {
+  postPackage: async (_forgeConfig, options) => {
+    if (options.platform !== 'darwin' || !process.env.HUE_SIGN) return;
+    for (const outputPath of options.outputPaths) {
+      execFileSync(
+        path.join(__dirname, 'scripts', 'finalize-macos.sh'),
+        [path.join(outputPath, 'Hue Desktop.app')],
+        { stdio: 'inherit' },
+      );
+    }
+  },
 };
 
 export default config;

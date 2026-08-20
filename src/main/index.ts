@@ -11,6 +11,7 @@ import { broadcast } from './ipc/handlers';
 import { registerIpcHandlers } from './ipc/register';
 import { createSecureStorage } from './storage/SecureStorage';
 import { createSettingsStorage } from './storage/SettingsStorage';
+import { createWidgetBridge } from './widget/WidgetBridge';
 
 if (started) app.quit();
 
@@ -108,13 +109,38 @@ async function bootstrap(): Promise<void> {
   const pairing = createBridgePairingService(repository, (state) =>
     broadcast(EVENT_CHANNELS.pairingState, state),
   );
+  const widget = createWidgetBridge();
+
+  /**
+   * The macOS widget mirrors whatever the app currently knows. Recomputing the
+   * whole snapshot is cheap — it reads the in-memory cache, not the bridge — and
+   * avoids having to merge partial event updates a second time.
+   */
+  const publishWidgetState = (): void => {
+    try {
+      const status = connection.status();
+      if (status.state !== 'connected') {
+        widget.publish(false, [], []);
+        return;
+      }
+      const api = connection.requireApi();
+      widget.publish(true, api.getRooms(), api.getLights());
+    } catch (error) {
+      console.warn('[widget] snapshot skipped:', error);
+    }
+  };
+
   const connection = createConnectionManager({
     repository,
     discovery,
-    onStatus: (status) => broadcast(EVENT_CHANNELS.connectionChanged, status),
+    onStatus: (status) => {
+      broadcast(EVENT_CHANNELS.connectionChanged, status);
+      publishWidgetState();
+    },
     onChanges: (changes) => {
       if (changes.lights.length > 0) broadcast(EVENT_CHANNELS.lightChanged, changes.lights);
       if (changes.rooms.length > 0) broadcast(EVENT_CHANNELS.roomChanged, changes.rooms);
+      publishWidgetState();
     },
   });
 

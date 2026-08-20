@@ -93,3 +93,6 @@ out/
 
 # stray main-process bundle if a build ever writes outside .vite/
 /main.js
+
+# widget extension build output
+widget/.build/
