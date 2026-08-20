@@ -1,7 +1,7 @@
 {
   "name": "hue-desktop",
   "productName": "Hue Desktop",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Sterowanie oświetleniem Philips Hue z pulpitu — macOS, Windows, Linux.",
   "main": ".vite/build/main.js",
   "private": true,
