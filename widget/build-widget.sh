@@ -21,10 +21,26 @@ rm -rf "$BUILD"
 mkdir -p "$APPEX/Contents/MacOS"
 
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
+# App extensions must enter through NSExtensionMain, not the ordinary Swift main.
+# Xcode does this via "-e _NSExtensionMain"; without it the bundle registers in
+# pluginkit but never appears in the widget gallery, because the process does not
+# behave as an extension at all.
 xcrun swiftc -sdk "$SDK" -target arm64-apple-macos14.0 -parse-as-library -O \
+  -framework Foundation \
+  -Xlinker -e -Xlinker _NSExtensionMain \
   "$ROOT/widget/HueWidget.swift" -o "$APPEX/Contents/MacOS/$NAME"
 
 VERSION="$(node -p "require('$ROOT/package.json').version")"
+
+# Xcode normally injects this build metadata. Assembling the bundle by hand means
+# writing it ourselves — and without CFBundleSupportedPlatforms and the DT* keys
+# the widget gallery ignores the extension even though pluginkit registers it.
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+SDK_BUILD="$(xcrun --sdk macosx --show-sdk-build-version)"
+XCODE_BUILD="$(xcodebuild -version | tail -1 | awk '{print $3}')"
+XCODE_VERSION="$(xcodebuild -version | head -1 | awk '{print $2}')"
+XCODE_DT="$(echo "$XCODE_VERSION" | awk -F. '{printf "%d%d%d", $1, $2, ($3==""?0:$3)}')"
+OS_BUILD="$(sw_vers -buildVersion)"
 
 cat > "$APPEX/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -40,9 +56,21 @@ cat > "$APPEX/Contents/Info.plist" <<PLIST
   <key>CFBundlePackageType</key><string>XPC!</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>
+  <key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
+  <key>BuildMachineOSBuild</key><string>$OS_BUILD</string>
+  <key>DTCompiler</key><string>com.apple.compilers.llvm.clang.1_0</string>
+  <key>DTPlatformBuild</key><string>$SDK_BUILD</string>
+  <key>DTPlatformName</key><string>macosx</string>
+  <key>DTPlatformVersion</key><string>$SDK_VERSION</string>
+  <key>DTSDKBuild</key><string>$SDK_BUILD</string>
+  <key>DTSDKName</key><string>macosx$SDK_VERSION</string>
+  <key>DTXcode</key><string>$XCODE_DT</string>
+  <key>DTXcodeBuild</key><string>$XCODE_BUILD</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSExtension</key>
   <dict>
+    <key>NSExtensionAttributes</key>
+    <dict><key>NSExtensionPointVersion</key><string>3.0</string></dict>
     <key>NSExtensionPointIdentifier</key><string>com.apple.widgetkit-extension</string>
   </dict>
 </dict>

@@ -83,9 +83,11 @@ struct HueProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<HueEntry>) -> Void) {
         let entry = HueEntry(date: .now, snapshot: SnapshotStore.load())
-        // The app nudges WidgetKit when state changes; this is only the fallback so
-        // the widget still catches up if the app is not running.
-        let next = Calendar.current.date(byAdding: .minute, value: 15, to: .now) ?? .now
+        // The timeline is the only reliable refresh path. WidgetCenter.reloadAllTimelines()
+        // is ignored when called from the bundled helper process rather than from the app
+        // itself, so a short interval is what actually keeps the widget current. WidgetKit
+        // throttles this to its own budget; asking for a minute yields a few minutes.
+        let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now) ?? .now
         completion(Timeline(entries: [entry], policy: .after(next)))
     }
 }

@@ -49,6 +49,12 @@ mały zrzut stanu do wspólnego kontenera App Group, a widżet tylko go czyta �
 temu klucz aplikacji Hue nie opuszcza magazynu chronionego Keychainem i nigdy nie
 trafia do drugiego procesu.
 
+**Odświeżanie:** widżet aktualizuje się cyklicznie, w praktyce w ciągu jednej–dwóch
+minut od zmiany — nie natychmiast. `WidgetCenter.reloadAllTimelines()` jest przez
+system ignorowane, gdy wywoła je proces pomocniczy zamiast samej aplikacji, więc
+jedyną działającą ścieżką jest harmonogram timeline'u (a i ten WidgetKit dławi
+własnym budżetem odświeżeń).
+
 > Rozszerzenie działa wyłącznie w podpisanej, zainstalowanej paczce. W trybie
 > deweloperskim (`npm start`) nie ma bundla aplikacji, więc system nie ma czego
 > zarejestrować.
