@@ -5,12 +5,16 @@ import type { BridgeDiscoveryService } from '../bridge/BridgeDiscoveryService';
 import type { BridgePairingService } from '../bridge/BridgePairingService';
 import type { BridgeRepository } from '../bridge/BridgeRepository';
 import type { ConnectionManager } from '../bridge/ConnectionManager';
+import type { ActionRunner } from '../actions/ActionRunner';
+import type { ShortcutRegistrar } from '../shortcuts/GlobalShortcuts';
 import type { SecureStorage } from '../storage/SecureStorage';
 import type { SettingsStorage } from '../storage/SettingsStorage';
 import { applyLoginItem } from '../autostart';
 import { args, assertAllChannelsRegistered, broadcast, handle } from './handlers';
 
 export interface IpcContext {
+  actions: ActionRunner;
+  shortcuts: ShortcutRegistrar;
   connection: ConnectionManager;
   discovery: BridgeDiscoveryService;
   pairing: BridgePairingService;
@@ -25,7 +29,16 @@ export interface IpcContext {
  * without adding structure.
  */
 export function registerIpcHandlers(context: IpcContext): void {
-  const { connection, discovery, pairing, repository, storage, settings } = context;
+  const { actions, shortcuts, connection, discovery, pairing, repository, storage, settings } =
+    context;
+
+  /** Last result of applying the stored shortcuts; see getShortcutConflicts. */
+  let shortcutConflicts: string[] = [];
+
+  const applyShortcuts = (): void => {
+    shortcutConflicts = shortcuts.apply(settings.get().shortcuts);
+  };
+  applyShortcuts();
 
   handle('getVersion', args.none, () => app.getVersion());
 
@@ -57,6 +70,7 @@ export function registerIpcHandlers(context: IpcContext): void {
     // renderer follow it — the UI needs no theme class of its own.
     nativeTheme.themeSource = next.theme;
     applyLoginItem(next.launchAtLogin);
+    if (patch.shortcuts) applyShortcuts();
     return next;
   });
 
@@ -85,6 +99,10 @@ export function registerIpcHandlers(context: IpcContext): void {
   handle('setRoomBrightness', args.idAndPercent, ([id, brightness]) =>
     connection.requireApi().setRoomBrightness(id, brightness),
   );
+
+  // Actions
+  handle('runAction', args.action, ([action]) => actions.run(action));
+  handle('getShortcutConflicts', args.none, () => shortcutConflicts);
 
   // Scenes
   handle('getScenes', args.none, () => connection.requireApi().getScenes());

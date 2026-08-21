@@ -14,6 +14,7 @@ import { broadcast } from './ipc/handlers';
 import { registerIpcHandlers } from './ipc/register';
 import { createSecureStorage } from './storage/SecureStorage';
 import { createSettingsStorage } from './storage/SettingsStorage';
+import { createShortcutRegistrar } from './shortcuts/GlobalShortcuts';
 import { createTray, type TrayController } from './tray/Tray';
 import { createWidgetBridge } from './widget/WidgetBridge';
 
@@ -178,6 +179,13 @@ async function bootstrap(): Promise<void> {
   });
 
   const actions = createActionRunner(connection);
+  const runAction = (action: Action): void => {
+    actions.run(action).catch((error: unknown) => {
+      console.error('[action] failed:', error);
+    });
+  };
+  const shortcuts = createShortcutRegistrar(runAction);
+  app.on('will-quit', () => shortcuts.dispose());
 
   const showWindow = (): void => {
     const existing = BrowserWindow.getAllWindows()[0];
@@ -201,11 +209,7 @@ async function bootstrap(): Promise<void> {
         favorites: settings.get().favorites,
       };
     },
-    run: (action: Action) => {
-      actions.run(action).catch((error: unknown) => {
-        console.error('[tray] action failed:', error);
-      });
-    },
+    run: runAction,
     show: showWindow,
     quit: () => app.quit(),
   });
@@ -213,7 +217,16 @@ async function bootstrap(): Promise<void> {
   const theme = settings.get().theme;
   nativeTheme.themeSource = theme;
 
-  registerIpcHandlers({ connection, discovery, pairing, repository, storage, settings });
+  registerIpcHandlers({
+    actions,
+    shortcuts,
+    connection,
+    discovery,
+    pairing,
+    repository,
+    storage,
+    settings,
+  });
 
   createWindow();
 

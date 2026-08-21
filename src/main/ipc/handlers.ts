@@ -58,6 +58,25 @@ export function broadcast(channel: (typeof EVENT_CHANNELS)[keyof typeof EVENT_CH
 }
 
 /** Argument schemas — deliberately strict about ranges the bridge would reject. */
+const resourceId = z.string().min(1).max(128);
+
+/**
+ * One definition of what an Action may be, used both by the runAction channel
+ * and by the shortcuts and quick actions stored in Settings. The renderer is
+ * untrusted, so nothing here passes an unknown shape through.
+ */
+export const actionSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('toggleLight'), id: resourceId }),
+  z.object({ kind: z.literal('toggleRoom'), id: resourceId }),
+  z.object({
+    kind: z.literal('setRoomBrightness'),
+    id: resourceId,
+    brightness: z.number().min(0).max(100),
+  }),
+  z.object({ kind: z.literal('activateScene'), id: resourceId }),
+  z.object({ kind: z.literal('allOff') }),
+]);
+
 export const args = {
   none: z.tuple([]).transform(() => undefined),
   id: z.tuple([z.string().min(1).max(128)]),
@@ -75,6 +94,20 @@ export const args = {
     z.object({
       theme: z.enum(['system', 'light', 'dark']).optional(),
       launchAtLogin: z.boolean().optional(),
+      shortcuts: z
+        .array(z.object({ accelerator: z.string().min(1).max(64), action: actionSchema }))
+        .max(10)
+        .optional(),
+      quickActions: z
+        .array(
+          z.object({
+            id: resourceId,
+            label: z.string().min(1).max(40),
+            action: actionSchema,
+          }),
+        )
+        .max(12)
+        .optional(),
       // The renderer is untrusted, and settings.json is rewritten synchronously
       // on every change — hence the explicit shape and the cap.
       favorites: z
@@ -88,6 +121,7 @@ export const args = {
         .optional(),
     }),
   ]),
+  action: z.tuple([actionSchema]),
   idAndColor: z.tuple([
     z.string().min(1).max(128),
     z.object({

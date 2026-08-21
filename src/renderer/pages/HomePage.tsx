@@ -10,6 +10,7 @@ import { lightCountLabel } from '../lib/hue';
 import { useUiStore } from '../stores/uiStore';
 import { EmptyState } from '../components/EmptyState';
 import { FavoriteButton } from '../components/FavoriteButton';
+import { QuickActions } from '../components/QuickActions';
 import { PowerSwitch } from '../components/PowerSwitch';
 import { LightCard } from '../components/LightCard';
 import { RoomCard } from '../components/RoomCard';
@@ -75,6 +76,8 @@ export function HomePage({ connected }: { connected: boolean }) {
 
   return (
     <div className="space-y-6 px-4 py-4 pb-6">
+      <QuickActions />
+
       {hasFavorites && (
         <section className="space-y-2">
           <h2 className="label-caps px-1">Ulubione</h2>

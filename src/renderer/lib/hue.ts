@@ -32,6 +32,7 @@ export const queryKeys = {
   connection: ['connection'] as const,
   storageHealth: ['storageHealth'] as const,
   settings: ['settings'] as const,
+  shortcutConflicts: ['shortcutConflicts'] as const,
 };
 
 /**

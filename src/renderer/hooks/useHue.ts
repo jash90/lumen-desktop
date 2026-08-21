@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import type {
+  Action,
   ConnectionStatus,
   Light,
   ResourceRef,
@@ -43,6 +44,26 @@ export function useUpdateSettings() {
     onSuccess: (settings) => queryClient.setQueryData(queryKeys.settings, settings),
   });
 }
+
+export const useQuickActions = () => useSettings().data?.quickActions ?? [];
+export const useShortcuts = () => useSettings().data?.shortcuts ?? [];
+
+/** Runs an Action in the main process — the same path the tray and shortcuts use. */
+export function useRunAction() {
+  const pushToast = useUiStore((state) => state.pushToast);
+
+  return useMutation({
+    mutationFn: (action: Action) => unwrap(window.hue.runAction(action)),
+    onError: (error) => pushToast(messageOf(error)),
+  });
+}
+
+/** Accelerators the OS refused, so the settings screen can say so. */
+export const useShortcutConflicts = () =>
+  useQuery({
+    queryKey: queryKeys.shortcutConflicts,
+    queryFn: () => unwrap(window.hue.getShortcutConflicts()),
+  });
 
 export const useFavorites = (): ResourceRef[] => useSettings().data?.favorites ?? [];
 

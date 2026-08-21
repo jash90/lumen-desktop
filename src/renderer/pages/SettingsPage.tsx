@@ -8,6 +8,7 @@ import {
   useUpdateSettings,
 } from '../hooks/useHue';
 import { queryKeys, unwrap } from '../lib/hue';
+import { ActionEditor } from '../components/ActionEditor';
 import { PowerSwitch } from '../components/PowerSwitch';
 import { useUiStore } from '../stores/uiStore';
 
@@ -92,6 +93,11 @@ export function SettingsPage() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="label-caps px-1">Szybkie akcje i skróty</h2>
+        <ActionEditor connected={status.data?.state === 'connected'} />
       </section>
 
       <section className="space-y-3">

@@ -118,6 +118,19 @@ export type Action =
   | { kind: 'activateScene'; id: string }
   | { kind: 'allOff' };
 
+/** A global shortcut: an Electron accelerator bound to one Action. */
+export interface Shortcut {
+  accelerator: string;
+  action: Action;
+}
+
+/** A named Action the user pinned as a one-click button. */
+export interface QuickAction {
+  id: string;
+  label: string;
+  action: Action;
+}
+
 /** User preferences (PRD §29). Not secret — stored as plain JSON by the main process. */
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -125,6 +138,8 @@ export interface Settings {
   theme: ThemePreference;
   /** Start with the system, into the tray rather than into a visible window. */
   launchAtLogin: boolean;
+  shortcuts: Shortcut[];
+  quickActions: QuickAction[];
   /**
    * Pinned resources, shown first on the dashboard. Stored here rather than in a
    * store of their own because Settings already crosses IPC and survives

@@ -13,6 +13,7 @@ import type {
   ConnectionStatus,
   DiscoveredBridge,
   Light,
+  Action,
   Room,
   RgbColor,
   Scene,
@@ -61,6 +62,8 @@ export const INVOKE_CHANNELS = [
   'setRoomBrightness',
   'getScenes',
   'activateScene',
+  'runAction',
+  'getShortcutConflicts',
 ] as const;
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
@@ -119,6 +122,14 @@ export interface HueApi {
   // through the same stream as any other change.
   getScenes(): Promise<Result<Scene[]>>;
   activateScene(id: string): Promise<Result<void>>;
+
+  // Actions — the same commands the tray and global shortcuts issue.
+  runAction(action: Action): Promise<Result<void>>;
+  /**
+   * Accelerators the OS refused, so the settings screen can say so instead of
+   * leaving the user with a shortcut that silently does nothing.
+   */
+  getShortcutConflicts(): Promise<Result<string[]>>;
 
   // Push updates (PRD §50) — renderer only ever learns about these three.
   onLightChanged(listener: (lights: Light[]) => void): Unsubscribe;
