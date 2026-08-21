@@ -29,6 +29,7 @@ export const queryKeys = {
   lights: ['lights'] as const,
   rooms: ['rooms'] as const,
   scenes: ['scenes'] as const,
+  automations: ['automations'] as const,
   connection: ['connection'] as const,
   storageHealth: ['storageHealth'] as const,
   settings: ['settings'] as const,

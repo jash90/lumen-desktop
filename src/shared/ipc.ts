@@ -9,13 +9,14 @@
 
 import type { SerializedHueError } from './errors';
 import type {
+  Action,
+  Automation,
   BridgeSummary,
   ConnectionStatus,
   DiscoveredBridge,
   Light,
-  Action,
-  Room,
   RgbColor,
+  Room,
   Scene,
   Settings,
   StorageHealth,
@@ -62,6 +63,8 @@ export const INVOKE_CHANNELS = [
   'setRoomBrightness',
   'getScenes',
   'activateScene',
+  'getAutomations',
+  'setAutomationEnabled',
   'runAction',
   'getShortcutConflicts',
 ] as const;
@@ -122,6 +125,10 @@ export interface HueApi {
   // through the same stream as any other change.
   getScenes(): Promise<Result<Scene[]>>;
   activateScene(id: string): Promise<Result<void>>;
+
+  // Automations created in the Hue app: read and toggle, nothing more.
+  getAutomations(): Promise<Result<Automation[]>>;
+  setAutomationEnabled(id: string, enabled: boolean): Promise<Result<void>>;
 
   // Actions — the same commands the tray and global shortcuts issue.
   runAction(action: Action): Promise<Result<void>>;

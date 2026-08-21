@@ -5,21 +5,31 @@ import { createHueClient } from '../src/main/hue/HueClient';
 import { createFakeTransport, jsonResponse } from './fakeTransport';
 import {
   CEILING_LIGHT,
+  DIMMER_AUTOMATION,
   LIVING_ROOM,
   LIVING_ROOM_GROUP,
   PLAIN_LIGHT,
   RELAX_SCENE,
+  UNNAMED_AUTOMATION,
   ZONE_SCENE,
 } from './fixtures';
 
 function createApi(
-  overrides: { lights?: unknown[]; rooms?: unknown[]; groups?: unknown[]; scenes?: unknown[] } = {},
+  overrides: {
+    lights?: unknown[];
+    rooms?: unknown[];
+    groups?: unknown[];
+    scenes?: unknown[];
+    automations?: unknown[];
+  } = {},
 ) {
   const transport = createFakeTransport((options) => {
     if (options.path.endsWith('/light')) return jsonResponse(overrides.lights ?? [CEILING_LIGHT, PLAIN_LIGHT]);
     if (options.path.endsWith('/room')) return jsonResponse(overrides.rooms ?? [LIVING_ROOM]);
     if (options.path.endsWith('/grouped_light')) return jsonResponse(overrides.groups ?? [LIVING_ROOM_GROUP]);
     if (options.path.endsWith('/scene')) return jsonResponse(overrides.scenes ?? [RELAX_SCENE, ZONE_SCENE]);
+    if (options.path.endsWith('/behavior_instance'))
+      return jsonResponse(overrides.automations ?? [DIMMER_AUTOMATION, UNNAMED_AUTOMATION]);
     return jsonResponse([]);
   });
   return { transport, api: createHueApi(createHueClient(transport, 'key')) };
@@ -170,5 +180,48 @@ describe('HueApi scenes', () => {
     await api.refresh();
 
     expect(api.getScenes()).toHaveLength(2);
+  });
+});
+
+describe('HueApi automations', () => {
+  it('echoes configuration back, without which the bridge refuses the write', async () => {
+    const { transport, api } = createApi();
+    await api.refresh();
+    transport.calls.length = 0;
+
+    await api.setAutomationEnabled('behavior-dimmer', false);
+
+    expect(transport.calls[0]?.path).toBe('/clip/v2/resource/behavior_instance/behavior-dimmer');
+    // A payload of just { enabled } comes back as "The instance doesn't support
+    // triggers" on a real bridge.
+    expect(JSON.parse(transport.calls[0]?.body ?? '{}')).toEqual({
+      enabled: false,
+      configuration: { device: { rid: 'device-dimmer', rtype: 'device' } },
+    });
+  });
+
+  it('gives an unnamed automation something to show in a list', async () => {
+    const { api } = createApi();
+    await api.refresh();
+
+    const unnamed = api.getAutomations().find((entry) => entry.id === 'behavior-unnamed');
+    expect(unnamed?.name).toContain('bba79770');
+    expect(unnamed?.enabled).toBe(false);
+  });
+
+  it('treats an empty automation list as a normal state, not a failure', async () => {
+    const { api } = createApi({ automations: [] });
+    await api.refresh();
+
+    expect(api.getAutomations()).toEqual([]);
+  });
+
+  it('refuses to write to an automation the bridge never reported', async () => {
+    const { api } = createApi();
+    await api.refresh();
+
+    await expect(api.setAutomationEnabled('behavior-ghost', true)).rejects.toThrow(
+      /unknown automation/,
+    );
   });
 });

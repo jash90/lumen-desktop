@@ -74,3 +74,24 @@ export const ZONE_SCENE = {
   status: { active: 'static' },
   type: 'scene',
 };
+
+/** An automation created in the Hue app — a dimmer switch binding. */
+export const DIMMER_AUTOMATION = {
+  id: 'behavior-dimmer',
+  metadata: { name: 'Hue dimmer switch 1' },
+  enabled: true,
+  script_id: 'script-dimmer',
+  status: 'running',
+  /** The bridge rejects an update that does not echo this back. */
+  configuration: { device: { rid: 'device-dimmer', rtype: 'device' } },
+  type: 'behavior_instance',
+};
+
+/** Hue Labs formulas and older automations can carry no name at all. */
+export const UNNAMED_AUTOMATION = {
+  id: 'behavior-unnamed',
+  enabled: false,
+  script_id: 'bba7977012345678',
+  status: 'disabled',
+  type: 'behavior_instance',
+};

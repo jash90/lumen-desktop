@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import type {
   Action,
+  Automation,
   ConnectionStatus,
   Light,
   ResourceRef,
@@ -100,6 +101,39 @@ export function useRooms(enabled: boolean) {
     queryKey: queryKeys.rooms,
     queryFn: () => unwrap(window.hue.getRooms()),
     enabled,
+  });
+}
+
+export function useAutomations(enabled: boolean) {
+  return useQuery<Automation[]>({
+    queryKey: queryKeys.automations,
+    queryFn: () => unwrap(window.hue.getAutomations()),
+    enabled,
+  });
+}
+
+export function useSetAutomationEnabled() {
+  const queryClient = useQueryClient();
+  const pushToast = useUiStore((state) => state.pushToast);
+
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      unwrap(window.hue.setAutomationEnabled(id, enabled)),
+    onMutate: async ({ id, enabled }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.automations });
+      const previous = queryClient.getQueryData<Automation[]>(queryKeys.automations);
+      queryClient.setQueryData<Automation[]>(queryKeys.automations, (current) =>
+        current?.map((automation) => (automation.id === id ? { ...automation, enabled } : automation)),
+      );
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      queryClient.setQueryData(queryKeys.automations, context?.previous);
+      pushToast(messageOf(error));
+    },
+    // Automations produce no event-stream traffic, so the truth has to be
+    // fetched back rather than waited for.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.automations }),
   });
 }
 

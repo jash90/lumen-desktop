@@ -65,6 +65,17 @@ export interface Scene {
   isActive: boolean;
 }
 
+/**
+ * An automation created in the Philips Hue app — a dimmer switch binding, a
+ * timer, a motion rule. The app reads them and toggles them; building them is a
+ * project of its own, since every behaviour script has its own config schema.
+ */
+export interface Automation {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+
 export interface BridgeSummary {
   id: string;
   name: string;

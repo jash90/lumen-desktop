@@ -75,6 +75,20 @@ export const sceneDtoSchema = z.object({
   status: z.object({ active: z.string().optional() }).optional(),
 });
 
+export const behaviorInstanceDtoSchema = z.object({
+  id: z.string(),
+  /** Hue Labs formulas and older automations sometimes carry no name at all. */
+  metadata: z.object({ name: z.string().optional() }).optional(),
+  enabled: z.boolean(),
+  script_id: z.string(),
+  status: z.string().optional(),
+  /**
+   * Opaque, per-script settings. Kept verbatim because the bridge rejects an
+   * enable/disable that arrives without it — see setAutomationEnabled.
+   */
+  configuration: z.unknown().optional(),
+});
+
 export const bridgeConfigSchema = z.object({
   name: z.string(),
   bridgeid: z.string(),
@@ -109,4 +123,5 @@ export type LightDto = z.infer<typeof lightDtoSchema>;
 export type RoomDto = z.infer<typeof roomDtoSchema>;
 export type GroupedLightDto = z.infer<typeof groupedLightDtoSchema>;
 export type SceneDto = z.infer<typeof sceneDtoSchema>;
+export type BehaviorInstanceDto = z.infer<typeof behaviorInstanceDtoSchema>;
 export type BridgeConfigDto = z.infer<typeof bridgeConfigSchema>;

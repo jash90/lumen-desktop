@@ -1,10 +1,12 @@
 import { HueError } from '../../shared/errors';
-import type { Light, RgbColor, Room, Scene } from '../../shared/models';
+import type { Automation, Light, RgbColor, Room, Scene } from '../../shared/models';
 import {
+  behaviorInstanceDtoSchema,
   groupedLightDtoSchema,
   lightDtoSchema,
   roomDtoSchema,
   sceneDtoSchema,
+  type BehaviorInstanceDto,
   type GroupedLightDto,
   type LightDto,
   type RoomDto,
@@ -17,6 +19,7 @@ import {
   groupedLightIdOf,
   mirekSchemaOf,
   payloads,
+  toAutomation,
   toLight,
   toRoom,
   toScene,
@@ -37,6 +40,9 @@ export interface HueApi {
   getRooms(): Room[];
   getRoom(id: string): Room;
   getScenes(): Scene[];
+  getAutomations(): Automation[];
+  /** Enables or disables an automation the user created in the Hue app. */
+  setAutomationEnabled(id: string, enabled: boolean): Promise<void>;
   /** Applies a stored scene; the resulting light changes arrive over the event stream. */
   activateScene(id: string): Promise<void>;
   setLightPower(id: string, on: boolean): Promise<void>;
@@ -83,6 +89,7 @@ export function createHueApi(client: HueClient): HueApi {
   const roomDtos = new Map<string, RoomDto>();
   const groupedLightDtos = new Map<string, GroupedLightDto>();
   const sceneDtos = new Map<string, SceneDto>();
+  const automationDtos = new Map<string, BehaviorInstanceDto>();
   /** device rid -> room id */
   let roomIndex = new Map<string, string>();
 
@@ -133,21 +140,24 @@ export function createHueApi(client: HueClient): HueApi {
 
   return {
     async refresh() {
-      const [lights, rooms, groupedLights, scenes] = await Promise.all([
+      const [lights, rooms, groupedLights, scenes, automations] = await Promise.all([
         client.list('light', lightDtoSchema),
         client.list('room', roomDtoSchema),
         client.list('grouped_light', groupedLightDtoSchema),
         client.list('scene', sceneDtoSchema),
+        client.list('behavior_instance', behaviorInstanceDtoSchema),
       ]);
 
       lightDtos.clear();
       roomDtos.clear();
       groupedLightDtos.clear();
       sceneDtos.clear();
+      automationDtos.clear();
       for (const light of lights) lightDtos.set(light.id, light);
       for (const room of rooms) roomDtos.set(room.id, room);
       for (const groupedLight of groupedLights) groupedLightDtos.set(groupedLight.id, groupedLight);
       for (const scene of scenes) sceneDtos.set(scene.id, scene);
+      for (const automation of automations) automationDtos.set(automation.id, automation);
       roomIndex = buildRoomIndex(rooms);
     },
 
@@ -163,6 +173,22 @@ export function createHueApi(client: HueClient): HueApi {
 
     getScenes: () =>
       [...sceneDtos.values()].map(toScene).sort((a, b) => a.name.localeCompare(b.name)),
+
+    getAutomations: () =>
+      [...automationDtos.values()].map(toAutomation).sort((a, b) => a.name.localeCompare(b.name)),
+
+    async setAutomationEnabled(id, enabled) {
+      const dto = automationDtos.get(id);
+      if (!dto) throw new HueError('RequestFailed', `unknown automation ${id}`);
+
+      // `configuration` has to be echoed back verbatim. Sending `enabled` on its
+      // own is rejected with "The instance doesn't support triggers" — verified
+      // against a real bridge on every automation it had.
+      return client.update('behavior_instance', id, {
+        enabled,
+        configuration: dto.configuration,
+      });
+    },
 
     async activateScene(id) {
       if (!sceneDtos.has(id)) throw new HueError('RequestFailed', `unknown scene ${id}`);

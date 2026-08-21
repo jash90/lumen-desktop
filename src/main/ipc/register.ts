@@ -100,6 +100,12 @@ export function registerIpcHandlers(context: IpcContext): void {
     connection.requireApi().setRoomBrightness(id, brightness),
   );
 
+  // Automations
+  handle('getAutomations', args.none, () => connection.requireApi().getAutomations());
+  handle('setAutomationEnabled', args.idAndBoolean, ([id, enabled]) =>
+    connection.requireApi().setAutomationEnabled(id, enabled),
+  );
+
   // Actions
   handle('runAction', args.action, ([action]) => actions.run(action));
   handle('getShortcutConflicts', args.none, () => shortcutConflicts);

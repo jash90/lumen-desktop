@@ -2,6 +2,7 @@ import { ConnectionStatusBadge } from './components/ConnectionStatus';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/Toaster';
 import { useConnectionStatus, useHueEvents } from './hooks/useHue';
+import { AutomationsPage } from './pages/AutomationsPage';
 import { HomePage, HomeSkeleton } from './pages/HomePage';
 import { LightPage } from './pages/LightPage';
 import { OnboardingPage } from './pages/OnboardingPage';
@@ -68,6 +69,8 @@ export function App() {
           <RoomPage id={view.id} connected={connected} />
         ) : view.name === 'light' ? (
           <LightPage id={view.id} connected={connected} />
+        ) : view.name === 'automations' ? (
+          <AutomationsPage connected={connected} />
         ) : (
           <SettingsPage />
         )}
@@ -76,7 +79,18 @@ export function App() {
       <nav className="flex shrink-0 border-t border-line">
         {(
           [
-            { key: 'home', label: 'Dom', active: view.name !== 'settings', onClick: goHome },
+            {
+              key: 'home',
+              label: 'Dom',
+              active: view.name !== 'settings' && view.name !== 'automations',
+              onClick: goHome,
+            },
+            {
+              key: 'automations',
+              label: 'Automatyzacje',
+              active: view.name === 'automations',
+              onClick: () => navigate({ name: 'automations' }),
+            },
             {
               key: 'settings',
               label: 'Ustawienia',

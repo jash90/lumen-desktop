@@ -6,6 +6,7 @@ export type View =
   | { name: 'home' }
   | { name: 'room'; id: string }
   | { name: 'light'; id: string }
+  | { name: 'automations' }
   | { name: 'settings' };
 
 export interface Toast {

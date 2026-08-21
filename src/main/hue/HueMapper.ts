@@ -1,5 +1,12 @@
-import type { Light, LightCapabilities, RgbColor, Room, Scene } from '../../shared/models';
-import type { GroupedLightDto, LightDto, RoomDto, SceneDto } from './dto';
+import type {
+  Automation,
+  Light,
+  LightCapabilities,
+  RgbColor,
+  Room,
+  Scene,
+} from '../../shared/models';
+import type { BehaviorInstanceDto, GroupedLightDto, LightDto, RoomDto, SceneDto } from './dto';
 import { DEFAULT_GAMUT, type Gamut, rgbToXy, xyToRgb } from './HueColor';
 
 /**
@@ -150,6 +157,15 @@ export function toScene(dto: SceneDto): Scene {
     name: dto.metadata.name,
     roomId: dto.group.rtype === 'room' ? dto.group.rid : null,
     isActive: (dto.status?.active ?? 'inactive') !== 'inactive',
+  };
+}
+
+/** Falls back to the script id, because an unnamed automation still has to be listable. */
+export function toAutomation(dto: BehaviorInstanceDto): Automation {
+  return {
+    id: dto.id,
+    name: dto.metadata?.name ?? `Automatyzacja ${dto.script_id.slice(0, 8)}`,
+    enabled: dto.enabled,
   };
 }
 
