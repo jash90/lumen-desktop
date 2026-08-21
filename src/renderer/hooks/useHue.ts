@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import type { ConnectionStatus, Light, RgbColor, Room, Scene, Settings } from '../../shared/models';
+import type {
+  ConnectionStatus,
+  Light,
+  ResourceRef,
+  RgbColor,
+  Room,
+  Scene,
+  Settings,
+} from '../../shared/models';
 import { messageOf, queryKeys, unwrap } from '../lib/hue';
 import { useUiStore } from '../stores/uiStore';
 
@@ -34,6 +42,28 @@ export function useUpdateSettings() {
     mutationFn: (patch: Partial<Settings>) => unwrap(window.hue.setSettings(patch)),
     onSuccess: (settings) => queryClient.setQueryData(queryKeys.settings, settings),
   });
+}
+
+export const useFavorites = (): ResourceRef[] => useSettings().data?.favorites ?? [];
+
+export const isFavorite = (favorites: readonly ResourceRef[], ref: ResourceRef): boolean =>
+  favorites.some((favorite) => favorite.type === ref.type && favorite.id === ref.id);
+
+/**
+ * Favourites live in Settings, which is patched wholesale — so a toggle sends
+ * the entire list back. Fine for one window; two racing toggles would be
+ * last-write-wins.
+ */
+export function useToggleFavorite() {
+  const favorites = useFavorites();
+  const update = useUpdateSettings();
+
+  return (ref: ResourceRef) => {
+    const next = isFavorite(favorites, ref)
+      ? favorites.filter((favorite) => !(favorite.type === ref.type && favorite.id === ref.id))
+      : [...favorites, ref];
+    update.mutate({ favorites: next });
+  };
 }
 
 export function useLights(enabled: boolean) {

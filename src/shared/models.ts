@@ -97,9 +97,21 @@ export interface StorageHealth {
   weak: boolean;
 }
 
+/** Points at a light, room or scene — what a favourite or a quick action targets. */
+export interface ResourceRef {
+  type: 'light' | 'room' | 'scene';
+  id: string;
+}
+
 /** User preferences (PRD §29). Not secret — stored as plain JSON by the main process. */
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface Settings {
   theme: ThemePreference;
+  /**
+   * Pinned resources, shown first on the dashboard. Stored here rather than in a
+   * store of their own because Settings already crosses IPC and survives
+   * restarts, and favourites are neither secret nor large.
+   */
+  favorites: ResourceRef[];
 }

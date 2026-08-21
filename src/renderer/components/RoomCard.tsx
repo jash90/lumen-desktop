@@ -3,6 +3,7 @@ import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
 import { useSetRoomBrightness, useSetRoomPower } from '../hooks/useHue';
 import { lightCountLabel } from '../lib/hue';
 import { useUiStore } from '../stores/uiStore';
+import { FavoriteButton } from './FavoriteButton';
 import { LightCard } from './LightCard';
 import { PowerSwitch } from './PowerSwitch';
 import { Slider } from './Slider';
@@ -27,12 +28,12 @@ export function RoomCard({ room, lights }: RoomCardProps) {
 
   return (
     <section className="card-stack enter">
-      <div className="px-3.5 pt-3.5 pb-3">
-        <div className="flex items-center gap-3">
+      <div className="group/row px-3.5 pt-3.5 pb-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => navigate({ name: 'room', id: room.id })}
-            className="group flex min-w-0 flex-1 items-center gap-1 rounded-row text-left focus-visible:focus-ring"
+            className="group/link flex min-w-0 flex-1 items-center gap-1 rounded-row text-left focus-visible:focus-ring"
           >
             <span className="min-w-0">
               <h2 className="truncate text-base font-semibold">{room.name}</h2>
@@ -43,11 +44,12 @@ export function RoomCard({ room, lights }: RoomCardProps) {
             </span>
             <span
               aria-hidden
-              className="text-ink-muted transition-transform group-hover:translate-x-0.5"
+              className="text-ink-muted transition-transform group-hover/link:translate-x-0.5"
             >
               ›
             </span>
           </button>
+          <FavoriteButton target={{ type: 'room', id: room.id }} label={`pokój ${room.name}`} />
           <PowerSwitch
             checked={room.isOn}
             label={`Przełącz pokój ${room.name}`}

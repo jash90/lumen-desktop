@@ -4,6 +4,7 @@ import type { Light } from '../../shared/models';
 import { LIGHT_THROTTLE_MS } from '../hooks/useThrottledCommit';
 import { useSetLightBrightness, useSetLightPower } from '../hooks/useHue';
 import { useUiStore } from '../stores/uiStore';
+import { FavoriteButton } from './FavoriteButton';
 import { PowerSwitch } from './PowerSwitch';
 import { Slider } from './Slider';
 import { rgbToHex } from '../lib/color';
@@ -23,12 +24,12 @@ export function LightCard({ light }: { light: Light }) {
   const tint = light.color ? rgbToHex(light.color) : 'var(--color-accent)';
 
   return (
-    <div className="enter px-3.5 py-3" style={{ '--light': tint } as CSSProperties}>
-      <div className="flex items-center gap-3">
+    <div className="enter group/row px-3.5 py-3" style={{ '--light': tint } as CSSProperties}>
+      <div className="flex items-center gap-2">
         {/* One mechanism carries hue, on/off and glow — a 10px dot could not. */}
         <span
           aria-hidden
-          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full transition-all duration-300 ${
+          className={`mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-full transition-all duration-300 ${
             light.isOn
               ? 'bg-[color-mix(in_oklab,var(--light)_22%,transparent)] shadow-[0_0_12px_-2px_var(--light)]'
               : 'bg-transparent ring-1 ring-line ring-inset'
@@ -62,6 +63,7 @@ export function LightCard({ light }: { light: Light }) {
           </span>
         </button>
 
+        <FavoriteButton target={{ type: 'light', id: light.id }} label={light.name} />
         <PowerSwitch
           checked={light.isOn}
           label={`Przełącz ${light.name}`}

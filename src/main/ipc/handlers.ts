@@ -72,7 +72,20 @@ export const args = {
   idAndBoolean: z.tuple([z.string().min(1).max(128), z.boolean()]),
   idAndPercent: z.tuple([z.string().min(1).max(128), z.number().min(0).max(100)]),
   settingsPatch: z.tuple([
-    z.object({ theme: z.enum(['system', 'light', 'dark']).optional() }),
+    z.object({
+      theme: z.enum(['system', 'light', 'dark']).optional(),
+      // The renderer is untrusted, and settings.json is rewritten synchronously
+      // on every change — hence the explicit shape and the cap.
+      favorites: z
+        .array(
+          z.object({
+            type: z.enum(['light', 'room', 'scene']),
+            id: z.string().min(1).max(128),
+          }),
+        )
+        .max(50)
+        .optional(),
+    }),
   ]),
   idAndColor: z.tuple([
     z.string().min(1).max(128),

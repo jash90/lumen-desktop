@@ -1,5 +1,5 @@
 import type { Scene } from '../../shared/models';
-import { useActivateScene } from '../hooks/useHue';
+import { useActivateScene, useToggleFavorite } from '../hooks/useHue';
 
 /**
  * Scenes as a row of chips. The bridge ships a handful per room and their names
@@ -8,6 +8,7 @@ import { useActivateScene } from '../hooks/useHue';
  */
 export function SceneRow({ scenes }: { scenes: Scene[] }) {
   const activate = useActivateScene();
+  const toggleFavorite = useToggleFavorite();
 
   if (scenes.length === 0) return null;
 
@@ -18,6 +19,12 @@ export function SceneRow({ scenes }: { scenes: Scene[] }) {
           key={scene.id}
           type="button"
           onClick={() => activate.mutate(scene.id)}
+          // A chip is too small for a second control, so pinning rides on the
+          // context menu rather than a visible star.
+          onContextMenu={(event) => {
+            event.preventDefault();
+            toggleFavorite({ type: 'scene', id: scene.id });
+          }}
           aria-pressed={scene.isActive}
           className={`min-h-8 rounded-full border px-3 text-xs font-medium transition-colors focus-visible:focus-ring ${
             scene.isActive
