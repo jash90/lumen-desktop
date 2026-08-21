@@ -26,6 +26,8 @@ export interface BridgeRepository {
   /** MVP drives a single bridge; this is the one it uses. */
   getActive(): BridgeCredential | null;
   save(credential: BridgeCredential): void;
+  /** Makes a stored bridge the active one; the connection follows on reconnect. */
+  setActive(bridgeId: string): void;
   /** DHCP moved the bridge — keep the key, update the address (PRD §51). */
   updateIp(bridgeId: string, ip: string): void;
   remove(bridgeId: string): void;
@@ -47,6 +49,15 @@ export function createBridgeRepository(storage: SecureStorage): BridgeRepository
     save(credential) {
       const bridges = load().bridges.filter((b) => b.bridgeId !== credential.bridgeId);
       persist([credential, ...bridges]);
+    },
+
+    setActive(bridgeId) {
+      // "Active" is just first in the list, which is what getActive() reads —
+      // no separate pointer to keep in sync.
+      const bridges = load().bridges;
+      const target = bridges.find((bridge) => bridge.bridgeId === bridgeId);
+      if (!target) return;
+      persist([target, ...bridges.filter((bridge) => bridge.bridgeId !== bridgeId)]);
     },
 
     updateIp(bridgeId, ip) {

@@ -49,6 +49,9 @@ export const INVOKE_CHANNELS = [
   'reconnectBridge',
   'getConnectionStatus',
   'getStorageHealth',
+  'listBridges',
+  'setActiveBridge',
+  'removeBridge',
   'getSettings',
   'setSettings',
   'getLights',
@@ -99,6 +102,12 @@ export interface HueApi {
   reconnectBridge(): Promise<Result<ConnectionStatus>>;
   getConnectionStatus(): Promise<Result<ConnectionStatus>>;
   getStorageHealth(): Promise<Result<StorageHealth>>;
+
+  // Multiple bridges: one is active at a time and the app switches between them.
+  // The application key never crosses this boundary.
+  listBridges(): Promise<Result<BridgeSummary[]>>;
+  setActiveBridge(id: string): Promise<Result<ConnectionStatus>>;
+  removeBridge(id: string): Promise<Result<void>>;
 
   // Preferences (PRD §29). Kept in the main process rather than localStorage so
   // the setting survives regardless of how the renderer origin is treated.

@@ -62,6 +62,35 @@ export function registerIpcHandlers(context: IpcContext): void {
   handle('getConnectionStatus', args.none, () => connection.status());
   handle('getStorageHealth', args.none, () => storage.health());
 
+  // Deliberately maps to BridgeSummary: applicationKey must never reach the
+  // renderer, and returning credentials wholesale would do exactly that.
+  handle('listBridges', args.none, () =>
+    repository.list().map((credential) => ({
+      id: credential.bridgeId,
+      name: credential.name,
+      ip: credential.bridgeIp,
+      modelId: credential.modelId,
+      swVersion: credential.swVersion,
+    })),
+  );
+
+  handle('setActiveBridge', args.id, async ([id]) => {
+    repository.setActive(id);
+    // reconnectNow() already reads getActive(), so switching needs no change in
+    // the connection manager itself.
+    return connection.reconnectNow();
+  });
+
+  handle('removeBridge', args.id, async ([id]) => {
+    const active = repository.getActive();
+    // Forgetting the active bridge has to tear the live connection down too.
+    if (active?.bridgeId === id) {
+      await connection.forget();
+      return;
+    }
+    repository.remove(id);
+  });
+
   // Preferences
   handle('getSettings', args.none, () => settings.get());
   handle('setSettings', args.settingsPatch, ([patch]) => {

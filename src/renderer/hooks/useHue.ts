@@ -26,6 +26,46 @@ export const useConnectionStatus = () =>
     queryFn: () => unwrap(window.hue.getConnectionStatus()),
   });
 
+export const useBridges = () =>
+  useQuery({
+    queryKey: queryKeys.bridges,
+    queryFn: () => unwrap(window.hue.listBridges()),
+  });
+
+/**
+ * Switching bridges must *remove* the cached resources, not merely invalidate
+ * them: invalidated data stays on screen and stays clickable until the refetch
+ * lands, so for a moment you can tap a light belonging to the other bridge.
+ */
+export function useSwitchBridge() {
+  const queryClient = useQueryClient();
+  const pushToast = useUiStore((state) => state.pushToast);
+
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.hue.setActiveBridge(id)),
+    onSuccess: (status) => {
+      queryClient.removeQueries({ queryKey: queryKeys.lights });
+      queryClient.removeQueries({ queryKey: queryKeys.rooms });
+      queryClient.removeQueries({ queryKey: queryKeys.scenes });
+      queryClient.removeQueries({ queryKey: queryKeys.automations });
+      queryClient.setQueryData(queryKeys.connection, status);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bridges });
+    },
+    onError: (error) => pushToast(messageOf(error)),
+  });
+}
+
+export function useRemoveBridge() {
+  const queryClient = useQueryClient();
+  const pushToast = useUiStore((state) => state.pushToast);
+
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.hue.removeBridge(id)),
+    onSuccess: () => queryClient.invalidateQueries(),
+    onError: (error) => pushToast(messageOf(error)),
+  });
+}
+
 export const useStorageHealth = () =>
   useQuery({
     queryKey: queryKeys.storageHealth,
