@@ -22,7 +22,12 @@ describe('SettingsStorage', () => {
   beforeEach(() => fs.rmSync(file, { force: true }));
 
   it('starts from defaults when nothing has been written yet', () => {
-    expect(createSettingsStorage().get()).toEqual({ theme: 'system', favorites: [] });
+    // Asserted field by field so adding a new preference does not break this.
+    expect(createSettingsStorage().get()).toMatchObject({
+      theme: 'system',
+      launchAtLogin: false,
+      favorites: [],
+    });
   });
 
   it('falls back to defaults rather than throwing on a corrupt file', () => {

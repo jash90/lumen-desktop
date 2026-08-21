@@ -23,6 +23,14 @@ bezpośrednio w sieci lokalnej. Bez backendu, bez konta, bez chmury.
 - **Paruje się** przez fizyczny przycisk na Bridge i pamięta go między uruchomieniami
 - **Steruje lampami** — włącz/wyłącz, jasność, temperatura barwowa, kolor RGB
 - **Steruje pokojami** jednym żądaniem `grouped_light`, zamiast osobnej komendy do każdej lampy
+- **Włącza sceny** zapisane w aplikacji Hue, pogrupowane według pokoi
+- **Ulubione** — przypnij pokój, lampę albo scenę na górę ekranu
+- **Menu bar** — sterowanie bez otwierania okna, z ulubionymi i „wyłącz wszystko"
+- **Skróty klawiszowe** działające globalnie, także gdy aplikacja jest w tle
+- **Szybkie akcje** — jednym kliknięciem to, co robisz najczęściej
+- **Automatyzacje** utworzone w aplikacji Hue: podgląd i wstrzymywanie
+- **Wiele Bridge'y** — przełączanie między nimi, np. dom i biuro
+- **Start z systemem**, prosto do paska menu
 - **Reaguje na zmiany z zewnątrz** — przełącznik ścienny, aplikacja Hue czy asystent głosowy
   natychmiast odświeżają widok dzięki strumieniowi zdarzeń Hue API v2
 - **Wraca po zerwaniu połączenia** — wykładniczy backoff, a jeśli DHCP zmieni adres Bridge'a,
@@ -44,16 +52,23 @@ dostępny w Centrum powiadomień i na pulpicie. Dwa rozmiary:
 Aby go dodać: kliknij prawym przyciskiem na pulpicie → *Edytuj widżety*, znajdź
 **Hue Desktop** i przeciągnij wybrany rozmiar. Aplikacja musi być w `/Applications`.
 
-Widżet jest **wyłącznie do odczytu i nie łączy się z Bridge'em**. Aplikacja zapisuje
-mały zrzut stanu do wspólnego kontenera App Group, a widżet tylko go czyta — dzięki
-temu klucz aplikacji Hue nie opuszcza magazynu chronionego Keychainem i nigdy nie
-trafia do drugiego procesu.
+Widżet **steruje oświetleniem**: w małym rozmiarze cała kafelka jest przełącznikiem
+„wszystko włącz/wyłącz", w średnim każdy pokój ma własny przycisk.
 
-**Odświeżanie:** widżet aktualizuje się cyklicznie, w praktyce w ciągu jednej–dwóch
-minut od zmiany — nie natychmiast. `WidgetCenter.reloadAllTimelines()` jest przez
-system ignorowane, gdy wywoła je proces pomocniczy zamiast samej aplikacji, więc
-jedyną działającą ścieżką jest harmonogram timeline'u (a i ten WidgetKit dławi
-własnym budżetem odświeżeń).
+Łączy się z Bridge'em samodzielnie, więc działa **także przy zamkniętej aplikacji**.
+Wymaga to wyeksportowania klucza aplikacji Hue do wspólnego kontenera App Group
+(plik z prawami `0600`) — świadomy kompromis: klucz opuszcza magazyn chroniony
+Keychainem. Uprawnia on wyłącznie do sterowania oświetleniem w sieci lokalnej i nie
+jest poświadczeniem konta, a rozparowanie Bridge'a kasuje ten plik. TLS jest
+weryfikowany tak samo jak w aplikacji — to samo CA Signify i to samo porównanie
+Common Name z identyfikatorem Bridge'a.
+
+Gdy Bridge jest nieosiągalny, widżet pokazuje ostatni zrzut zapisany przez aplikację
+zamiast pustego okna.
+
+**Odświeżanie:** po dotknięciu przycisku stan jest natychmiastowy. Automatyczne
+odświeżanie żąda odstępu jednej minuty, ale WidgetKit dławi je własnym budżetem —
+w praktyce wychodzi kilka minut.
 
 > Rozszerzenie działa wyłącznie w podpisanej, zainstalowanej paczce. W trybie
 > deweloperskim (`npm start`) nie ma bundla aplikacji, więc system nie ma czego
@@ -141,7 +156,10 @@ Renderer nie wie, czym jest HTTPS, mDNS, CIE xy ani `hue-application-key`. Zna w
 - `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true` — renderer nie ma
   dostępu do żadnego API Node'a
 - Klucz aplikacji jest szyfrowany przez `safeStorage` (Keychain / DPAPI / secret service)
-  i nigdy nie trafia do renderera
+  i nigdy nie trafia do renderera — lista Bridge'y przekazywana przez IPC zawiera adres
+  i nazwę, ale nie klucz
+- **Wyjątek:** widżet macOS dostaje kopię klucza w kontenerze App Group (`0600`), żeby móc
+  rozmawiać z Bridge'em przy zamkniętej aplikacji. Patrz [Widżet macOS](#widżet-macos)
 - **TLS jest weryfikowany, nie wyłączany.** Bridge przedstawia certyfikat wystawiony przez
   prywatne CA Signify (`CN=root-bridge`), którego nie ma w zaufanych magazynach systemowych
   i który nie zawiera pola `subjectAltName`. Aplikacja dołącza to CA, ufa **wyłącznie**
@@ -158,18 +176,46 @@ Renderer nie wie, czym jest HTTPS, mDNS, CIE xy ani `hue-application-key`. Zna w
   albo ręczne wpisanie adresu IP.
 - **Linux bez systemowego magazynu haseł**: gdy `safeStorage` zgłasza backend `basic_text`,
   aplikacja wyświetla ostrzeżenie, że klucz nie jest realnie chroniony.
-- Sceny, tray, globalne skróty i automatyzacje nie wchodzą w skład tej wersji.
+- **Automatyzacje można tylko włączać i wyłączać**, nie tworzyć — każdy `behavior_script`
+  ma własny schemat konfiguracji, a Bridge wykonuje reguły niezależnie od tej aplikacji.
+- **Wiele Bridge'y działa przez przełączanie aktywnego**, nie równolegle. Sterowanie dwoma
+  naraz wymagałoby rozdzielenia identyfikatorów zasobów w całym modelu domenowym.
+- Sterowanie spoza sieci domowej wymaga v2 — patrz [Roadmapa](#roadmapa).
 - Widżet macOS wymaga systemu **macOS 14 lub nowszego** i jest dostępny wyłącznie
   na macOS.
 
 ## Roadmapa
 
-| Wersja | Zakres |
-|---|---|
-| **MVP** *(obecnie)* | Bridge, lampy, pokoje, jasność, temperatura, kolor, stan połączenia |
-| v1 | Sceny, menu bar / tray, ulubione, skróty klawiszowe, start z systemem |
-| v1.5 | Wiele Bridge'y, szybkie akcje, automatyzacje |
-| v2 | Hue Remote API, sterowanie spoza sieci domowej |
+| Wersja | Zakres | Stan |
+|---|---|---|
+| MVP | Bridge, lampy, pokoje, jasność, temperatura, kolor, stan połączenia | ✅ |
+| v1 | Sceny, menu bar / tray, ulubione, skróty klawiszowe, start z systemem | ✅ |
+| **v1.5** *(obecnie)* | Wiele Bridge'y, szybkie akcje, automatyzacje | ✅ |
+| v2 | Hue Remote API, sterowanie spoza sieci domowej | planowane |
+
+### v2 — co trzeba rozstrzygnąć przed startem
+
+Sterowanie spoza domu wymaga chmury Signify, a ta stawia warunek, którego nie da się
+spełnić po cichu:
+
+- Endpointy to `https://api.meethue.com/v2/oauth2/authorize` i `/v2/oauth2/token`
+  (wersja v1 `/oauth2` jest wycofana od 2020), a zdalny CLIP to
+  `https://api.meethue.com/route/clip/v2/...` z nagłówkami `Authorization: Bearer`
+  **oraz** `hue-application-key`.
+- **PKCE nie jest udokumentowane**, więc wymiana kodu na token potrzebuje
+  `client_secret` — a tego nie można bezpiecznie umieścić w aplikacji desktopowej.
+  Do wyboru: (A) każdy użytkownik rejestruje własną aplikację na
+  developers.meethue.com i wkleja swoje poświadczenia, (B) własny mikro-broker
+  wymiany tokenu, (C) poczekać, aż portal Hue zacznie wspierać PKCE.
+- Do chmury **nie wolno** użyć przypiętego CA Signify z `HueTransport.ts` —
+  `api.meethue.com` ma zwykły certyfikat publicznego CA. Zdalny transport to osobny
+  plik z domyślną walidacją Node; obejście przez `rejectUnauthorized: false` jest
+  w tym projekcie zakazane.
+- Logowanie musi iść przez przeglądarkę systemową (`shell.openExternal`), nigdy
+  przez `BrowserWindow` — hasło do konta Hue nie może przechodzić przez nasz proces.
+
+Wykonalność bierze się stąd, że `HueClient`, `HueApi` i `HueMapper` zależą wyłącznie
+od interfejsu `HueTransport` — sam `HueApi` nie zmieniłby się ani o linijkę.
 
 ## Licencja
 

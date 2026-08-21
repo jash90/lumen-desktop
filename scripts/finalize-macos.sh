@@ -14,7 +14,7 @@ APP="${1:?usage: finalize-macos.sh <path to .app>}"
 "$ROOT/widget/build-widget.sh" "$APP"
 
 if [ -z "${APPLE_API_ISSUER:-}" ]; then
-  echo "finalize-macos: brak APPLE_API_ISSUER — pomijam notaryzację"
+  echo "finalize-macos: APPLE_API_ISSUER unset — skipping notarisation"
   exit 0
 fi
 

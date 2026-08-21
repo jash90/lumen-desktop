@@ -144,16 +144,16 @@ xcrun appintentsmetadataprocessor \
 
 # A silent failure here would ship a widget whose buttons do nothing at all.
 test -f "$APPEX/Contents/Resources/Metadata.appintents/extract.actionsdata" \
-  || { echo "brak metadanych AppIntents — przyciski widżetu byłyby martwe" >&2; exit 1; }
+  || { echo "missing AppIntents metadata — the widget buttons would be dead" >&2; exit 1; }
 
 IDENTITY_NAME="${HUE_IDENTITY:-Developer ID Application}"
 IDENTITY="$(security find-identity -v -p codesigning \
   | grep "$IDENTITY_NAME" | head -1 | awk '{print $2}')"
 if [ -z "$IDENTITY" ]; then
-  echo "nie znaleziono certyfikatu pasującego do: $IDENTITY_NAME" >&2
+  echo "no code-signing identity matching: $IDENTITY_NAME" >&2
   exit 1
 fi
-echo "podpisuję tożsamością $IDENTITY"
+echo "signing with identity $IDENTITY"
 codesign --force --sign "$IDENTITY" --options runtime --timestamp \
   --entitlements "$BUILD/entitlements.plist" "$APPEX"
 
@@ -173,4 +173,4 @@ cp -R "$APPEX" "$APP/Contents/PlugIns/"
 codesign --force --sign "$IDENTITY" --options runtime --timestamp \
   --entitlements "$ROOT/build/entitlements.plist" "$APP"
 
-echo "osadzono $NAME.appex w $APP"
+echo "embedded $NAME.appex into $APP"
