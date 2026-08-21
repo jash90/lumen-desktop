@@ -5,6 +5,7 @@ import started from 'electron-squirrel-startup';
 import type { Action } from '../shared/models';
 import { EVENT_CHANNELS } from '../shared/ipc';
 import { createActionRunner } from './actions/ActionRunner';
+import { startedHidden } from './autostart';
 import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
 import { createBridgePairingService } from './bridge/BridgePairingService';
 import { createBridgeRepository } from './bridge/BridgeRepository';
@@ -57,7 +58,11 @@ function createWindow(): BrowserWindow {
   });
   window.webContents.on('will-navigate', (event) => event.preventDefault());
 
-  window.once('ready-to-show', () => window.show());
+  // Launched by the OS at login: stay in the tray instead of opening a window
+  // in the user's face.
+  window.once('ready-to-show', () => {
+    if (!startedHidden()) window.show();
+  });
 
   // With a tray present the window closes to it instead of ending the app —
   // otherwise the tray icon would linger with nothing behind it.

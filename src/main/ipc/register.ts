@@ -7,6 +7,7 @@ import type { BridgeRepository } from '../bridge/BridgeRepository';
 import type { ConnectionManager } from '../bridge/ConnectionManager';
 import type { SecureStorage } from '../storage/SecureStorage';
 import type { SettingsStorage } from '../storage/SettingsStorage';
+import { applyLoginItem } from '../autostart';
 import { args, assertAllChannelsRegistered, broadcast, handle } from './handlers';
 
 export interface IpcContext {
@@ -55,6 +56,7 @@ export function registerIpcHandlers(context: IpcContext): void {
     // Pointing nativeTheme at the choice is what makes prefers-color-scheme in the
     // renderer follow it — the UI needs no theme class of its own.
     nativeTheme.themeSource = next.theme;
+    applyLoginItem(next.launchAtLogin);
     return next;
   });
 

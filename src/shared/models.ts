@@ -123,6 +123,8 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface Settings {
   theme: ThemePreference;
+  /** Start with the system, into the tray rather than into a visible window. */
+  launchAtLogin: boolean;
   /**
    * Pinned resources, shown first on the dashboard. Stored here rather than in a
    * store of their own because Settings already crosses IPC and survives

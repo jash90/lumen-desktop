@@ -6,7 +6,7 @@ import type { Settings } from '../../shared/models';
 
 /** Non-secret preferences (PRD §29). Plain JSON on purpose — nothing here is sensitive. */
 
-const DEFAULTS: Settings = { theme: 'system', favorites: [] };
+const DEFAULTS: Settings = { theme: 'system', launchAtLogin: false, favorites: [] };
 
 export interface SettingsStorage {
   get(): Settings;

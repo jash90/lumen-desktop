@@ -74,6 +74,7 @@ export const args = {
   settingsPatch: z.tuple([
     z.object({
       theme: z.enum(['system', 'light', 'dark']).optional(),
+      launchAtLogin: z.boolean().optional(),
       // The renderer is untrusted, and settings.json is rewritten synchronously
       // on every change — hence the explicit shape and the cap.
       favorites: z
