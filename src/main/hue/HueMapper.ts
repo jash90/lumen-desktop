@@ -1,5 +1,5 @@
-import type { Light, LightCapabilities, RgbColor, Room } from '../../shared/models';
-import type { GroupedLightDto, LightDto, RoomDto } from './dto';
+import type { Light, LightCapabilities, RgbColor, Room, Scene } from '../../shared/models';
+import type { GroupedLightDto, LightDto, RoomDto, SceneDto } from './dto';
 import { DEFAULT_GAMUT, type Gamut, rgbToXy, xyToRgb } from './HueColor';
 
 /**
@@ -139,6 +139,20 @@ export function toRoom(
 }
 
 /** Request bodies for PRD §13, §14, §47, §48. */
+/**
+ * Scenes belonging to a zone report `group.rtype === 'zone'`. The app models
+ * rooms only, so those get a null roomId and are shown in their own section
+ * rather than being dropped.
+ */
+export function toScene(dto: SceneDto): Scene {
+  return {
+    id: dto.id,
+    name: dto.metadata.name,
+    roomId: dto.group.rtype === 'room' ? dto.group.rid : null,
+    isActive: (dto.status?.active ?? 'inactive') !== 'inactive',
+  };
+}
+
 export const payloads = {
   power: (on: boolean) => ({ on: { on } }),
 
@@ -156,4 +170,7 @@ export const payloads = {
   }),
 
   color: (color: RgbColor, gamut: Gamut) => ({ color: { xy: rgbToXy(color, gamut) } }),
+
+  /** Applying a scene is a "recall" on the scene resource, not a write to lights. */
+  recallScene: () => ({ recall: { action: 'active' } }),
 };

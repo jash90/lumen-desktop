@@ -15,6 +15,7 @@ import type {
   Light,
   Room,
   RgbColor,
+  Scene,
   Settings,
   StorageHealth,
 } from './models';
@@ -58,6 +59,8 @@ export const INVOKE_CHANNELS = [
   'getRoom',
   'setRoomPower',
   'setRoomBrightness',
+  'getScenes',
+  'activateScene',
 ] as const;
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
@@ -111,6 +114,11 @@ export interface HueApi {
   getRoom(id: string): Promise<Result<Room>>;
   setRoomPower(id: string, on: boolean): Promise<Result<void>>;
   setRoomBrightness(id: string, brightness: number): Promise<Result<void>>;
+
+  // Scenes. Recalling one produces ordinary light events, so the UI updates
+  // through the same stream as any other change.
+  getScenes(): Promise<Result<Scene[]>>;
+  activateScene(id: string): Promise<Result<void>>;
 
   // Push updates (PRD §50) — renderer only ever learns about these three.
   onLightChanged(listener: (lights: Light[]) => void): Unsubscribe;

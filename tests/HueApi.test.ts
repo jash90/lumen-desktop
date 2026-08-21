@@ -3,13 +3,23 @@ import { describe, expect, it } from 'vitest';
 import { createHueApi } from '../src/main/hue/HueApi';
 import { createHueClient } from '../src/main/hue/HueClient';
 import { createFakeTransport, jsonResponse } from './fakeTransport';
-import { CEILING_LIGHT, LIVING_ROOM, LIVING_ROOM_GROUP, PLAIN_LIGHT } from './fixtures';
+import {
+  CEILING_LIGHT,
+  LIVING_ROOM,
+  LIVING_ROOM_GROUP,
+  PLAIN_LIGHT,
+  RELAX_SCENE,
+  ZONE_SCENE,
+} from './fixtures';
 
-function createApi(overrides: { lights?: unknown[]; rooms?: unknown[]; groups?: unknown[] } = {}) {
+function createApi(
+  overrides: { lights?: unknown[]; rooms?: unknown[]; groups?: unknown[]; scenes?: unknown[] } = {},
+) {
   const transport = createFakeTransport((options) => {
     if (options.path.endsWith('/light')) return jsonResponse(overrides.lights ?? [CEILING_LIGHT, PLAIN_LIGHT]);
     if (options.path.endsWith('/room')) return jsonResponse(overrides.rooms ?? [LIVING_ROOM]);
     if (options.path.endsWith('/grouped_light')) return jsonResponse(overrides.groups ?? [LIVING_ROOM_GROUP]);
+    if (options.path.endsWith('/scene')) return jsonResponse(overrides.scenes ?? [RELAX_SCENE, ZONE_SCENE]);
     return jsonResponse([]);
   });
   return { transport, api: createHueApi(createHueClient(transport, 'key')) };
@@ -110,5 +120,55 @@ describe('HueApi', () => {
 
     const changes = api.applyUpdates([{ id: 'sensor-1', type: 'motion' }]);
     expect(changes).toEqual({ lights: [], rooms: [] });
+  });
+});
+
+describe('HueApi scenes', () => {
+  it('recalls a scene on the scene resource, not on the lights', async () => {
+    const { transport, api } = createApi();
+    await api.refresh();
+    transport.calls.length = 0;
+
+    await api.activateScene('scene-relax');
+
+    expect(transport.calls).toHaveLength(1);
+    expect(transport.calls[0]?.path).toBe('/clip/v2/resource/scene/scene-relax');
+    expect(JSON.parse(transport.calls[0]?.body ?? '{}')).toEqual({
+      recall: { action: 'active' },
+    });
+  });
+
+  it('keeps zone scenes but leaves them without a room', async () => {
+    const { api } = createApi();
+    await api.refresh();
+
+    const scenes = api.getScenes();
+    expect(scenes.find((scene) => scene.id === 'scene-relax')?.roomId).toBe('room-living');
+    // A zone scene would vanish from the UI if it were dropped here.
+    expect(scenes.find((scene) => scene.id === 'scene-zone')?.roomId).toBeNull();
+  });
+
+  it('reports which scene the bridge currently has applied', async () => {
+    const { api } = createApi();
+    await api.refresh();
+
+    const scenes = api.getScenes();
+    expect(scenes.find((scene) => scene.id === 'scene-relax')?.isActive).toBe(false);
+    expect(scenes.find((scene) => scene.id === 'scene-zone')?.isActive).toBe(true);
+  });
+
+  it('refuses to recall a scene the bridge never reported', async () => {
+    const { api } = createApi();
+    await api.refresh();
+
+    await expect(api.activateScene('scene-ghost')).rejects.toThrow(/unknown scene/);
+  });
+
+  it('does not accumulate scenes across refreshes', async () => {
+    const { api } = createApi();
+    await api.refresh();
+    await api.refresh();
+
+    expect(api.getScenes()).toHaveLength(2);
   });
 });

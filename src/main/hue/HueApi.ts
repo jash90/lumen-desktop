@@ -1,12 +1,14 @@
 import { HueError } from '../../shared/errors';
-import type { Light, RgbColor, Room } from '../../shared/models';
+import type { Light, RgbColor, Room, Scene } from '../../shared/models';
 import {
   groupedLightDtoSchema,
   lightDtoSchema,
   roomDtoSchema,
+  sceneDtoSchema,
   type GroupedLightDto,
   type LightDto,
   type RoomDto,
+  type SceneDto,
 } from './dto';
 import type { HueClient } from './HueClient';
 import {
@@ -17,6 +19,7 @@ import {
   payloads,
   toLight,
   toRoom,
+  toScene,
 } from './HueMapper';
 
 /**
@@ -33,6 +36,9 @@ export interface HueApi {
   getLight(id: string): Light;
   getRooms(): Room[];
   getRoom(id: string): Room;
+  getScenes(): Scene[];
+  /** Applies a stored scene; the resulting light changes arrive over the event stream. */
+  activateScene(id: string): Promise<void>;
   setLightPower(id: string, on: boolean): Promise<void>;
   setLightBrightness(id: string, brightness: number): Promise<void>;
   setLightColor(id: string, color: RgbColor): Promise<void>;
@@ -76,6 +82,7 @@ export function createHueApi(client: HueClient): HueApi {
   const lightDtos = new Map<string, LightDto>();
   const roomDtos = new Map<string, RoomDto>();
   const groupedLightDtos = new Map<string, GroupedLightDto>();
+  const sceneDtos = new Map<string, SceneDto>();
   /** device rid -> room id */
   let roomIndex = new Map<string, string>();
 
@@ -126,18 +133,21 @@ export function createHueApi(client: HueClient): HueApi {
 
   return {
     async refresh() {
-      const [lights, rooms, groupedLights] = await Promise.all([
+      const [lights, rooms, groupedLights, scenes] = await Promise.all([
         client.list('light', lightDtoSchema),
         client.list('room', roomDtoSchema),
         client.list('grouped_light', groupedLightDtoSchema),
+        client.list('scene', sceneDtoSchema),
       ]);
 
       lightDtos.clear();
       roomDtos.clear();
       groupedLightDtos.clear();
+      sceneDtos.clear();
       for (const light of lights) lightDtos.set(light.id, light);
       for (const room of rooms) roomDtos.set(room.id, room);
       for (const groupedLight of groupedLights) groupedLightDtos.set(groupedLight.id, groupedLight);
+      for (const scene of scenes) sceneDtos.set(scene.id, scene);
       roomIndex = buildRoomIndex(rooms);
     },
 
@@ -150,6 +160,14 @@ export function createHueApi(client: HueClient): HueApi {
         .sort((a, b) => a.name.localeCompare(b.name)),
 
     getRoom: (id) => projectRoom(requireRoomDto(id)),
+
+    getScenes: () =>
+      [...sceneDtos.values()].map(toScene).sort((a, b) => a.name.localeCompare(b.name)),
+
+    async activateScene(id) {
+      if (!sceneDtos.has(id)) throw new HueError('RequestFailed', `unknown scene ${id}`);
+      return client.update('scene', id, payloads.recallScene());
+    },
 
     setLightPower: (id, on) => client.update('light', id, payloads.power(on)),
 

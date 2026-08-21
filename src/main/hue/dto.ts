@@ -66,6 +66,15 @@ export const groupedLightDtoSchema = z.object({
   dimming: z.object({ brightness: z.number() }).optional(),
 });
 
+export const sceneDtoSchema = z.object({
+  id: z.string(),
+  metadata: z.object({ name: z.string() }),
+  /** The room or zone the scene belongs to — scenes are never global. */
+  group: resourceRef,
+  /** `active` is 'inactive' or a recall state; it tells the UI which scene is on. */
+  status: z.object({ active: z.string().optional() }).optional(),
+});
+
 export const bridgeConfigSchema = z.object({
   name: z.string(),
   bridgeid: z.string(),
@@ -99,4 +108,5 @@ export const cloudDiscoverySchema = z.array(
 export type LightDto = z.infer<typeof lightDtoSchema>;
 export type RoomDto = z.infer<typeof roomDtoSchema>;
 export type GroupedLightDto = z.infer<typeof groupedLightDtoSchema>;
+export type SceneDto = z.infer<typeof sceneDtoSchema>;
 export type BridgeConfigDto = z.infer<typeof bridgeConfigSchema>;

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import type { ConnectionStatus, Light, RgbColor, Room, Settings } from '../../shared/models';
+import type { ConnectionStatus, Light, RgbColor, Room, Scene, Settings } from '../../shared/models';
 import { messageOf, queryKeys, unwrap } from '../lib/hue';
 import { useUiStore } from '../stores/uiStore';
 
@@ -49,6 +49,29 @@ export function useRooms(enabled: boolean) {
     queryKey: queryKeys.rooms,
     queryFn: () => unwrap(window.hue.getRooms()),
     enabled,
+  });
+}
+
+export function useScenes(enabled: boolean) {
+  return useQuery<Scene[]>({
+    queryKey: queryKeys.scenes,
+    queryFn: () => unwrap(window.hue.getScenes()),
+    enabled,
+  });
+}
+
+/**
+ * Recalling a scene needs no optimistic update: the bridge reports the resulting
+ * light states over the event stream, which is what the UI already listens to.
+ */
+export function useActivateScene() {
+  const queryClient = useQueryClient();
+  const pushToast = useUiStore((state) => state.pushToast);
+
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.hue.activateScene(id)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.scenes }),
+    onError: (error) => pushToast(messageOf(error)),
   });
 }
 
@@ -188,6 +211,7 @@ export function useHueEvents() {
         if (status.state === 'connected') {
           void queryClient.invalidateQueries({ queryKey: queryKeys.lights });
           void queryClient.invalidateQueries({ queryKey: queryKeys.rooms });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.scenes });
         }
       }),
     ];

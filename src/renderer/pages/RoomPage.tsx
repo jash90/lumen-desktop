@@ -1,6 +1,13 @@
-import { useLights, useRooms, useSetRoomBrightness, useSetRoomPower } from '../hooks/useHue';
+import {
+  useLights,
+  useRooms,
+  useScenes,
+  useSetRoomBrightness,
+  useSetRoomPower,
+} from '../hooks/useHue';
 import { EmptyState } from '../components/EmptyState';
 import { LightCard } from '../components/LightCard';
+import { SceneRow } from '../components/SceneRow';
 import { Slider } from '../components/Slider';
 import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
 import { lightCountLabel } from '../lib/hue';
@@ -12,6 +19,7 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
   const lights = useLights(connected);
   const setPower = useSetRoomPower();
   const setBrightness = useSetRoomBrightness();
+  const scenes = useScenes(connected);
 
   const goHome = useUiStore((state) => state.goHome);
 
@@ -46,6 +54,16 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
       >
         {room.isOn ? 'Wyłącz wszystkie' : 'Włącz wszystkie'}
       </button>
+
+      {(() => {
+        const roomScenes = (scenes.data ?? []).filter((scene) => scene.roomId === room.id);
+        return roomScenes.length > 0 ? (
+          <section className="space-y-2">
+            <h2 className="label-caps px-1">Sceny</h2>
+            <SceneRow scenes={roomScenes} />
+          </section>
+        ) : null;
+      })()}
 
       {dimmable && room.isOn && (
         <Slider

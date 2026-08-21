@@ -53,3 +53,24 @@ export const LIVING_ROOM_GROUP = {
   dimming: { brightness: 65 },
   type: 'grouped_light',
 };
+
+/** A scene attached to a room — the ordinary case. */
+export const RELAX_SCENE = {
+  id: 'scene-relax',
+  metadata: { name: 'Relaks' },
+  group: { rid: 'room-living', rtype: 'room' },
+  status: { active: 'inactive' },
+  type: 'scene',
+};
+
+/**
+ * A scene attached to a zone. The app models rooms only, so this exercises the
+ * path where a scene has no room to sit under and would otherwise be dropped.
+ */
+export const ZONE_SCENE = {
+  id: 'scene-zone',
+  metadata: { name: 'Wieczór' },
+  group: { rid: 'zone-downstairs', rtype: 'zone' },
+  status: { active: 'static' },
+  type: 'scene',
+};

@@ -84,6 +84,10 @@ export function registerIpcHandlers(context: IpcContext): void {
     connection.requireApi().setRoomBrightness(id, brightness),
   );
 
+  // Scenes
+  handle('getScenes', args.none, () => connection.requireApi().getScenes());
+  handle('activateScene', args.id, ([id]) => connection.requireApi().activateScene(id));
+
   assertAllChannelsRegistered();
 }
 

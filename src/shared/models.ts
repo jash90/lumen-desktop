@@ -51,6 +51,20 @@ export interface Room {
   supportsGroupControl: boolean;
 }
 
+/**
+ * A lighting preset stored on the bridge (PRD roadmap v1).
+ *
+ * `roomId` is null for scenes attached to a zone rather than a room — the app
+ * has no zone concept, and dropping them would make them unreachable.
+ */
+export interface Scene {
+  id: string;
+  name: string;
+  roomId: string | null;
+  /** True while the bridge reports this scene as the one currently applied. */
+  isActive: boolean;
+}
+
 export interface BridgeSummary {
   id: string;
   name: string;

@@ -1,13 +1,15 @@
-import { useLights, useRooms } from '../hooks/useHue';
+import { useLights, useRooms, useScenes } from '../hooks/useHue';
 import { EmptyState } from '../components/EmptyState';
 import { LightCard } from '../components/LightCard';
 import { RoomCard } from '../components/RoomCard';
+import { SceneRow } from '../components/SceneRow';
 import { Skeleton } from '../components/Skeleton';
 
 /** The dashboard from PRD §7: rooms, each with its lights. */
 export function HomePage({ connected }: { connected: boolean }) {
   const rooms = useRooms(connected);
   const lights = useLights(connected);
+  const scenes = useScenes(connected);
 
   if (rooms.isLoading || lights.isLoading) return <HomeSkeleton />;
 
@@ -29,6 +31,9 @@ export function HomePage({ connected }: { connected: boolean }) {
 
   const allLights = lights.data ?? [];
   const ungrouped = allLights.filter((light) => light.roomId === null);
+  // Scenes attached to a zone have no room to sit under, so they get their own
+  // section instead of disappearing from the app entirely.
+  const zoneScenes = (scenes.data ?? []).filter((scene) => scene.roomId === null);
 
   if (allLights.length === 0) {
     return (
@@ -48,6 +53,13 @@ export function HomePage({ connected }: { connected: boolean }) {
           lights={allLights.filter((light) => light.roomId === room.id)}
         />
       ))}
+
+      {zoneScenes.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="label-caps px-1">Sceny</h2>
+          <SceneRow scenes={zoneScenes} />
+        </section>
+      )}
 
       {ungrouped.length > 0 && (
         <section className="space-y-2">
