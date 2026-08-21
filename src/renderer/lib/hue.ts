@@ -32,3 +32,16 @@ export const queryKeys = {
   storageHealth: ['storageHealth'] as const,
   settings: ['settings'] as const,
 };
+
+/**
+ * Polish plural for "lampa": 1 takes the singular, 2–4 (but not 12–14) take the
+ * "few" form, everything else the genitive plural. Lived in RoomCard before,
+ * while RoomPage carried its own version that got "2 lampy" wrong.
+ */
+export function lightCountLabel(count: number): string {
+  if (count === 1) return '1 lampa';
+  const lastTwo = count % 100;
+  const last = count % 10;
+  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
+  return `${count} ${few ? 'lampy' : 'lamp'}`;
+}

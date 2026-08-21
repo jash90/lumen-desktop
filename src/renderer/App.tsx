@@ -1,7 +1,8 @@
 import { ConnectionStatusBadge } from './components/ConnectionStatus';
+import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/Toaster';
 import { useConnectionStatus, useHueEvents } from './hooks/useHue';
-import { HomePage } from './pages/HomePage';
+import { HomePage, HomeSkeleton } from './pages/HomePage';
 import { LightPage } from './pages/LightPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { RoomPage } from './pages/RoomPage';
@@ -32,18 +33,18 @@ export function App() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <header className="drag-region flex shrink-0 items-center gap-3 border-b border-line px-4 pt-7 pb-3">
+      <header className="drag-region flex shrink-0 items-center gap-3 px-4 pt-8 pb-3">
         {canGoBack ? (
           <button
             type="button"
             onClick={goHome}
             aria-label="Wstecz"
-            className="text-sm text-accent"
+            className="-ml-1.5 flex min-h-8 items-center gap-0.5 rounded-full px-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 focus-visible:focus-ring"
           >
-            ‹ Wstecz
+            <span aria-hidden>‹</span> Wstecz
           </button>
         ) : (
-          <span className="text-sm font-semibold">Hue Desktop</span>
+          <span className="text-sm font-semibold tracking-tight">Hue Desktop</span>
         )}
         <span className="ml-auto">
           <ConnectionStatusBadge status={status.data} />
@@ -52,13 +53,15 @@ export function App() {
 
       <main className="min-h-0 flex-1 overflow-y-auto">
         {!connected && view.name !== 'settings' ? (
-          <div className="px-6 py-10 text-center">
-            <p className="text-sm text-ink-muted">
-              {status.data?.state === 'disconnected'
-                ? 'Nie udało się połączyć z Hue Bridge.'
-                : 'Łączenie z Hue Bridge…'}
-            </p>
-          </div>
+          status.data?.state === 'disconnected' ? (
+            <EmptyState
+              title="Brak połączenia z Hue Bridge"
+              description="Sprawdź, czy Bridge jest włączony i w tej samej sieci co ten komputer."
+              action={{ label: 'Otwórz ustawienia', onClick: () => navigate({ name: 'settings' }) }}
+            />
+          ) : (
+            <HomeSkeleton />
+          )
         ) : view.name === 'home' ? (
           <HomePage connected={connected} />
         ) : view.name === 'room' ? (
@@ -71,20 +74,35 @@ export function App() {
       </main>
 
       <nav className="flex shrink-0 border-t border-line">
-        <button
-          type="button"
-          onClick={goHome}
-          className={`flex-1 py-3 text-sm ${view.name === 'settings' ? 'text-ink-muted' : 'text-accent'}`}
-        >
-          Dom
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate({ name: 'settings' })}
-          className={`flex-1 py-3 text-sm ${view.name === 'settings' ? 'text-accent' : 'text-ink-muted'}`}
-        >
-          Ustawienia
-        </button>
+        {(
+          [
+            { key: 'home', label: 'Dom', active: view.name !== 'settings', onClick: goHome },
+            {
+              key: 'settings',
+              label: 'Ustawienia',
+              active: view.name === 'settings',
+              onClick: () => navigate({ name: 'settings' }),
+            },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={tab.onClick}
+            aria-current={tab.active ? 'page' : undefined}
+            className={`relative min-h-11 flex-1 text-sm transition-colors focus-visible:focus-ring ${
+              tab.active ? 'font-semibold text-ink' : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {tab.label}
+            {tab.active && (
+              <span
+                aria-hidden
+                className="absolute inset-x-[38%] top-0 h-0.5 rounded-full bg-accent"
+              />
+            )}
+          </button>
+        ))}
       </nav>
 
       <Toaster />

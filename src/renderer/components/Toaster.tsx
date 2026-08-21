@@ -18,7 +18,7 @@ export function Toaster() {
           key={toast.id}
           type="button"
           onClick={() => dismiss(toast.id)}
-          className="pointer-events-auto w-full max-w-sm rounded-lg bg-red-600 px-4 py-2.5 text-left text-sm text-white shadow-lg"
+          className="enter pointer-events-auto w-full max-w-sm rounded-card bg-danger px-4 py-2.5 text-left text-sm text-danger-ink shadow-card"
         >
           {toast.message}
         </button>

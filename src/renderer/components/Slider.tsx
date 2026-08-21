@@ -45,11 +45,11 @@ export function Slider({
   return (
     <div className="w-full">
       <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-xs font-medium tracking-wide text-ink-muted uppercase">{label}</span>
-        <span className="text-xs tabular-nums text-ink-muted">{formatValue(local)}</span>
+        <span className="label-caps">{label}</span>
+        <span className="text-xs font-medium tabular-nums text-ink">{formatValue(local)}</span>
       </div>
       <RadixSlider.Root
-        className="relative flex h-6 w-full touch-none items-center select-none data-disabled:opacity-40"
+        className="relative flex h-6 w-full touch-none items-center select-none transition-opacity data-disabled:opacity-40"
         value={[local]}
         min={min}
         max={max}
@@ -69,12 +69,12 @@ export function Slider({
         }}
       >
         <RadixSlider.Track
-          className="relative h-2 w-full grow overflow-hidden rounded-full bg-line"
+          className="relative h-2.5 w-full grow overflow-hidden rounded-full bg-line"
           style={trackGradient ? { backgroundImage: trackGradient } : undefined}
         >
           {!trackGradient && <RadixSlider.Range className="absolute h-full bg-accent" />}
         </RadixSlider.Track>
-        <RadixSlider.Thumb className="block h-5 w-5 rounded-full border-2 border-white bg-accent shadow-md ring-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-accent" />
+        <RadixSlider.Thumb className="block h-5 w-5 rounded-full border-2 border-white bg-accent shadow-md outline-none transition-transform duration-150 hover:scale-110 active:scale-95 focus-visible:focus-ring" />
       </RadixSlider.Root>
     </div>
   );

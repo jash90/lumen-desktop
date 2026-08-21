@@ -28,13 +28,13 @@ export function SettingsPage() {
   const bridge = status.data?.bridge;
 
   return (
-    <div className="space-y-8 px-6 py-4">
-      <h1 className="text-xl font-semibold">Ustawienia</h1>
+    <div className="space-y-6 px-4 py-4 pb-6">
+      <h1 className="px-1 text-lg font-semibold tracking-tight">Ustawienia</h1>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-medium tracking-wide text-ink-muted uppercase">Bridge</h2>
+        <h2 className="label-caps px-1">Bridge</h2>
         {bridge ? (
-          <div className="rounded-xl bg-surface-raised p-4">
+          <div className="card-stack p-4">
             <p className="text-sm font-medium">{bridge.name}</p>
             <p className="text-xs text-ink-muted">
               {bridge.ip} · {bridge.id}
@@ -54,7 +54,7 @@ export function SettingsPage() {
               const next = await unwrap(window.hue.reconnectBridge());
               queryClient.setQueryData(queryKeys.connection, next);
             }}
-            className="flex-1 rounded-lg border border-line px-4 py-2 text-sm"
+            className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
           >
             Połącz ponownie
           </button>
@@ -65,7 +65,7 @@ export function SettingsPage() {
               await queryClient.invalidateQueries();
               goHome();
             }}
-            className="flex-1 rounded-lg border border-red-500/40 px-4 py-2 text-sm text-red-500"
+            className="min-h-9 flex-1 rounded-row border border-danger/40 px-4 text-sm text-danger transition-colors hover:bg-danger/10 focus-visible:focus-ring"
           >
             Zapomnij Bridge
           </button>
@@ -73,17 +73,18 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-medium tracking-wide text-ink-muted uppercase">Wygląd</h2>
+        <h2 className="label-caps px-1">Wygląd</h2>
         <div className="flex gap-2">
           {(Object.keys(THEME_LABELS) as ThemePreference[]).map((theme) => (
             <button
               key={theme}
               type="button"
               onClick={() => updateSettings.mutate({ theme })}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+              aria-pressed={settings.data?.theme === theme}
+              className={`min-h-9 flex-1 rounded-row border px-3 text-sm transition-colors focus-visible:focus-ring ${
                 settings.data?.theme === theme
-                  ? 'border-accent text-accent'
-                  : 'border-line text-ink-muted'
+                  ? 'border-accent bg-accent/10 font-medium text-ink'
+                  : 'border-line text-ink-muted hover:text-ink'
               }`}
             >
               {THEME_LABELS[theme]}
@@ -93,7 +94,7 @@ export function SettingsPage() {
       </section>
 
       {health.data?.weak && (
-        <section className="rounded-xl bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400">
+        <section className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400">
           <p className="font-medium">Słabe zabezpieczenie danych logowania</p>
           <p className="mt-1">
             System nie udostępnia pełnego magazynu haseł

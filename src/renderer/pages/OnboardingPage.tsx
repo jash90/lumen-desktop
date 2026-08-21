@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import type { PairingState } from '../../shared/ipc';
 import { messageOf, unwrap } from '../lib/hue';
 import { useStorageHealth } from '../hooks/useHue';
+import { Skeleton } from '../components/Skeleton';
 
 /**
  * First-run flow (PRD §5, §22, §40).
@@ -41,8 +42,11 @@ export function OnboardingPage() {
       </header>
 
       {busy ? (
-        <div className="rounded-xl border border-accent/40 bg-surface-raised p-5 text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-pulse rounded-full bg-accent/20" />
+        <div className="card-stack enter border-accent/40 p-5 text-center">
+          <div className="relative mx-auto mb-4 h-12 w-12">
+            <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />
+            <span className="absolute inset-0 rounded-full bg-accent/20" />
+          </div>
           <p className="font-medium">Naciśnij przycisk na Hue Bridge</p>
           <p className="mt-1 text-sm text-ink-muted">
             {pairing.status === 'waitingForButton'
@@ -52,7 +56,7 @@ export function OnboardingPage() {
           <button
             type="button"
             onClick={() => void window.hue.cancelPairing()}
-            className="mt-4 text-sm text-ink-muted underline"
+            className="mt-4 rounded-row px-2 py-1 text-sm text-ink-muted underline decoration-line underline-offset-4 focus-visible:focus-ring"
           >
             Anuluj
           </button>
@@ -61,21 +65,26 @@ export function OnboardingPage() {
         <div className="space-y-6">
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-medium tracking-wide text-ink-muted uppercase">
-                Znalezione Bridge
-              </h2>
+              <h2 className="label-caps">Znalezione Bridge</h2>
               <button
                 type="button"
                 onClick={() => void discovery.refetch()}
                 disabled={discovery.isFetching}
-                className="text-xs text-accent disabled:opacity-50"
+                className="rounded-row px-1 text-xs text-ink underline decoration-line underline-offset-4 transition-colors hover:decoration-ink-muted focus-visible:focus-ring disabled:opacity-50"
               >
                 {discovery.isFetching ? 'Szukam…' : 'Szukaj ponownie'}
               </button>
             </div>
 
             {discovery.isFetching && !discovery.data && (
-              <p className="text-sm text-ink-muted">Szukam Hue Bridge…</p>
+              <div className="card-stack divide-y divide-line" aria-busy="true" aria-label="Szukam Hue Bridge">
+                {[0, 1].map((row) => (
+                  <div key={row} className="space-y-2 px-4 py-3">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-40" />
+                  </div>
+                ))}
+              </div>
             )}
 
             {!discovery.isFetching && (discovery.isError || discovery.data?.length === 0) && (
@@ -85,13 +94,13 @@ export function OnboardingPage() {
               </p>
             )}
 
-            <ul className="space-y-2">
+            <ul className="card-stack divide-y divide-line">
               {discovery.data?.map((bridge) => (
                 <li key={bridge.id}>
                   <button
                     type="button"
                     onClick={() => pair.mutate(bridge.ip)}
-                    className="w-full rounded-xl bg-surface-raised px-4 py-3 text-left transition-colors hover:bg-line/40 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+                    className="w-full px-4 py-3 text-left transition-colors hover:bg-line/40 focus-visible:focus-ring"
                   >
                     <span className="block text-sm font-medium">{bridge.name ?? 'Hue Bridge'}</span>
                     <span className="text-xs text-ink-muted">
@@ -104,9 +113,7 @@ export function OnboardingPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-xs font-medium tracking-wide text-ink-muted uppercase">
-              Adres IP ręcznie
-            </h2>
+            <h2 className="label-caps">Adres IP ręcznie</h2>
             <form
               className="flex gap-2"
               onSubmit={(event) => {
@@ -120,11 +127,11 @@ export function OnboardingPage() {
                 placeholder="192.168.1.42"
                 inputMode="numeric"
                 aria-label="Adres IP Hue Bridge"
-                className="flex-1 rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm outline-none focus:border-accent"
+                className="min-h-9 flex-1 rounded-row border border-line bg-surface-raised px-3 text-sm outline-none focus:border-accent focus-visible:focus-ring"
               />
               <button
                 type="submit"
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="min-h-9 rounded-row bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 focus-visible:focus-ring disabled:opacity-50"
                 disabled={!manualIp.trim()}
               >
                 Połącz
@@ -133,7 +140,7 @@ export function OnboardingPage() {
           </section>
 
           {health.data?.weak && (
-            <p className="rounded-lg bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+            <p className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
               System nie udostępnia bezpiecznego magazynu haseł
               {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. Po sparowaniu klucz
               aplikacji nie zostanie zapisany i trzeba będzie parować ponownie po restarcie.
@@ -141,7 +148,7 @@ export function OnboardingPage() {
           )}
 
           {(pairing.status === 'failed' || pair.isError) && (
-            <p className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-500">
+            <p className="rounded-card border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
               {pairing.status === 'failed' ? pairing.error.message : messageOf(pair.error)}
             </p>
           )}

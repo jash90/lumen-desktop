@@ -20,7 +20,7 @@ export function ColorPicker({ color, onCommit }: ColorPickerProps) {
 
   return (
     <div className="space-y-3">
-      <span className="text-xs font-medium tracking-wide text-ink-muted uppercase">Kolor</span>
+      <span className="label-caps">Kolor</span>
 
       <div className="flex flex-wrap gap-2">
         {COLOR_PRESETS.map((preset) => (
@@ -29,7 +29,12 @@ export function ColorPicker({ color, onCommit }: ColorPickerProps) {
             type="button"
             aria-label={`Ustaw kolor ${preset}`}
             onClick={() => flush(hexToRgb(preset))}
-            className="h-8 w-8 rounded-full border border-line transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            aria-pressed={preset.toLowerCase() === hex.toLowerCase()}
+            className={`h-9 w-9 rounded-full border border-line transition-transform hover:scale-110 focus-visible:focus-ring ${
+              preset.toLowerCase() === hex.toLowerCase()
+                ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-raised'
+                : ''
+            }`}
             style={{ backgroundColor: preset }}
           />
         ))}

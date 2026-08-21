@@ -25,7 +25,7 @@ function createWindow(): BrowserWindow {
     minHeight: 520,
     show: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0e0f13' : '#f6f6f8',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0d0f15' : '#f3f5f9',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       // PRD §33 — the renderer gets no Node access whatsoever.
