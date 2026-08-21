@@ -19,6 +19,9 @@ const config: ForgeConfig = {
     name: 'Hue Desktop',
     executableName: 'hue-desktop',
     icon: 'assets/icon', // Forge appends .icns on macOS and .ico on Windows
+    // The tray icon is read at runtime, so it has to exist inside the packaged
+    // app — the icon above only ends up in the bundle metadata.
+    extraResource: ['assets/trayTemplate.png', 'assets/trayTemplate@2x.png'],
     appBundleId: BUNDLE_ID,
     appCategoryType: 'public.app-category.utilities',
     // Signing is opt-in so `npm run make` still works on a machine without the

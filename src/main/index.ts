@@ -2,7 +2,9 @@ import path from 'node:path';
 import { app, BrowserWindow, dialog, nativeTheme, session, shell } from 'electron';
 import started from 'electron-squirrel-startup';
 
+import type { Action } from '../shared/models';
 import { EVENT_CHANNELS } from '../shared/ipc';
+import { createActionRunner } from './actions/ActionRunner';
 import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
 import { createBridgePairingService } from './bridge/BridgePairingService';
 import { createBridgeRepository } from './bridge/BridgeRepository';
@@ -11,11 +13,23 @@ import { broadcast } from './ipc/handlers';
 import { registerIpcHandlers } from './ipc/register';
 import { createSecureStorage } from './storage/SecureStorage';
 import { createSettingsStorage } from './storage/SettingsStorage';
+import { createTray, type TrayController } from './tray/Tray';
 import { createWidgetBridge } from './widget/WidgetBridge';
 
 if (started) app.quit();
 
 const isDevelopment = !app.isPackaged;
+
+/**
+ * Closing the window hides it while the tray is around, so "Zakończ" from the
+ * tray needs a way to say it really means it.
+ */
+let isQuitting = false;
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+let tray: TrayController | null = null;
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -44,6 +58,14 @@ function createWindow(): BrowserWindow {
   window.webContents.on('will-navigate', (event) => event.preventDefault());
 
   window.once('ready-to-show', () => window.show());
+
+  // With a tray present the window closes to it instead of ending the app —
+  // otherwise the tray icon would linger with nothing behind it.
+  window.on('close', (event) => {
+    if (isQuitting || !tray) return;
+    event.preventDefault();
+    window.hide();
+  });
 
   // Without this an unreachable dev server or a broken bundle leaves a process
   // running with no window and no explanation — the user just sees nothing.
@@ -140,12 +162,47 @@ async function bootstrap(): Promise<void> {
     onStatus: (status) => {
       broadcast(EVENT_CHANNELS.connectionChanged, status);
       publishWidgetState();
+      tray?.rebuild();
     },
     onChanges: (changes) => {
       if (changes.lights.length > 0) broadcast(EVENT_CHANNELS.lightChanged, changes.lights);
       if (changes.rooms.length > 0) broadcast(EVENT_CHANNELS.roomChanged, changes.rooms);
       publishWidgetState();
+      tray?.rebuild();
     },
+  });
+
+  const actions = createActionRunner(connection);
+
+  const showWindow = (): void => {
+    const existing = BrowserWindow.getAllWindows()[0];
+    if (existing) {
+      existing.show();
+      existing.focus();
+      return;
+    }
+    createWindow();
+  };
+
+  tray = createTray({
+    snapshot: () => {
+      const connected = connection.status().state === 'connected';
+      if (!connected) return { connected, rooms: [], scenes: [], favorites: [] };
+      const api = connection.requireApi();
+      return {
+        connected,
+        rooms: api.getRooms(),
+        scenes: api.getScenes(),
+        favorites: settings.get().favorites,
+      };
+    },
+    run: (action: Action) => {
+      actions.run(action).catch((error: unknown) => {
+        console.error('[tray] action failed:', error);
+      });
+    },
+    show: showWindow,
+    quit: () => app.quit(),
   });
 
   const theme = settings.get().theme;
@@ -161,12 +218,11 @@ async function bootstrap(): Promise<void> {
     console.error('[startup] initial connection failed:', error);
   });
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  app.on('activate', showWindow);
 }
 
 app.on('window-all-closed', () => {
-  // Tray support is P1; until then closing the last window really does quit.
-  if (process.platform !== 'darwin') app.quit();
+  // With a tray the app deliberately outlives its window; without one, closing
+  // the last window still quits everywhere except macOS.
+  if (process.platform !== 'darwin' && !tray) app.quit();
 });

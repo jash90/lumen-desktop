@@ -103,6 +103,21 @@ export interface ResourceRef {
   id: string;
 }
 
+/**
+ * A command that can be issued from outside the app window — the tray menu,
+ * a global shortcut or a quick action all express themselves as one of these.
+ *
+ * Executing it needs current state (`toggleRoom` inverts whatever the room is
+ * doing now), which is why the runner lives in the main process: with the window
+ * closed the renderer knows nothing.
+ */
+export type Action =
+  | { kind: 'toggleLight'; id: string }
+  | { kind: 'toggleRoom'; id: string }
+  | { kind: 'setRoomBrightness'; id: string; brightness: number }
+  | { kind: 'activateScene'; id: string }
+  | { kind: 'allOff' };
+
 /** User preferences (PRD §29). Not secret — stored as plain JSON by the main process. */
 export type ThemePreference = 'system' | 'light' | 'dark';
 
