@@ -4,7 +4,7 @@ import type { Light, Room } from '../src/shared/models';
 
 vi.mock('electron', () => ({ app: { getPath: () => '/tmp' } }));
 
-const { buildSnapshot } = await import('../src/main/widget/WidgetBridge');
+const { buildSnapshot, toCredentials } = await import('../src/main/widget/WidgetBridge');
 
 const room = (over: Partial<Room>): Room => ({
   id: 'r1',
@@ -55,6 +55,25 @@ describe('buildSnapshot', () => {
       rooms: [],
       lightsOn: 0,
       lightsTotal: 0,
+    });
+  });
+});
+
+describe('toCredentials', () => {
+  it('exports only what the widget needs to reach the bridge', () => {
+    expect(
+      toCredentials({
+        bridgeId: '001788fffe1234ab',
+        bridgeIp: '192.168.1.42',
+        name: 'Hue Bridge',
+        applicationKey: 'secret-key',
+        modelId: 'BSB002',
+        swVersion: '1978074000',
+      }),
+    ).toEqual({
+      bridgeId: '001788fffe1234ab',
+      ip: '192.168.1.42',
+      applicationKey: 'secret-key',
     });
   });
 });

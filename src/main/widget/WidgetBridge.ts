@@ -3,15 +3,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
 
+import type { BridgeCredential } from '../bridge/BridgeRepository';
 import type { Light, Room } from '../../shared/models';
 
 /**
  * Feeds the macOS WidgetKit extension (PRD §26 in spirit — glanceable control
  * outside the app window).
  *
- * The widget is deliberately read-only and never talks to the bridge, so the Hue
- * application key stays in the app's Keychain-backed storage and never reaches a
- * second process. All the widget gets is this small denormalised snapshot.
+ * Two files go into the shared App Group container:
+ *
+ *   - `widget-state.json` — a denormalised snapshot of what the app currently
+ *     knows. The widget falls back to it when the bridge is unreachable.
+ *   - `widget-credentials.json` — bridge address and application key, so the
+ *     widget can query and control the bridge on its own, including while the
+ *     app is not running.
+ *
+ * Exporting the key is a deliberate trade-off: it leaves the Keychain-backed
+ * store for a 0600 file readable by anything running as this user. A Hue
+ * application key only grants control of local lighting — it is not an account
+ * credential — and unpairing deletes the file again.
  */
 
 export interface WidgetRoom {
@@ -29,11 +39,21 @@ export interface WidgetSnapshot {
   lightsTotal: number;
 }
 
+/** What the widget needs to reach the bridge itself. */
+export interface WidgetCredentials {
+  bridgeId: string;
+  ip: string;
+  applicationKey: string;
+}
+
 export interface WidgetBridge {
   publish(connected: boolean, rooms: readonly Room[], lights: readonly Light[]): void;
+  /** `null` removes the exported key — that is what unpairing does. */
+  publishCredentials(credential: BridgeCredential | null): void;
 }
 
 const FILE_NAME = 'widget-state.json';
+const CREDENTIALS_FILE = 'widget-credentials.json';
 /** Helper inside the app bundle; absent in development, where there is no bundle. */
 const RELOAD_HELPER = 'hue-widget-reload';
 /**
@@ -63,10 +83,18 @@ export function buildSnapshot(
   };
 }
 
+export function toCredentials(credential: BridgeCredential): WidgetCredentials {
+  return {
+    bridgeId: credential.bridgeId,
+    ip: credential.bridgeIp,
+    applicationKey: credential.applicationKey,
+  };
+}
+
 export function createWidgetBridge(): WidgetBridge {
   // Only macOS has WidgetKit; everywhere else this is a no-op.
   if (process.platform !== 'darwin') {
-    return { publish: () => undefined };
+    return { publish: () => undefined, publishCredentials: () => undefined };
   }
 
   const containerPath = path.join(
@@ -76,8 +104,23 @@ export function createWidgetBridge(): WidgetBridge {
     APP_GROUP,
   );
   const filePath = path.join(containerPath, FILE_NAME);
+  const credentialsPath = path.join(containerPath, CREDENTIALS_FILE);
   const helperPath = path.join(path.dirname(app.getPath('exe')), RELOAD_HELPER);
   let lastPayload = '';
+  let lastCredentials = '';
+
+  /**
+   * The widget may read at any moment, so the file must never be seen
+   * half-written — hence write-then-rename rather than a plain write.
+   */
+  const writeAtomic = (target: string, payload: string, mode: number): void => {
+    // The app is not sandboxed, so it can create the shared container itself
+    // rather than waiting for the widget to be run first.
+    fs.mkdirSync(containerPath, { recursive: true });
+    const tempPath = `${target}.tmp`;
+    fs.writeFileSync(tempPath, payload, { mode });
+    fs.renameSync(tempPath, target);
+  };
 
   return {
     publish(connected, rooms, lights) {
@@ -88,12 +131,7 @@ export function createWidgetBridge(): WidgetBridge {
       lastPayload = payload;
 
       try {
-        // The app is not sandboxed, so it can create the shared container itself
-        // rather than waiting for the widget to be run first.
-        fs.mkdirSync(containerPath, { recursive: true });
-        const tempPath = `${filePath}.tmp`;
-        fs.writeFileSync(tempPath, payload);
-        fs.renameSync(tempPath, filePath);
+        writeAtomic(filePath, payload, 0o644);
       } catch (error) {
         console.warn('[widget] could not write snapshot:', error);
         return;
@@ -106,6 +144,25 @@ export function createWidgetBridge(): WidgetBridge {
       execFile(helperPath, (error) => {
         if (error) console.warn('[widget] reload helper failed:', error.message);
       });
+    },
+
+    publishCredentials(credential) {
+      const payload = credential ? JSON.stringify(toCredentials(credential)) : '';
+      if (payload === lastCredentials) return;
+      lastCredentials = payload;
+
+      try {
+        if (!credential) {
+          fs.rmSync(credentialsPath, { force: true });
+          return;
+        }
+        // 0600: the key is no longer Keychain-protected once it lives here, so at
+        // least keep it off other accounts on the machine.
+        writeAtomic(credentialsPath, payload, 0o600);
+      } catch (error) {
+        console.warn('[widget] could not write credentials:', error);
+        lastCredentials = '';
+      }
     },
   };
 }

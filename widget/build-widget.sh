@@ -21,14 +21,37 @@ rm -rf "$BUILD"
 mkdir -p "$APPEX/Contents/MacOS"
 
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
+TARGET="arm64-apple-macos14.0"
+SOURCES=("$ROOT/widget/HueWidget.swift" "$ROOT/widget/HueBridgeClient.swift")
+
+# Xcode writes this list into DerivedData; it is not shipped with the toolchain,
+# so building outside Xcode means providing it. It tells the compiler which
+# protocol conformances to record for the AppIntents metadata step below.
+cat > "$BUILD/const-protocols.json" <<'JSON'
+["AppEntity","AppEnum","AppIntent","AppShortcutsProvider","DynamicOptionsProvider",
+ "EntityPropertyQuery","EntityQuery","IndexedEntity","PersistentlyIdentifiable",
+ "TransientAppEntity","URLRepresentableEntity","URLRepresentableEnum",
+ "URLRepresentableIntent","AssistantIntent","AssistantEntity","AssistantEnum"]
+JSON
+
+# Two passes over the same sources. The first only harvests the AppIntents
+# conformances — the compiler emits them when compiling to an object file, but
+# silently skips the step on a run that also links, which is why this cannot be
+# folded into the pass below. Without the resulting metadata the widget renders
+# its buttons and every tap is a no-op.
+xcrun swiftc -sdk "$SDK" -target "$TARGET" -parse-as-library -O -wmo -c \
+  -emit-const-values-path "$BUILD/$NAME.swiftconstvalues" \
+  -Xfrontend -const-gather-protocols-file -Xfrontend "$BUILD/const-protocols.json" \
+  "${SOURCES[@]}" -o "$BUILD/$NAME.o"
+
 # App extensions must enter through NSExtensionMain, not the ordinary Swift main.
 # Xcode does this via "-e _NSExtensionMain"; without it the bundle registers in
 # pluginkit but never appears in the widget gallery, because the process does not
 # behave as an extension at all.
-xcrun swiftc -sdk "$SDK" -target arm64-apple-macos14.0 -parse-as-library -O \
+xcrun swiftc -sdk "$SDK" -target "$TARGET" -parse-as-library -O \
   -framework Foundation \
   -Xlinker -e -Xlinker _NSExtensionMain \
-  "$ROOT/widget/HueWidget.swift" -o "$APPEX/Contents/MacOS/$NAME"
+  "${SOURCES[@]}" -o "$APPEX/Contents/MacOS/$NAME"
 
 VERSION="$(node -p "require('$ROOT/package.json').version")"
 
@@ -67,6 +90,10 @@ cat > "$APPEX/Contents/Info.plist" <<PLIST
   <key>DTXcode</key><string>$XCODE_DT</string>
   <key>DTXcodeBuild</key><string>$XCODE_BUILD</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <!-- macOS 15+ gates local-network access behind user consent; without a purpose
+       string the request is denied outright rather than prompted for. -->
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Hue Desktop łączy się z Twoim Hue Bridge w sieci lokalnej, aby pokazać i zmienić stan oświetlenia.</string>
   <key>NSExtension</key>
   <dict>
     <key>NSExtensionAttributes</key>
@@ -87,11 +114,37 @@ cat > "$BUILD/entitlements.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>com.apple.security.app-sandbox</key><true/>
+  <!-- The widget talks to the bridge itself, so the sandbox has to let it out. -->
+  <key>com.apple.security.network.client</key><true/>
   <key>com.apple.security.application-groups</key>
   <array><string>$APP_GROUP</string></array>
 </dict>
 </plist>
 PLIST
+
+# AppIntents metadata — the bundle the system reads to learn that ToggleRoomIntent
+# and ToggleAllIntent exist. Xcode runs this as a build phase; assembling by hand
+# means running it ourselves, and it has to happen before codesign so the
+# signature covers the new resource.
+mkdir -p "$APPEX/Contents/Resources"
+printf '%s\n' "${SOURCES[@]}" > "$BUILD/sources.txt"
+echo "$BUILD/$NAME.swiftconstvalues" > "$BUILD/constvalues.txt"
+xcrun appintentsmetadataprocessor \
+  --output "$APPEX/Contents/Resources" \
+  --toolchain-dir "$(dirname "$(dirname "$(xcrun --find swiftc)")")" \
+  --module-name "$NAME" \
+  --sdk-root "$SDK" \
+  --xcode-version "$XCODE_BUILD" \
+  --platform-family macOS \
+  --deployment-target 14.0 \
+  --target-triple "$TARGET" \
+  --source-file-list "$BUILD/sources.txt" \
+  --swift-const-vals-list "$BUILD/constvalues.txt" \
+  --force
+
+# A silent failure here would ship a widget whose buttons do nothing at all.
+test -f "$APPEX/Contents/Resources/Metadata.appintents/extract.actionsdata" \
+  || { echo "brak metadanych AppIntents — przyciski widżetu byłyby martwe" >&2; exit 1; }
 
 IDENTITY_NAME="${HUE_IDENTITY:-Developer ID Application}"
 IDENTITY="$(security find-identity -v -p codesigning \

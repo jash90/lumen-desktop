@@ -1,11 +1,13 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
 // MARK: - Shared snapshot
 //
-// The Electron app writes this file whenever light state changes; the widget only
-// ever reads it. Keeping the widget out of the network path means it never needs
-// the Hue application key, which stays in the app's Keychain-backed storage.
+// The widget reads live state straight from the bridge (see HueBridgeClient).
+// This file, written by the Electron app whenever light state changes, is the
+// fallback for when the bridge cannot be reached — a stale reading beats an
+// empty box.
 
 struct RoomSnapshot: Codable, Identifiable {
     let id: String
@@ -82,13 +84,57 @@ struct HueProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<HueEntry>) -> Void) {
-        let entry = HueEntry(date: .now, snapshot: SnapshotStore.load())
-        // The timeline is the only reliable refresh path. WidgetCenter.reloadAllTimelines()
-        // is ignored when called from the bundled helper process rather than from the app
-        // itself, so a short interval is what actually keeps the widget current. WidgetKit
-        // throttles this to its own budget; asking for a minute yields a few minutes.
-        let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now) ?? .now
-        completion(Timeline(entries: [entry], policy: .after(next)))
+        Task {
+            // Asking the bridge directly is what keeps the widget honest while the
+            // app is closed; the app's snapshot is the fallback when it is not.
+            let snapshot = (try? await HueBridgeClient.fetchSnapshot()) ?? SnapshotStore.load()
+            let entry = HueEntry(date: .now, snapshot: snapshot)
+            // WidgetKit throttles refreshes to its own budget, so asking for a
+            // minute yields a few. Tapping a toggle reloads immediately regardless.
+            let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now) ?? .now
+            completion(Timeline(entries: [entry], policy: .after(next)))
+        }
+    }
+}
+
+// MARK: - Intents
+//
+// The system reloads the timeline once perform() returns, so the widget picks up
+// the real post-command state from the bridge instead of guessing at it.
+
+struct ToggleRoomIntent: AppIntent {
+    static var title: LocalizedStringResource = "Przełącz pokój"
+
+    // The defaults matter: without them AppIntents cannot rebuild the parameter
+    // from the archived widget view and perform() is never reached.
+    @Parameter(title: "Pokój", default: "") var roomId: String
+    @Parameter(title: "Włącz", default: false) var on: Bool
+
+    init() {}
+
+    init(roomId: String, on: Bool) {
+        self.roomId = roomId
+        self.on = on
+    }
+
+    func perform() async throws -> some IntentResult {
+        try await HueBridgeClient.setRoomPower(roomId: roomId, on: on)
+        return .result()
+    }
+}
+
+struct ToggleAllIntent: AppIntent {
+    static var title: LocalizedStringResource = "Przełącz całe oświetlenie"
+
+    @Parameter(title: "Włącz", default: false) var on: Bool
+
+    init() {}
+
+    init(on: Bool) { self.on = on }
+
+    func perform() async throws -> some IntentResult {
+        try await HueBridgeClient.setAllPower(on: on)
+        return .result()
     }
 }
 
@@ -114,6 +160,15 @@ struct SmallView: View {
     let snapshot: HueSnapshot
 
     var body: some View {
+        // The whole tile is the master switch: anything lit means the tap turns
+        // everything off, otherwise it turns everything on.
+        Button(intent: ToggleAllIntent(on: snapshot.lightsOn == 0)) {
+            content
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             Image(systemName: snapshot.lightsOn > 0 ? "lightbulb.fill" : "lightbulb")
                 .font(.system(size: 20, weight: .medium))
@@ -138,10 +193,6 @@ struct RoomRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(room.isOn ? accent : Color.secondary.opacity(0.35))
-                .frame(width: 7, height: 7)
-
             Text(room.name)
                 .font(.system(size: 12, weight: .medium))
                 .lineLimit(1)
@@ -158,18 +209,28 @@ struct RoomRow: View {
                             .frame(width: max(3, geo.size.width * CGFloat(room.brightness) / 100))
                     }
                 }
-                .frame(width: 42, height: 4)
+                .frame(width: 38, height: 4)
 
                 Text("\(room.brightness)%")
                     .font(.system(size: 10, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
-                    .frame(width: 30, alignment: .trailing)
+                    .frame(width: 28, alignment: .trailing)
             } else {
-                Text("Wył.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 76, alignment: .trailing)
+                Spacer().frame(width: 74)
             }
+
+            // The dot doubles as the switch — a full Toggle does not fit four
+            // rooms into a medium widget, and the tap target is still 22pt.
+            Button(intent: ToggleRoomIntent(roomId: room.id, on: !room.isOn)) {
+                Image(systemName: room.isOn ? "lightbulb.fill" : "lightbulb")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(room.isOn ? accent : Color.secondary)
+                    .frame(width: 22, height: 22)
+                    .background(
+                        Circle().fill(Color.secondary.opacity(room.isOn ? 0.18 : 0.10))
+                    )
+            }
+            .buttonStyle(.plain)
         }
     }
 }

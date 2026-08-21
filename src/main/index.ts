@@ -118,6 +118,10 @@ async function bootstrap(): Promise<void> {
    */
   const publishWidgetState = (): void => {
     try {
+      // The widget talks to the bridge itself, so it needs the credentials even
+      // while the app cannot reach it — this goes before the connected check.
+      widget.publishCredentials(repository.getActive());
+
       const status = connection.status();
       if (status.state !== 'connected') {
         widget.publish(false, [], []);
