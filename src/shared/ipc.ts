@@ -45,6 +45,8 @@ export const INVOKE_CHANNELS = [
   'pairBridge',
   'cancelPairing',
   'connectHomeAssistant',
+  'discoverTuyaDevices',
+  'connectTuya',
   'reconnectHubs',
   'getConnectionStatuses',
   'getStorageHealth',
@@ -81,6 +83,14 @@ export const EVENT_CHANNELS = {
 
 export const channelName = (channel: InvokeChannel): string => `lumen:${channel}`;
 
+/** What discovery can say about a device before anyone has its local key. */
+export interface DiscoveredTuyaSummary {
+  deviceId: string;
+  address: string;
+  version: string;
+  name?: string;
+}
+
 export type Unsubscribe = () => void;
 
 /**
@@ -100,6 +110,15 @@ export interface LumenApi {
     baseUrl: string;
     token: string;
     name?: string;
+  }): Promise<Result<HubSummary>>;
+  /**
+   * Listens for the announcements Tuya devices broadcast. Deliberately
+   * re-runnable: a device that stayed quiet in one pass turns up in the next.
+   */
+  discoverTuyaDevices(): Promise<Result<DiscoveredTuyaSummary[]>>;
+  /** Each device carries its own local key; there is no hub in front of them. */
+  connectTuya(input: {
+    devices: { deviceId: string; name: string; address: string; localKey: string }[];
   }): Promise<Result<HubSummary>>;
 
   // Every configured hub is connected at once, so the state is a list rather

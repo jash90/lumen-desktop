@@ -4,6 +4,8 @@ import { EVENT_CHANNELS } from '../../shared/ipc';
 import type { BridgeDiscoveryService } from '../bridge/BridgeDiscoveryService';
 import type { BridgePairingService } from '../bridge/BridgePairingService';
 import { verifyHomeAssistant } from '../homeassistant/HaOnboarding';
+import type { TuyaDiscoveryService } from '../tuya/TuyaDiscoveryService';
+import { buildTuyaCredential, TUYA_PROVIDER_ID } from '../tuya/TuyaOnboarding';
 import type { ProviderRegistry } from '../providers/ProviderRegistry';
 import { toHubSummary } from '../providers/ProviderCredential';
 import type { ProviderRepository } from '../providers/ProviderRepository';
@@ -20,6 +22,7 @@ export interface IpcContext {
   providers: ProviderRegistry;
   repository: ProviderRepository;
   discovery: BridgeDiscoveryService;
+  tuyaDiscovery: TuyaDiscoveryService;
   pairing: BridgePairingService;
   storage: SecureStorage;
   settings: SettingsStorage;
@@ -31,8 +34,17 @@ export interface IpcContext {
  * without adding structure.
  */
 export function registerIpcHandlers(context: IpcContext): void {
-  const { actions, shortcuts, providers, repository, discovery, pairing, storage, settings } =
-    context;
+  const {
+    actions,
+    shortcuts,
+    providers,
+    repository,
+    discovery,
+    tuyaDiscovery,
+    pairing,
+    storage,
+    settings,
+  } = context;
 
   /** Last result of applying the stored shortcuts; see getShortcutConflicts. */
   let shortcutConflicts: string[] = [];
@@ -63,6 +75,33 @@ export function registerIpcHandlers(context: IpcContext): void {
     const credential = await verifyHomeAssistant(input);
     // add() connects before it resolves, so a bad URL or token comes back as an
     // error here rather than as a hub that silently sits offline in the list.
+    await providers.add(credential);
+    return toHubSummary(credential);
+  });
+
+  handle('discoverTuyaDevices', args.none, async () => {
+    const found = await tuyaDiscovery.discover();
+    // Names come from what the user already configured, if anything; discovery
+    // itself only learns an id and an address.
+    const known = new Map(
+      (repository.get(TUYA_PROVIDER_ID)?.kind === 'tuya'
+        ? (repository.get(TUYA_PROVIDER_ID) as { devices: { deviceId: string; name: string }[] })
+            .devices
+        : []
+      ).map((device) => [device.deviceId, device.name]),
+    );
+    return found.map((device) => ({
+      deviceId: device.deviceId,
+      address: device.address,
+      version: device.version,
+      ...(known.has(device.deviceId) ? { name: known.get(device.deviceId)! } : {}),
+    }));
+  });
+
+  handle('connectTuya', args.tuya, async ([input]) => {
+    // add() connects before it resolves, so a wrong key or an unplugged device
+    // comes back as an error here rather than sitting silently offline.
+    const credential = buildTuyaCredential(input.devices, repository.get(TUYA_PROVIDER_ID));
     await providers.add(credential);
     return toHubSummary(credential);
   });

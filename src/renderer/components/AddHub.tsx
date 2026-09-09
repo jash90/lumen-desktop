@@ -15,8 +15,9 @@ import { Skeleton } from './Skeleton';
  */
 
 const KIND_LABELS: Record<ProviderKind, string> = {
-  hue: 'Hue Bridge',
+  hue: 'Hue',
   homeassistant: 'Home Assistant',
+  tuya: 'Tuya',
 };
 
 export function AddHub({ onConnected }: { onConnected?: () => void }) {
@@ -58,6 +59,8 @@ function ConnectFlow({ kind, onConnected }: { kind: ProviderKind; onConnected?: 
       return <HueConnect onConnected={onConnected} />;
     case 'homeassistant':
       return <HomeAssistantConnect onConnected={onConnected} />;
+    case 'tuya':
+      return <TuyaConnect onConnected={onConnected} />;
     default: {
       const unreachable: never = kind;
       throw new Error(`no connect flow for ${String(unreachable)}`);
@@ -267,6 +270,129 @@ function HomeAssistantConnect({ onConnected }: { onConnected?: () => void }) {
         className="min-h-9 w-full rounded-row bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 focus-visible:focus-ring disabled:opacity-50"
       >
         {connect.isPending ? 'Connecting…' : 'Connect'}
+      </button>
+
+      {connect.isError && (
+        <p className="rounded-card border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+          {messageOf(connect.error)}
+        </p>
+      )}
+    </form>
+  );
+}
+
+/**
+ * Tuya devices are found by listening for the announcements they broadcast, and
+ * each needs its own local key — there is no hub holding them together.
+ *
+ * Discovery is deliberately re-runnable and the list is additive: a device that
+ * stayed quiet during one pass turns up in the next, which is exactly what
+ * happened the first time this was tried against real hardware.
+ */
+function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
+  const [keys, setKeys] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
+
+  const discovery = useQuery({
+    queryKey: ['tuyaDiscovery'],
+    queryFn: () => unwrap(window.lumen.discoverTuyaDevices()),
+    retry: false,
+  });
+
+  const connect = useMutation({
+    mutationFn: (devices: { deviceId: string; name: string; address: string; localKey: string }[]) =>
+      unwrap(window.lumen.connectTuya({ devices })),
+    onSuccess: () => {
+      setKeys({});
+      void queryClient.invalidateQueries();
+      onConnected?.();
+    },
+  });
+
+  const found = discovery.data ?? [];
+  const ready = found
+    .filter((device) => (keys[device.deviceId] ?? '').trim().length === 16)
+    .map((device) => ({
+      deviceId: device.deviceId,
+      name: device.name ?? device.deviceId,
+      address: device.address,
+      localKey: keys[device.deviceId]!.trim(),
+    }));
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (ready.length > 0) connect.mutate(ready);
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="label-caps">Devices found</h2>
+        <button
+          type="button"
+          onClick={() => void discovery.refetch()}
+          disabled={discovery.isFetching}
+          className="rounded-row px-1 text-xs text-ink underline decoration-line underline-offset-4 transition-colors hover:decoration-ink-muted focus-visible:focus-ring disabled:opacity-50"
+        >
+          {discovery.isFetching ? 'Listening…' : 'Search again'}
+        </button>
+      </div>
+
+      {discovery.isFetching && found.length === 0 && (
+        <div className="card-stack divide-y divide-line" aria-busy="true">
+          {[0, 1].map((row) => (
+            <div key={row} className="space-y-2 px-4 py-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-44" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!discovery.isFetching && found.length === 0 && (
+        <p className="text-sm text-ink-muted">
+          Nothing answered. These devices only announce themselves every few seconds, so a second
+          search often finds one the first missed.
+        </p>
+      )}
+
+      {found.length > 0 && (
+        <div className="card-stack divide-y divide-line">
+          {found.map((device) => (
+            <label key={device.deviceId} className="block space-y-1 px-4 py-3">
+              <span className="block text-sm font-medium">{device.name ?? 'Tuya device'}</span>
+              <span className="block text-xs text-ink-muted">
+                {device.address} · {device.deviceId}
+              </span>
+              <input
+                value={keys[device.deviceId] ?? ''}
+                onChange={(event) =>
+                  setKeys((current) => ({ ...current, [device.deviceId]: event.target.value }))
+                }
+                placeholder="local key (16 characters)"
+                autoComplete="off"
+                spellCheck={false}
+                className="mt-1 min-h-8 w-full rounded-row border border-line bg-surface-raised px-2 font-mono text-xs outline-none focus:border-accent focus-visible:focus-ring"
+              />
+            </label>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-ink-muted">
+        The local key comes from your Tuya account, not from the device. It only controls lighting on
+        this network.
+      </p>
+
+      <button
+        type="submit"
+        disabled={ready.length === 0 || connect.isPending}
+        className="min-h-9 w-full rounded-row bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 focus-visible:focus-ring disabled:opacity-50"
+      >
+        {connect.isPending
+          ? 'Connecting…'
+          : `Connect ${ready.length || ''} ${ready.length === 1 ? 'device' : 'devices'}`.trim()}
       </button>
 
       {connect.isError && (

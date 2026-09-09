@@ -40,7 +40,38 @@ export interface HomeAssistantCredential {
   token: string;
 }
 
-export type ProviderCredential = HueCredential | HomeAssistantCredential;
+/**
+ * One device reached directly on the LAN. There is no hub in front of these:
+ * every bulb speaks for itself, so the credential carries a list.
+ */
+export interface TuyaDeviceCredential {
+  /** The device id it broadcasts as `gwId`; stable across a DHCP change. */
+  deviceId: string;
+  name: string;
+  /** Last known IP. Re-discovery corrects it — see the adapter's recover(). */
+  address: string;
+  /** Sixteen characters, issued at pairing. Local control only. */
+  localKey: string;
+}
+
+/**
+ * All the LAN devices as one hub.
+ *
+ * They have no hub in reality, but the registry is built around one connection
+ * per credential, and a connection per bulb would put every bulb in the
+ * settings list as if it were a bridge. So the session fans out internally and
+ * reports how many of its devices are actually up.
+ */
+export interface TuyaCredential {
+  kind: 'tuya';
+  id: string;
+  name: string;
+  /** Not an address anyone dials — the devices carry their own. */
+  address: string;
+  devices: TuyaDeviceCredential[];
+}
+
+export type ProviderCredential = HueCredential | HomeAssistantCredential | TuyaCredential;
 
 export function toHubSummary(credential: ProviderCredential): HubSummary {
   return {

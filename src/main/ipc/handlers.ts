@@ -97,6 +97,23 @@ export const args = {
       name: z.string().min(1).max(64).optional(),
     }),
   ]),
+  tuya: z.tuple([
+    z.object({
+      devices: z
+        .array(
+          z.object({
+            deviceId: z.string().min(1).max(64),
+            name: z.string().min(1).max(64),
+            address: z.string().min(1).max(64),
+            // Exactly sixteen: the key is an AES-128 key, and anything else
+            // would fail at the cipher rather than here.
+            localKey: z.string().length(16),
+          }),
+        )
+        .min(1)
+        .max(32),
+    }),
+  ]),
   idAndBoolean: z.tuple([z.string().min(1).max(128), z.boolean()]),
   idAndPercent: z.tuple([z.string().min(1).max(128), z.number().min(0).max(100)]),
   settingsPatch: z.tuple([

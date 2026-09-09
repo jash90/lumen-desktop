@@ -59,6 +59,10 @@ export function createProviderConnection(
     state,
     hub: toHubSummary(credential),
     retryInMs: state === 'reconnecting' ? retryInMs : undefined,
+    ...(() => {
+      const detail = session?.detail?.();
+      return detail ? { detail } : {};
+    })(),
   });
 
   const setState = (next: ConnectionState): void => {

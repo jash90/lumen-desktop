@@ -74,6 +74,14 @@ export interface ProviderHooks {
 /** A connection that is up: the API to talk to, and the way to take it down. */
 export interface ProviderSession {
   readonly api: LightingApi;
+  /**
+   * Optional one-line summary of what is behind this connection.
+   *
+   * A provider that fans out to several devices reports a single status, so
+   * without this a dead bulb would vanish silently behind a hub that still
+   * says "connected". Hub-backed providers leave it out.
+   */
+  detail?(): string;
   stop(): void;
 }
 
