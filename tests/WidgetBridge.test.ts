@@ -8,7 +8,7 @@ const { buildSnapshot, toCredentials } = await import('../src/main/widget/Widget
 
 const room = (over: Partial<Room>): Room => ({
   id: 'r1',
-  name: 'Salon',
+  name: 'Living Room',
   lightIds: ['l1', 'l2'],
   isOn: true,
   brightness: 70,
@@ -32,7 +32,7 @@ describe('buildSnapshot', () => {
 
     expect(snapshot).toEqual({
       connected: true,
-      rooms: [{ id: 'r1', name: 'Salon', isOn: true, brightness: 70, lightCount: 2 }],
+      rooms: [{ id: 'r1', name: 'Living Room', isOn: true, brightness: 70, lightCount: 2 }],
       lightsOn: 2,
       lightsTotal: 2,
     });
