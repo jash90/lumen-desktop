@@ -42,7 +42,7 @@ describe('HueApi', () => {
 
     const rooms = api.getRooms();
     expect(rooms).toHaveLength(1);
-    expect(rooms[0]?.name).toBe('Salon');
+    expect(rooms[0]?.name).toBe('Living Room');
     expect(rooms[0]?.lightIds).toEqual(['light-ceiling', 'light-plain']);
   });
 

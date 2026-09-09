@@ -31,8 +31,8 @@ const credential = (id: string, name: string): BridgeCredential => ({
 describe('BridgeRepository', () => {
   it('treats the first entry as active, which is what setActive reorders', () => {
     const repository = createBridgeRepository(createMemoryStorage());
-    repository.save(credential('bridge-1', 'Dom'));
-    repository.save(credential('bridge-2', 'Biuro'));
+    repository.save(credential('bridge-1', 'Home'));
+    repository.save(credential('bridge-2', 'Office'));
 
     // save() puts the newest first.
     expect(repository.getActive()?.bridgeId).toBe('bridge-2');
@@ -43,8 +43,8 @@ describe('BridgeRepository', () => {
 
   it('keeps the other bridges and their keys when switching', () => {
     const repository = createBridgeRepository(createMemoryStorage());
-    repository.save(credential('bridge-1', 'Dom'));
-    repository.save(credential('bridge-2', 'Biuro'));
+    repository.save(credential('bridge-1', 'Home'));
+    repository.save(credential('bridge-2', 'Office'));
 
     repository.setActive('bridge-1');
 
@@ -58,7 +58,7 @@ describe('BridgeRepository', () => {
 
   it('ignores a switch to a bridge it does not know', () => {
     const repository = createBridgeRepository(createMemoryStorage());
-    repository.save(credential('bridge-1', 'Dom'));
+    repository.save(credential('bridge-1', 'Home'));
 
     repository.setActive('bridge-ghost');
 
@@ -67,8 +67,8 @@ describe('BridgeRepository', () => {
 
   it('does not store the same bridge twice when it is paired again', () => {
     const repository = createBridgeRepository(createMemoryStorage());
-    repository.save(credential('bridge-1', 'Dom'));
-    repository.save({ ...credential('bridge-1', 'Dom'), bridgeIp: '192.0.2.99' });
+    repository.save(credential('bridge-1', 'Home'));
+    repository.save({ ...credential('bridge-1', 'Home'), bridgeIp: '192.0.2.99' });
 
     expect(repository.list()).toHaveLength(1);
     expect(repository.getActive()?.bridgeIp).toBe('192.0.2.99');
@@ -76,7 +76,7 @@ describe('BridgeRepository', () => {
 
   it('never exposes the application key in what listBridges sends over IPC', () => {
     const repository = createBridgeRepository(createMemoryStorage());
-    repository.save(credential('bridge-1', 'Dom'));
+    repository.save(credential('bridge-1', 'Home'));
 
     // Mirrors the mapping in register.ts — the renderer must never receive a key.
     const summaries = repository.list().map((entry) => ({

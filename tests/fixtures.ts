@@ -42,7 +42,7 @@ export const LIVING_ROOM = {
     { rid: 'grouped-living', rtype: 'grouped_light' },
     { rid: 'device-ceiling', rtype: 'device' },
   ],
-  metadata: { name: 'Salon' },
+  metadata: { name: 'Living Room' },
   type: 'room',
 };
 
@@ -57,7 +57,7 @@ export const LIVING_ROOM_GROUP = {
 /** A scene attached to a room — the ordinary case. */
 export const RELAX_SCENE = {
   id: 'scene-relax',
-  metadata: { name: 'Relaks' },
+  metadata: { name: 'Relax' },
   group: { rid: 'room-living', rtype: 'room' },
   status: { active: 'inactive' },
   type: 'scene',
@@ -69,7 +69,7 @@ export const RELAX_SCENE = {
  */
 export const ZONE_SCENE = {
   id: 'scene-zone',
-  metadata: { name: 'Wieczór' },
+  metadata: { name: 'Evening' },
   group: { rid: 'zone-downstairs', rtype: 'zone' },
   status: { active: 'static' },
   type: 'scene',

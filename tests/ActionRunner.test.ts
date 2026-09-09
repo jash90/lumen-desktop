@@ -18,7 +18,7 @@ import {
 const LOOSE_LIGHT = {
   id: 'light-loose',
   owner: { rid: 'device-loose', rtype: 'device' },
-  metadata: { name: 'Lampa w korytarzu' },
+  metadata: { name: 'Hallway Lamp' },
   on: { on: true },
   dimming: { brightness: 50 },
   type: 'light',
