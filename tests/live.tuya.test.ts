@@ -138,6 +138,41 @@ describe.skipIf(!ip || !deviceId || !localKey)('live Tuya adapter', () => {
     }
   }, 40_000);
 
+  /**
+   * Colour end to end. The read-back deliberately does not trust the adapter's
+   * own cache — a write updates it optimistically, so asking it would only
+   * prove it remembers what it sent. This asks the device.
+   */
+  it('sets a colour the device really holds', async () => {
+    const session = await adapter.connect(credential, {
+      onChanges: () => undefined,
+      onClosed: () => undefined,
+    });
+
+    try {
+      const before = session.api.getLight(deviceId!);
+      expect(before.capabilities.color).toBe(true);
+
+      await session.api.setLightColor(deviceId!, { r: 180, g: 0, b: 255 });
+      await new Promise((r) => setTimeout(r, 2_000));
+
+      // Straight off the wire, through a fresh query rather than the cache.
+      const text = await query(ip!, deviceId!, localKey!);
+      const dps = (JSON.parse(text) as { dps: Record<string, unknown> }).dps;
+
+      expect(dps[Dp.mode]).toBe('colour');
+      // 0x011a is hue 282 degrees, saturation and value both at 1000 — which is
+      // what RGB(180, 0, 255) converts to.
+      expect(dps[Dp.color]).toBe('011a03e803e8');
+      expect(dps[Dp.power]).toBe(true);
+
+      await session.api.setLightPower(deviceId!, before.isOn);
+      await new Promise((r) => setTimeout(r, 1_000));
+    } finally {
+      session.stop();
+    }
+  }, 40_000);
+
   /** Two writes inside the window must reach the device as one frame. */
   it('merges rapid writes instead of flooding the device', async () => {
     const session = await adapter.connect(credential, {
