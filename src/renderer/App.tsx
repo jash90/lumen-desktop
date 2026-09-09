@@ -1,7 +1,7 @@
 import { ConnectionStatusBadge } from './components/ConnectionStatus';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/Toaster';
-import { useConnectionStatuses, useLightingEvents } from './hooks/useLighting';
+import { useConnectionStatuses, useHubs, useLightingEvents } from './hooks/useLighting';
 import { AutomationsPage } from './pages/AutomationsPage';
 import { HomePage, HomeSkeleton } from './pages/HomePage';
 import { LightPage } from './pages/LightPage';
@@ -21,12 +21,16 @@ export function App() {
   useLightingEvents();
 
   const statuses = useConnectionStatuses();
+  const hubs = useHubs();
   const view = useUiStore((state) => state.view);
   const navigate = useUiStore((state) => state.navigate);
   const goHome = useUiStore((state) => state.goHome);
 
-  // No hub stored at all means we have never paired — start onboarding.
-  if (statuses.isSuccess && statuses.data.length === 0) {
+  // Onboarding is for having nothing *stored*, which is not the same as having
+  // nothing connected: a stored hub this build cannot drive produces zero
+  // statuses, and keying the gate on those trapped the user on a screen with no
+  // tab bar and so no way to reach Settings and remove it.
+  if (hubs.isSuccess && hubs.data.length === 0) {
     return <OnboardingPage />;
   }
 

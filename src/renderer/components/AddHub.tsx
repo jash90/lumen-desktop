@@ -42,13 +42,27 @@ export function AddHub({ onConnected }: { onConnected?: () => void }) {
         ))}
       </div>
 
-      {kind === 'hue' ? (
-        <HueConnect onConnected={onConnected} />
-      ) : (
-        <HomeAssistantConnect onConnected={onConnected} />
-      )}
+      <ConnectFlow kind={kind} onConnected={onConnected} />
     </div>
   );
+}
+
+/**
+ * Exhaustive on purpose. A ternary here would silently render the Home Assistant
+ * token form under any new tab, so the `never` is what makes adding a hub kind a
+ * compile error rather than a confusing screen.
+ */
+function ConnectFlow({ kind, onConnected }: { kind: ProviderKind; onConnected?: () => void }) {
+  switch (kind) {
+    case 'hue':
+      return <HueConnect onConnected={onConnected} />;
+    case 'homeassistant':
+      return <HomeAssistantConnect onConnected={onConnected} />;
+    default: {
+      const unreachable: never = kind;
+      throw new Error(`no connect flow for ${String(unreachable)}`);
+    }
+  }
 }
 
 /**
