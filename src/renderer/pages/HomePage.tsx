@@ -5,8 +5,8 @@ import {
   useRooms,
   useScenes,
   useSetRoomPower,
-} from '../hooks/useHue';
-import { lightCountLabel } from '../lib/hue';
+} from '../hooks/useLighting';
+import { lightCountLabel } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
 import { EmptyState } from '../components/EmptyState';
 import { FavoriteButton } from '../components/FavoriteButton';

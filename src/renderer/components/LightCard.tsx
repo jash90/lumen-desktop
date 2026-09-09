@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 
 import type { Light } from '../../shared/models';
 import { LIGHT_THROTTLE_MS } from '../hooks/useThrottledCommit';
-import { useSetLightBrightness, useSetLightPower } from '../hooks/useHue';
+import { useSetLightBrightness, useSetLightPower } from '../hooks/useLighting';
 import { useUiStore } from '../stores/uiStore';
 import { FavoriteButton } from './FavoriteButton';
 import { PowerSwitch } from './PowerSwitch';

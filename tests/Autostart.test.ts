@@ -13,7 +13,7 @@ describe('loginItemSettingsFor', () => {
     const plan = loginItemSettingsFor(
       'win32',
       true,
-      'C:\\Users\\x\\AppData\\Local\\hue\\app-0.2.1\\hue-desktop.exe',
+      'C:\\Users\\x\\AppData\\Local\\lumen\\app-0.2.1\\lumen-desktop.exe',
     );
 
     // The app-0.2.1 folder is replaced on update; Update.exe is not.
@@ -25,14 +25,14 @@ describe('loginItemSettingsFor', () => {
 
   it('asks macOS to start us with the hidden flag', () => {
     // openAsHidden is ignored on macOS 13+, so the flag carries the intent.
-    const plan = loginItemSettingsFor('darwin', true, '/Applications/Hue Desktop.app');
+    const plan = loginItemSettingsFor('darwin', true, '/Applications/Lumen Desktop.app');
 
     expect(plan.supported).toBe(true);
     expect(plan.settings).toEqual({ openAtLogin: true, args: [HIDDEN_FLAG] });
   });
 
   it('reports Linux as unsupported so the caller writes a desktop entry instead', () => {
-    const plan = loginItemSettingsFor('linux', true, '/usr/bin/hue-desktop');
+    const plan = loginItemSettingsFor('linux', true, '/usr/bin/lumen-desktop');
 
     expect(plan.supported).toBe(false);
     expect(plan.settings).toBeUndefined();

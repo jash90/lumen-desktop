@@ -1,0 +1,11 @@
+{
+  "productName": "Lumen Desktop",
+  "executableName": "lumen-desktop",
+  "bundleId": "com.bartlomiejzimny.lumendesktop",
+  "teamId": "H2X8YGN869",
+  "widgetKind": "LumenDesktopStatus",
+  "widgetName": "LumenWidget",
+  "reloadHelper": "lumen-widget-reload",
+  "legacyProductName": "Hue Desktop",
+  "legacyExecutableName": "hue-desktop"
+}

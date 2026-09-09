@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/icon.png" width="128" alt="Hue Desktop">
+<img src="assets/icon.png" width="128" alt="Lumen Desktop">
 
-# Hue Desktop
+# Lumen Desktop
 
 **Control your Philips Hue lighting from the desktop — without reaching for your phone.**
 
@@ -14,7 +14,7 @@ directly over the local network. No backend, no account, no cloud.
 ---
 
 <div align="center">
-<img src="assets/screenshot-dashboard.png" width="380" alt="Hue Desktop dashboard">
+<img src="assets/screenshot-dashboard.png" width="380" alt="Lumen Desktop dashboard">
 </div>
 
 ## What it does
@@ -47,7 +47,7 @@ available in Notification Center and on the desktop. Two sizes:
 - **small** — how many lights are on out of how many,
 - **medium** — a list of rooms with the brightness of each.
 
-To add it: right-click the desktop → *Edit Widgets*, find **Hue Desktop** and drag the
+To add it: right-click the desktop → *Edit Widgets*, find **Lumen Desktop** and drag the
 size you want. The app has to live in `/Applications`.
 
 The widget **controls the lighting**: in the small size the whole tile is an
@@ -77,8 +77,8 @@ Download the latest release from [Releases](../../releases).
 
 | System | File |
 |---|---|
-| macOS (Apple Silicon) | `Hue Desktop-<version>-arm64.dmg` |
-| Windows | `Hue Desktop-<version> Setup.exe` |
+| macOS (Apple Silicon) | `Lumen Desktop-<version>-arm64.dmg` |
+| Windows | `Lumen Desktop-<version> Setup.exe` |
 | Linux | `.deb` / `.rpm` |
 
 > **macOS:** releases are signed with a Developer ID certificate and notarized by Apple,
@@ -86,6 +86,19 @@ Download the latest release from [Releases](../../releases).
 
 > **Windows and Linux:** the packaging is configured, but those builds have **not been
 > produced or tested yet** — see [Limitations](#limitations).
+
+### Upgrading from Hue Desktop
+
+The app used to be called Hue Desktop. The rename moves everything the operating system
+keys on the name, so the first launch migrates what it can and asks for the rest:
+
+- **Settings survive** — favorites, shortcuts, quick actions and the theme are copied from
+  the old data directory automatically, once.
+- **The Bridge has to be paired again on macOS.** The encryption key for the stored
+  application key lives in the Keychain under the *app name*, so the copied credentials
+  cannot be decrypted under the new one. On Windows the credentials carry over as they are.
+- **The widget has to be added again** — a new widget kind means macOS treats the tile as
+  a different widget and drops the placed one.
 
 ## Requirements
 
@@ -114,7 +127,7 @@ HUE_BRIDGE_IP=192.168.1.42 npm test
 A signed and notarized macOS build, widget included:
 
 ```bash
-HUE_SIGN=1 \
+LUMEN_SIGN=1 \
 APPLE_API_KEY_PATH=~/private_keys/AuthKey_XXXXXXXX.p8 \
 APPLE_API_KEY_ID=XXXXXXXX \
 APPLE_API_ISSUER=<issuer-uuid> \
@@ -124,8 +137,9 @@ npm run make
 The widget extension is built with plain `swiftc` and assembled into an `.appex` by hand
 (`widget/build-widget.sh`) — there is no Xcode project, because it is a single Swift file
 and an `.appex` is just a bundle with an `Info.plist` and a binary. The whole build is
-reproducible from the command line. If you fork this, swap `HUE_TEAM_ID` and the App
-Group identifier in `widget/HueWidget.swift` and `src/main/widget/WidgetBridge.ts`.
+reproducible from the command line. If you fork this, edit `identity.json` — the bundle
+identifier, the App Group and the Team ID all derive from it, on both the Electron and the
+Swift side, so there is nothing to keep in sync by hand.
 
 ## Architecture
 

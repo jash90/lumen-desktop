@@ -1,4 +1,4 @@
-import { HueError } from '../../shared/errors';
+import { AppError } from '../../shared/errors';
 import type { ChangeSet, HueApi } from '../hue/HueApi';
 import { createHueApi } from '../hue/HueApi';
 import { createHueClient } from '../hue/HueClient';
@@ -117,7 +117,7 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
   }
 
   async function attemptConnect(): Promise<void> {
-    if (!credential) throw new HueError('BridgeNotFound', 'no stored credentials');
+    if (!credential) throw new AppError('BridgeNotFound', 'no stored credentials');
     const myGeneration = generation;
     setState(state === 'reconnecting' ? 'reconnecting' : 'connecting');
 
@@ -147,7 +147,7 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
       teardown();
 
       // A revoked key will never fix itself — retrying would just spin forever.
-      if (error instanceof HueError && error.code === 'Unauthorized') {
+      if (error instanceof AppError && error.code === 'Unauthorized') {
         setState('disconnected');
         throw error;
       }
@@ -159,7 +159,7 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
       }
 
       if (myGeneration === generation) scheduleRetry();
-      throw error instanceof HueError ? error : new HueError('BridgeOffline', String(error));
+      throw error instanceof AppError ? error : new AppError('BridgeOffline', String(error));
     }
   }
 
@@ -232,7 +232,7 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
     status: buildStatus,
 
     requireApi() {
-      if (!api) throw new HueError('BridgeOffline', 'not connected to a bridge');
+      if (!api) throw new AppError('BridgeOffline', 'not connected to a bridge');
       return api;
     },
   };

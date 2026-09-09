@@ -8,7 +8,7 @@ import {
   useShortcutConflicts,
   useShortcuts,
   useUpdateSettings,
-} from '../hooks/useHue';
+} from '../hooks/useLighting';
 
 /**
  * Editor for quick actions and global shortcuts.

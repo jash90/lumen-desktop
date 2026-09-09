@@ -1,4 +1,4 @@
-import { useAutomations, useSetAutomationEnabled } from '../hooks/useHue';
+import { useAutomations, useSetAutomationEnabled } from '../hooks/useLighting';
 import { EmptyState } from '../components/EmptyState';
 import { PowerSwitch } from '../components/PowerSwitch';
 import { Skeleton } from '../components/Skeleton';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { HueError } from '../src/shared/errors';
+import { AppError } from '../src/shared/errors';
 import { lightDtoSchema } from '../src/main/hue/dto';
 import { createHueClient } from '../src/main/hue/HueClient';
 import { mapTransportError } from '../src/main/hue/HueTransport';
@@ -50,8 +50,8 @@ describe('HueClient', () => {
     const client = createHueClient(transport, APP_KEY);
 
     const error = await client.list('light', lightDtoSchema).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(HueError);
-    expect((error as HueError).code).toBe('RequestFailed');
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe('RequestFailed');
   });
 
   it('surfaces per-resource errors that arrive with HTTP 200', async () => {
@@ -102,8 +102,8 @@ describe('mapTransportError', () => {
     ).toBe('NetworkError');
   });
 
-  it('passes an existing HueError through unchanged', () => {
-    const original = new HueError('PairingTimeout');
+  it('passes an existing AppError through unchanged', () => {
+    const original = new AppError('PairingTimeout');
     expect(mapTransportError(original)).toBe(original);
   });
 });

@@ -1,4 +1,4 @@
-import type { SerializedHueError } from '../../shared/errors';
+import type { SerializedAppError } from '../../shared/errors';
 import type { Result } from '../../shared/ipc';
 
 /**
@@ -6,24 +6,24 @@ import type { Result } from '../../shared/ipc';
  * TanStack Query see ordinary promises that reject with a message already
  * written for a human (PRD §32).
  */
-export class HueUiError extends Error {
-  readonly code: SerializedHueError['code'];
+export class UiError extends Error {
+  readonly code: SerializedAppError['code'];
 
-  constructor(error: SerializedHueError) {
+  constructor(error: SerializedAppError) {
     super(error.message);
-    this.name = 'HueUiError';
+    this.name = 'UiError';
     this.code = error.code;
   }
 }
 
 export async function unwrap<T>(promise: Promise<Result<T>>): Promise<T> {
   const result = await promise;
-  if (!result.ok) throw new HueUiError(result.error);
+  if (!result.ok) throw new UiError(result.error);
   return result.data;
 }
 
 export const messageOf = (error: unknown): string =>
-  error instanceof HueUiError ? error.message : 'An unexpected error occurred.';
+  error instanceof UiError ? error.message : 'An unexpected error occurred.';
 
 export const queryKeys = {
   lights: ['lights'] as const,

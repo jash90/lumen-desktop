@@ -4,7 +4,7 @@ import {
   useSetLightColor,
   useSetLightPower,
   useSetLightTemperature,
-} from '../hooks/useHue';
+} from '../hooks/useLighting';
 import { ColorPicker } from '../components/ColorPicker';
 import { EmptyState } from '../components/EmptyState';
 import { PowerSwitch } from '../components/PowerSwitch';

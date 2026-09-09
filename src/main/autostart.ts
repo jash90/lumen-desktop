@@ -3,6 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { app } from 'electron';
 
+import {
+  EXECUTABLE_NAME,
+  LEGACY_EXECUTABLE_NAME,
+  PRODUCT_NAME,
+} from '../shared/identity';
+
 /**
  * "Start with the system", which means something different on all three
  * platforms:
@@ -53,8 +59,18 @@ export function loginItemSettingsFor(
   return { supported: false };
 }
 
-const desktopEntryPath = (): string =>
-  path.join(os.homedir(), '.config', 'autostart', 'hue-desktop.desktop');
+const autostartDir = (): string => path.join(os.homedir(), '.config', 'autostart');
+
+export const desktopEntryPath = (name: string = EXECUTABLE_NAME): string =>
+  path.join(autostartDir(), `${name}.desktop`);
+
+/**
+ * The entry written under the old executable name would otherwise keep launching
+ * the old binary while the settings screen reports autostart as off, because it
+ * only ever looks for the current name.
+ */
+export const legacyDesktopEntryPath = (): string =>
+  desktopEntryPath(LEGACY_EXECUTABLE_NAME);
 
 /** ponytail: minimal .desktop file rather than the full XDG autostart spec. */
 function applyLinuxAutostart(enabled: boolean, execPath: string): void {
@@ -69,7 +85,7 @@ function applyLinuxAutostart(enabled: boolean, execPath: string): void {
     [
       '[Desktop Entry]',
       'Type=Application',
-      'Name=Hue Desktop',
+      `Name=${PRODUCT_NAME}`,
       `Exec="${execPath}" ${HIDDEN_FLAG}`,
       'X-GNOME-Autostart-enabled=true',
       '',

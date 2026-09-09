@@ -17,19 +17,19 @@ struct RoomSnapshot: Codable, Identifiable {
     let lightCount: Int
 }
 
-struct HueSnapshot: Codable {
+struct StateSnapshot: Codable {
     let connected: Bool
     let rooms: [RoomSnapshot]
     let lightsOn: Int
     let lightsTotal: Int
 
-    static let empty = HueSnapshot(connected: false, rooms: [], lightsOn: 0, lightsTotal: 0)
+    static let empty = StateSnapshot(connected: false, rooms: [], lightsOn: 0, lightsTotal: 0)
 }
 
 enum SnapshotStore {
-    /// macOS App Groups are prefixed with the Team ID (iOS uses "group."). Change
-    /// this alongside the Team ID in build-widget.sh when forking.
-    static let appGroup = "H2X8YGN869.com.bartlomiejzimny.huedesktop"
+    /// From `identity.json` via the generated `Identity.swift`, so this cannot
+    /// drift from what the Electron side writes.
+    static let appGroup = AppIdentity.appGroup
     static let fileName = "widget-state.json"
 
     /// The App Group container is the only place a sandboxed widget can read from —
@@ -43,10 +43,10 @@ enum SnapshotStore {
         return [group.appendingPathComponent(fileName)]
     }
 
-    static func load() -> HueSnapshot {
+    static func load() -> StateSnapshot {
         for url in candidates {
             guard let data = try? Data(contentsOf: url),
-                  let snapshot = try? JSONDecoder().decode(HueSnapshot.self, from: data)
+                  let snapshot = try? JSONDecoder().decode(StateSnapshot.self, from: data)
             else { continue }
             return snapshot
         }
@@ -56,13 +56,13 @@ enum SnapshotStore {
 
 // MARK: - Timeline
 
-struct HueEntry: TimelineEntry {
+struct StateEntry: TimelineEntry {
     let date: Date
-    let snapshot: HueSnapshot
+    let snapshot: StateSnapshot
 }
 
-struct HueProvider: TimelineProvider {
-    private static let preview = HueSnapshot(
+struct StateProvider: TimelineProvider {
+    private static let preview = StateSnapshot(
         connected: true,
         rooms: [
             RoomSnapshot(id: "1", name: "Salon", isOn: true, brightness: 72, lightCount: 4),
@@ -73,22 +73,22 @@ struct HueProvider: TimelineProvider {
         lightsTotal: 7
     )
 
-    func placeholder(in context: Context) -> HueEntry {
-        HueEntry(date: .now, snapshot: Self.preview)
+    func placeholder(in context: Context) -> StateEntry {
+        StateEntry(date: .now, snapshot: Self.preview)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (HueEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (StateEntry) -> Void) {
         // The widget gallery shows a representative preview rather than an empty box.
         let snapshot = context.isPreview ? Self.preview : SnapshotStore.load()
-        completion(HueEntry(date: .now, snapshot: snapshot))
+        completion(StateEntry(date: .now, snapshot: snapshot))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<HueEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<StateEntry>) -> Void) {
         Task {
             // Asking the bridge directly is what keeps the widget honest while the
             // app is closed; the app's snapshot is the fallback when it is not.
             let snapshot = (try? await HueBridgeClient.fetchSnapshot()) ?? SnapshotStore.load()
-            let entry = HueEntry(date: .now, snapshot: snapshot)
+            let entry = StateEntry(date: .now, snapshot: snapshot)
             // WidgetKit throttles refreshes to its own budget, so asking for a
             // minute yields a few. Tapping a toggle reloads immediately regardless.
             let next = Calendar.current.date(byAdding: .minute, value: 1, to: .now) ?? .now
@@ -157,7 +157,7 @@ struct DisconnectedView: View {
 }
 
 struct SmallView: View {
-    let snapshot: HueSnapshot
+    let snapshot: StateSnapshot
 
     var body: some View {
         // The whole tile is the master switch: anything lit means the tap turns
@@ -236,7 +236,7 @@ struct RoomRow: View {
 }
 
 struct MediumView: View {
-    let snapshot: HueSnapshot
+    let snapshot: StateSnapshot
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -244,7 +244,7 @@ struct MediumView: View {
                 Image(systemName: "lightbulb.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(accent)
-                Text("Hue Desktop")
+                Text(AppIdentity.productName)
                     .font(.system(size: 11, weight: .semibold))
                 Spacer()
                 Text("\(snapshot.lightsOn)/\(snapshot.lightsTotal)")
@@ -273,9 +273,9 @@ struct MediumView: View {
     }
 }
 
-struct HueWidgetView: View {
+struct LumenWidgetView: View {
     @Environment(\.widgetFamily) private var family
-    let entry: HueEntry
+    let entry: StateEntry
 
     var body: some View {
         Group {
@@ -293,18 +293,18 @@ struct HueWidgetView: View {
 
 // MARK: - Widget
 
-struct HueWidget: Widget {
+struct LumenWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "HueDesktopStatus", provider: HueProvider()) { entry in
-            HueWidgetView(entry: entry)
+        StaticConfiguration(kind: AppIdentity.widgetKind, provider: StateProvider()) { entry in
+            LumenWidgetView(entry: entry)
         }
-        .configurationDisplayName("Hue Desktop")
-        .description("The state of the Philips Hue lighting in your home.")
+        .configurationDisplayName(AppIdentity.productName)
+        .description("The state of the lighting in your home.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
 @main
-struct HueWidgetBundle: WidgetBundle {
-    var body: some Widget { HueWidget() }
+struct LumenWidgetBundle: WidgetBundle {
+    var body: some Widget { LumenWidget() }
 }

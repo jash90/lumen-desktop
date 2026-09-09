@@ -1,4 +1,4 @@
-import { HueError } from '../../shared/errors';
+import { AppError } from '../../shared/errors';
 import type { Automation, Light, RgbColor, Room, Scene } from '../../shared/models';
 import {
   behaviorInstanceDtoSchema,
@@ -113,13 +113,13 @@ export function createHueApi(client: HueClient): HueApi {
 
   const requireLightDto = (id: string): LightDto => {
     const dto = lightDtos.get(id);
-    if (!dto) throw new HueError('RequestFailed', `unknown light ${id}`);
+    if (!dto) throw new AppError('RequestFailed', `unknown light ${id}`);
     return dto;
   };
 
   const requireRoomDto = (id: string): RoomDto => {
     const dto = roomDtos.get(id);
-    if (!dto) throw new HueError('RequestFailed', `unknown room ${id}`);
+    if (!dto) throw new AppError('RequestFailed', `unknown room ${id}`);
     return dto;
   };
 
@@ -179,7 +179,7 @@ export function createHueApi(client: HueClient): HueApi {
 
     async setAutomationEnabled(id, enabled) {
       const dto = automationDtos.get(id);
-      if (!dto) throw new HueError('RequestFailed', `unknown automation ${id}`);
+      if (!dto) throw new AppError('RequestFailed', `unknown automation ${id}`);
 
       // `configuration` has to be echoed back verbatim. Sending `enabled` on its
       // own is rejected with "The instance doesn't support triggers" — verified
@@ -191,7 +191,7 @@ export function createHueApi(client: HueClient): HueApi {
     },
 
     async activateScene(id) {
-      if (!sceneDtos.has(id)) throw new HueError('RequestFailed', `unknown scene ${id}`);
+      if (!sceneDtos.has(id)) throw new AppError('RequestFailed', `unknown scene ${id}`);
       return client.update('scene', id, payloads.recallScene());
     },
 
@@ -199,20 +199,20 @@ export function createHueApi(client: HueClient): HueApi {
 
     async setLightBrightness(id, brightness) {
       const dto = requireLightDto(id);
-      if (!dto.dimming) throw new HueError('UnsupportedCapability', `light ${id} cannot dim`);
+      if (!dto.dimming) throw new AppError('UnsupportedCapability', `light ${id} cannot dim`);
       return client.update('light', id, payloads.brightness(brightness));
     },
 
     async setLightColor(id, color) {
       const dto = requireLightDto(id);
-      if (!dto.color) throw new HueError('UnsupportedCapability', `light ${id} has no colour`);
+      if (!dto.color) throw new AppError('UnsupportedCapability', `light ${id} has no colour`);
       return client.update('light', id, payloads.color(color, gamutOf(dto)));
     },
 
     async setLightTemperature(id, temperature) {
       const dto = requireLightDto(id);
       if (!dto.color_temperature) {
-        throw new HueError('UnsupportedCapability', `light ${id} has no colour temperature`);
+        throw new AppError('UnsupportedCapability', `light ${id} has no colour temperature`);
       }
       return client.update('light', id, payloads.temperature(temperature, mirekSchemaOf(dto)));
     },

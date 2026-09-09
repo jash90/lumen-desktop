@@ -1,4 +1,4 @@
-import { useQuickActions, useRunAction } from '../hooks/useHue';
+import { useQuickActions, useRunAction } from '../hooks/useLighting';
 
 /** One-click commands the user pinned, sitting above the room list. */
 export function QuickActions() {

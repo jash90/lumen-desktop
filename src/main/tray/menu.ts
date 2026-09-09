@@ -1,6 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron';
 
 import type { Action, ResourceRef, Room, Scene } from '../../shared/models';
+import { PRODUCT_NAME } from '../../shared/identity';
 
 /**
  * Builds the tray menu template.
@@ -30,7 +31,7 @@ export function buildTrayMenuTemplate(
   snapshot: TraySnapshot,
   on: TrayHandlers,
 ): MenuItemConstructorOptions[] {
-  const open: MenuItemConstructorOptions = { label: 'Open Hue Desktop', click: on.show };
+  const open: MenuItemConstructorOptions = { label: `Open ${PRODUCT_NAME}`, click: on.show };
   const quit: MenuItemConstructorOptions = { label: 'Quit', click: on.quit };
 
   // Nothing below this point can be acted on without a bridge, and offering

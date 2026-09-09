@@ -96,3 +96,6 @@ out/
 
 # widget extension build output
 widget/.build/
+
+# generated from identity.json at widget build time
+widget/Generated/

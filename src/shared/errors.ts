@@ -5,7 +5,7 @@
  * narrowed to one of these codes plus a message a user can act on.
  */
 
-export type HueErrorCode =
+export type AppErrorCode =
   | 'BridgeNotFound'
   | 'BridgeOffline'
   | 'PairingRequired'
@@ -18,12 +18,12 @@ export type HueErrorCode =
   | 'StorageUnavailable';
 
 /** Plain object shape — Error subclasses do not survive Electron's IPC structured clone. */
-export interface SerializedHueError {
-  code: HueErrorCode;
+export interface SerializedAppError {
+  code: AppErrorCode;
   message: string;
 }
 
-const USER_MESSAGES: Record<HueErrorCode, string> = {
+const USER_MESSAGES: Record<AppErrorCode, string> = {
   BridgeNotFound: 'No Hue Bridge found on the network.',
   BridgeOffline: 'Could not connect to the Hue Bridge.',
   PairingRequired: 'Press the button on the Hue Bridge to connect this app.',
@@ -38,36 +38,36 @@ const USER_MESSAGES: Record<HueErrorCode, string> = {
     'This system provides no secure password storage. The credentials were not saved.',
 };
 
-export class HueError extends Error {
-  readonly code: HueErrorCode;
+export class AppError extends Error {
+  readonly code: AppErrorCode;
   /** Message safe to render in the UI. `message` keeps the technical detail for logs. */
   readonly userMessage: string;
 
-  constructor(code: HueErrorCode, detail?: string, options?: { cause?: unknown }) {
+  constructor(code: AppErrorCode, detail?: string, options?: { cause?: unknown }) {
     super(detail ? `${code}: ${detail}` : code, options);
-    this.name = 'HueError';
+    this.name = 'AppError';
     this.code = code;
     this.userMessage = USER_MESSAGES[code];
   }
 
-  toJSON(): SerializedHueError {
+  toJSON(): SerializedAppError {
     return { code: this.code, message: this.userMessage };
   }
 }
 
-export function isHueError(value: unknown): value is HueError {
-  return value instanceof HueError;
+export function isAppError(value: unknown): value is AppError {
+  return value instanceof AppError;
 }
 
 /**
  * Last line of defence: anything that escapes a handler still reaches the UI as a
  * typed error rather than a raw Node error string.
  */
-export function toSerializedError(value: unknown): SerializedHueError {
-  if (isHueError(value)) return value.toJSON();
+export function toSerializedError(value: unknown): SerializedAppError {
+  if (isAppError(value)) return value.toJSON();
   return { code: 'RequestFailed', message: USER_MESSAGES.RequestFailed };
 }
 
-export function userMessageFor(code: HueErrorCode): string {
+export function userMessageFor(code: AppErrorCode): string {
   return USER_MESSAGES[code];
 }

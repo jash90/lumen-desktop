@@ -10,14 +10,16 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
+import identity from './identity.json';
+
 /** Also the prefix for the widget extension and its App Group. */
-export const BUNDLE_ID = 'com.bartlomiejzimny.huedesktop';
+export const BUNDLE_ID = identity.bundleId;
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    name: 'Hue Desktop',
-    executableName: 'hue-desktop',
+    name: identity.productName,
+    executableName: identity.executableName,
     icon: 'assets/icon', // Forge appends .icns on macOS and .ico on Windows
     // The tray icon is read at runtime, so it has to exist inside the packaged
     // app — the icon above only ends up in the bundle metadata.
@@ -27,7 +29,7 @@ const config: ForgeConfig = {
     // Signing is opt-in so `npm run make` still works on a machine without the
     // certificate — CI and contributors get an unsigned build, releases get a
     // signed one.
-    osxSign: process.env.HUE_SIGN
+    osxSign: process.env.LUMEN_SIGN
       ? {
           identity: 'Developer ID Application: Bartomiej Zimny (H2X8YGN869)',
           optionsForFile: () => ({ entitlements: 'build/entitlements.plist' }),
@@ -87,11 +89,11 @@ const config: ForgeConfig = {
  */
 config.hooks = {
   postPackage: async (_forgeConfig, options) => {
-    if (options.platform !== 'darwin' || !process.env.HUE_SIGN) return;
+    if (options.platform !== 'darwin' || !process.env.LUMEN_SIGN) return;
     for (const outputPath of options.outputPaths) {
       execFileSync(
         path.join(__dirname, 'scripts', 'finalize-macos.sh'),
-        [path.join(outputPath, 'Hue Desktop.app')],
+        [path.join(outputPath, `${identity.productName}.app`)],
         { stdio: 'inherit' },
       );
     }

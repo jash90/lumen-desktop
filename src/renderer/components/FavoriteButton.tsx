@@ -1,5 +1,5 @@
 import type { ResourceRef } from '../../shared/models';
-import { isFavorite, useFavorites, useToggleFavorite } from '../hooks/useHue';
+import { isFavorite, useFavorites, useToggleFavorite } from '../hooks/useLighting';
 
 /** Pin toggle shown on rooms, lights and scenes. */
 export function FavoriteButton({ target, label }: { target: ResourceRef; label: string }) {

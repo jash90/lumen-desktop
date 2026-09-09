@@ -9,8 +9,8 @@ import {
   useStorageHealth,
   useSwitchBridge,
   useUpdateSettings,
-} from '../hooks/useHue';
-import { queryKeys, unwrap } from '../lib/hue';
+} from '../hooks/useLighting';
+import { queryKeys, unwrap } from '../lib/api';
 import { ActionEditor } from '../components/ActionEditor';
 import { PowerSwitch } from '../components/PowerSwitch';
 import { useUiStore } from '../stores/uiStore';
@@ -89,7 +89,7 @@ export function SettingsPage() {
           <button
             type="button"
             onClick={async () => {
-              const next = await unwrap(window.hue.reconnectBridge());
+              const next = await unwrap(window.lumen.reconnectBridge());
               queryClient.setQueryData(queryKeys.connection, next);
             }}
             className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
@@ -99,7 +99,7 @@ export function SettingsPage() {
           <button
             type="button"
             onClick={async () => {
-              await unwrap(window.hue.disconnectBridge());
+              await unwrap(window.lumen.disconnectBridge());
               await queryClient.invalidateQueries();
               goHome();
             }}

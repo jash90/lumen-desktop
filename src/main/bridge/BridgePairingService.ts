@@ -1,12 +1,13 @@
 import os from 'node:os';
 
-import { HueError, toSerializedError } from '../../shared/errors';
+import { AppError, toSerializedError } from '../../shared/errors';
 import type { PairingState } from '../../shared/ipc';
 import type { BridgeSummary } from '../../shared/models';
 import { pairingResponseSchema } from '../hue/dto';
 import { createHueTransport } from '../hue/HueTransport';
 import { probeBridge } from './BridgeDiscoveryService';
 import type { BridgeRepository } from './BridgeRepository';
+import { EXECUTABLE_NAME } from '../../shared/identity';
 
 /**
  * The link-button ceremony (PRD §22, §40).
@@ -26,7 +27,7 @@ const ERROR_LINK_BUTTON_NOT_PRESSED = 101;
 
 function deviceType(): string {
   const host = os.hostname().replace(/[^\w.-]/g, '').slice(0, 20) || 'desktop';
-  return `hue-desktop#${host}`.slice(0, MAX_DEVICE_TYPE_LENGTH);
+  return `${EXECUTABLE_NAME}#${host}`.slice(0, MAX_DEVICE_TYPE_LENGTH);
 }
 
 export interface BridgePairingService {
@@ -59,7 +60,7 @@ export function createBridgePairingService(
 
       try {
         while (Date.now() < deadline) {
-          if (cancelled) throw new HueError('PairingTimeout', 'cancelled by user');
+          if (cancelled) throw new AppError('PairingTimeout', 'cancelled by user');
 
           const { body } = await transport.request({
             method: 'POST',
@@ -95,7 +96,7 @@ export function createBridgePairingService(
           }
 
           if (entry?.error && entry.error.type !== ERROR_LINK_BUTTON_NOT_PRESSED) {
-            throw new HueError('RequestFailed', entry.error.description);
+            throw new AppError('RequestFailed', entry.error.description);
           }
 
           onState({
@@ -107,10 +108,10 @@ export function createBridgePairingService(
           await new Promise((resolve) => setTimeout(resolve, RETRY_INTERVAL_MS));
         }
 
-        throw new HueError('PairingTimeout');
+        throw new AppError('PairingTimeout');
       } catch (error) {
         const hueError =
-          error instanceof HueError ? error : new HueError('RequestFailed', String(error));
+          error instanceof AppError ? error : new AppError('RequestFailed', String(error));
         onState({ status: 'failed', error: toSerializedError(hueError) });
         throw hueError;
       } finally {

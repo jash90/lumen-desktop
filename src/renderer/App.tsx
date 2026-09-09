@@ -1,7 +1,7 @@
 import { ConnectionStatusBadge } from './components/ConnectionStatus';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/Toaster';
-import { useConnectionStatus, useHueEvents } from './hooks/useHue';
+import { useConnectionStatus, useLightingEvents } from './hooks/useLighting';
 import { AutomationsPage } from './pages/AutomationsPage';
 import { HomePage, HomeSkeleton } from './pages/HomePage';
 import { LightPage } from './pages/LightPage';
@@ -9,6 +9,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { RoomPage } from './pages/RoomPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useUiStore } from './stores/uiStore';
+import { PRODUCT_NAME } from '../shared/identity';
 
 /**
  * Shell and routing (PRD §6, §7).
@@ -17,7 +18,7 @@ import { useUiStore } from './stores/uiStore';
  * screens and no URLs to speak of in a desktop window.
  */
 export function App() {
-  useHueEvents();
+  useLightingEvents();
 
   const status = useConnectionStatus();
   const view = useUiStore((state) => state.view);
@@ -45,7 +46,7 @@ export function App() {
             <span aria-hidden>‹</span> Back
           </button>
         ) : (
-          <span className="text-sm font-semibold tracking-tight">Hue Desktop</span>
+          <span className="text-sm font-semibold tracking-tight">{PRODUCT_NAME}</span>
         )}
         <span className="ml-auto">
           <ConnectionStatusBadge status={status.data} />

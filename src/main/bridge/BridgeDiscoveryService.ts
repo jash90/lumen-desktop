@@ -1,7 +1,7 @@
 import https from 'node:https';
 import { Bonjour } from 'bonjour-service';
 
-import { HueError } from '../../shared/errors';
+import { AppError } from '../../shared/errors';
 import type { DiscoveredBridge } from '../../shared/models';
 import { bridgeConfigSchema, cloudDiscoverySchema, type BridgeConfigDto } from '../hue/dto';
 import { createHueTransport } from '../hue/HueTransport';
@@ -41,14 +41,14 @@ export async function probeBridge(ip: string): Promise<BridgeProbe> {
       path: '/api/config',
       timeoutMs: 5_000,
     });
-    if (status !== 200) throw new HueError('BridgeNotFound', `HTTP ${status} from ${ip}`);
+    if (status !== 200) throw new AppError('BridgeNotFound', `HTTP ${status} from ${ip}`);
 
     const config = bridgeConfigSchema.safeParse(JSON.parse(body));
-    if (!config.success) throw new HueError('BridgeNotFound', `${ip} is not a Hue Bridge`);
+    if (!config.success) throw new AppError('BridgeNotFound', `${ip} is not a Hue Bridge`);
 
     const bridgeId = config.data.bridgeid.toLowerCase();
     if (transport.peerBridgeId && transport.peerBridgeId !== bridgeId) {
-      throw new HueError(
+      throw new AppError(
         'CertificateError',
         `certificate is for ${transport.peerBridgeId} but bridge reports ${bridgeId}`,
       );

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { app } from 'electron';
 
 import type { BridgeCredential } from '../bridge/BridgeRepository';
+import { APP_GROUP, RELOAD_HELPER } from '../../shared/identity';
 import type { Light, Room } from '../../shared/models';
 
 /**
@@ -54,15 +55,14 @@ export interface WidgetBridge {
 
 const FILE_NAME = 'widget-state.json';
 const CREDENTIALS_FILE = 'widget-credentials.json';
-/** Helper inside the app bundle; absent in development, where there is no bundle. */
-const RELOAD_HELPER = 'hue-widget-reload';
-/**
- * The widget extension is sandboxed, so its own Application Support directory
- * points inside its private container rather than at ours. The App Group
- * container is the one path both processes can reach — team-prefixed, as macOS
- * expects (iOS uses a "group." prefix instead).
+
+/*
+ * `RELOAD_HELPER` names a helper inside the app bundle (absent in development,
+ * where there is no bundle) and `APP_GROUP` the container both processes can
+ * reach — the widget extension is sandboxed, so its own Application Support
+ * directory points inside its private container rather than at ours. Both come
+ * from `identity.json`, which `build-widget.sh` reads as well.
  */
-const APP_GROUP = 'H2X8YGN869.com.bartlomiejzimny.huedesktop';
 
 export function buildSnapshot(
   connected: boolean,

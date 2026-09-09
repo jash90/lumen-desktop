@@ -12,24 +12,24 @@ import type {
   Scene,
   Settings,
 } from '../../shared/models';
-import { messageOf, queryKeys, unwrap } from '../lib/hue';
+import { messageOf, queryKeys, unwrap } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
 
 /**
  * All server state lives here (PRD §15). Components call these hooks and never
- * touch window.hue directly, so the IPC surface stays in one place.
+ * touch window.lumen directly, so the IPC surface stays in one place.
  */
 
 export const useConnectionStatus = () =>
   useQuery({
     queryKey: queryKeys.connection,
-    queryFn: () => unwrap(window.hue.getConnectionStatus()),
+    queryFn: () => unwrap(window.lumen.getConnectionStatus()),
   });
 
 export const useBridges = () =>
   useQuery({
     queryKey: queryKeys.bridges,
-    queryFn: () => unwrap(window.hue.listBridges()),
+    queryFn: () => unwrap(window.lumen.listBridges()),
   });
 
 /**
@@ -42,7 +42,7 @@ export function useSwitchBridge() {
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
-    mutationFn: (id: string) => unwrap(window.hue.setActiveBridge(id)),
+    mutationFn: (id: string) => unwrap(window.lumen.setActiveBridge(id)),
     onSuccess: (status) => {
       queryClient.removeQueries({ queryKey: queryKeys.lights });
       queryClient.removeQueries({ queryKey: queryKeys.rooms });
@@ -60,7 +60,7 @@ export function useRemoveBridge() {
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
-    mutationFn: (id: string) => unwrap(window.hue.removeBridge(id)),
+    mutationFn: (id: string) => unwrap(window.lumen.removeBridge(id)),
     onSuccess: () => queryClient.invalidateQueries(),
     onError: (error) => pushToast(messageOf(error)),
   });
@@ -69,19 +69,19 @@ export function useRemoveBridge() {
 export const useStorageHealth = () =>
   useQuery({
     queryKey: queryKeys.storageHealth,
-    queryFn: () => unwrap(window.hue.getStorageHealth()),
+    queryFn: () => unwrap(window.lumen.getStorageHealth()),
   });
 
 export const useSettings = () =>
   useQuery({
     queryKey: queryKeys.settings,
-    queryFn: () => unwrap(window.hue.getSettings()),
+    queryFn: () => unwrap(window.lumen.getSettings()),
   });
 
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<Settings>) => unwrap(window.hue.setSettings(patch)),
+    mutationFn: (patch: Partial<Settings>) => unwrap(window.lumen.setSettings(patch)),
     onSuccess: (settings) => queryClient.setQueryData(queryKeys.settings, settings),
   });
 }
@@ -94,7 +94,7 @@ export function useRunAction() {
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
-    mutationFn: (action: Action) => unwrap(window.hue.runAction(action)),
+    mutationFn: (action: Action) => unwrap(window.lumen.runAction(action)),
     onError: (error) => pushToast(messageOf(error)),
   });
 }
@@ -103,7 +103,7 @@ export function useRunAction() {
 export const useShortcutConflicts = () =>
   useQuery({
     queryKey: queryKeys.shortcutConflicts,
-    queryFn: () => unwrap(window.hue.getShortcutConflicts()),
+    queryFn: () => unwrap(window.lumen.getShortcutConflicts()),
   });
 
 export const useFavorites = (): ResourceRef[] => useSettings().data?.favorites ?? [];
@@ -131,7 +131,7 @@ export function useToggleFavorite() {
 export function useLights(enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.lights,
-    queryFn: () => unwrap(window.hue.getLights()),
+    queryFn: () => unwrap(window.lumen.getLights()),
     enabled,
   });
 }
@@ -139,7 +139,7 @@ export function useLights(enabled: boolean) {
 export function useRooms(enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.rooms,
-    queryFn: () => unwrap(window.hue.getRooms()),
+    queryFn: () => unwrap(window.lumen.getRooms()),
     enabled,
   });
 }
@@ -147,7 +147,7 @@ export function useRooms(enabled: boolean) {
 export function useAutomations(enabled: boolean) {
   return useQuery<Automation[]>({
     queryKey: queryKeys.automations,
-    queryFn: () => unwrap(window.hue.getAutomations()),
+    queryFn: () => unwrap(window.lumen.getAutomations()),
     enabled,
   });
 }
@@ -158,7 +158,7 @@ export function useSetAutomationEnabled() {
 
   return useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      unwrap(window.hue.setAutomationEnabled(id, enabled)),
+      unwrap(window.lumen.setAutomationEnabled(id, enabled)),
     onMutate: async ({ id, enabled }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.automations });
       const previous = queryClient.getQueryData<Automation[]>(queryKeys.automations);
@@ -180,7 +180,7 @@ export function useSetAutomationEnabled() {
 export function useScenes(enabled: boolean) {
   return useQuery<Scene[]>({
     queryKey: queryKeys.scenes,
-    queryFn: () => unwrap(window.hue.getScenes()),
+    queryFn: () => unwrap(window.lumen.getScenes()),
     enabled,
   });
 }
@@ -194,7 +194,7 @@ export function useActivateScene() {
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
-    mutationFn: (id: string) => unwrap(window.hue.activateScene(id)),
+    mutationFn: (id: string) => unwrap(window.lumen.activateScene(id)),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.scenes }),
     onError: (error) => pushToast(messageOf(error)),
   });
@@ -232,25 +232,25 @@ function useOptimisticLight<V extends { id: string }>(
 
 export const useSetLightPower = () =>
   useOptimisticLight<{ id: string; on: boolean }>(
-    ({ id, on }) => unwrap(window.hue.setLightPower(id, on)),
+    ({ id, on }) => unwrap(window.lumen.setLightPower(id, on)),
     (light, { on }) => ({ ...light, isOn: on }),
   );
 
 export const useSetLightBrightness = () =>
   useOptimisticLight<{ id: string; brightness: number }>(
-    ({ id, brightness }) => unwrap(window.hue.setLightBrightness(id, brightness)),
+    ({ id, brightness }) => unwrap(window.lumen.setLightBrightness(id, brightness)),
     (light, { brightness }) => ({ ...light, brightness, isOn: brightness > 0 }),
   );
 
 export const useSetLightTemperature = () =>
   useOptimisticLight<{ id: string; temperature: number }>(
-    ({ id, temperature }) => unwrap(window.hue.setLightTemperature(id, temperature)),
+    ({ id, temperature }) => unwrap(window.lumen.setLightTemperature(id, temperature)),
     (light, { temperature }) => ({ ...light, colorTemperature: temperature }),
   );
 
 export const useSetLightColor = () =>
   useOptimisticLight<{ id: string; color: RgbColor }>(
-    ({ id, color }) => unwrap(window.hue.setLightColor(id, color)),
+    ({ id, color }) => unwrap(window.lumen.setLightColor(id, color)),
     (light, { color }) => ({ ...light, color }),
   );
 
@@ -294,14 +294,14 @@ function useOptimisticRoom<V extends { id: string }>(
 
 export const useSetRoomPower = () =>
   useOptimisticRoom<{ id: string; on: boolean }>(
-    ({ id, on }) => unwrap(window.hue.setRoomPower(id, on)),
+    ({ id, on }) => unwrap(window.lumen.setRoomPower(id, on)),
     (room, { on }) => ({ ...room, isOn: on }),
     (light, { on }) => ({ ...light, isOn: on }),
   );
 
 export const useSetRoomBrightness = () =>
   useOptimisticRoom<{ id: string; brightness: number }>(
-    ({ id, brightness }) => unwrap(window.hue.setRoomBrightness(id, brightness)),
+    ({ id, brightness }) => unwrap(window.lumen.setRoomBrightness(id, brightness)),
     (room, { brightness }) => ({ ...room, brightness, isOn: brightness > 0 }),
     (light, { brightness }) => ({ ...light, brightness, isOn: brightness > 0 }),
   );
@@ -310,7 +310,7 @@ export const useSetRoomBrightness = () =>
  * Push updates from the bridge (PRD §50). Changes made with a wall switch or the
  * Hue app land straight in the query cache — no polling, no refetch storm.
  */
-export function useHueEvents() {
+export function useLightingEvents() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -321,15 +321,15 @@ export function useHueEvents() {
     };
 
     const unsubscribers = [
-      window.hue.onLightChanged((lights) => {
+      window.lumen.onLightChanged((lights) => {
         queryClient.setQueryData<Light[]>(queryKeys.lights, (current) =>
           mergeById(current, lights),
         );
       }),
-      window.hue.onRoomChanged((rooms) => {
+      window.lumen.onRoomChanged((rooms) => {
         queryClient.setQueryData<Room[]>(queryKeys.rooms, (current) => mergeById(current, rooms));
       }),
-      window.hue.onConnectionChanged((status: ConnectionStatus) => {
+      window.lumen.onConnectionChanged((status: ConnectionStatus) => {
         queryClient.setQueryData(queryKeys.connection, status);
         // A fresh connection may have been established against a different set of
         // resources, so the lists are refetched once rather than merged.
