@@ -52,7 +52,12 @@ export interface WidgetSnapshot {
 /** What the widget needs to reach a hub itself, discriminated like the stored one. */
 export type WidgetCredential =
   | { kind: 'hue'; providerId: string; address: string; applicationKey: string }
-  | { kind: 'homeassistant'; providerId: string; address: string; token: string };
+  | { kind: 'homeassistant'; providerId: string; address: string; token: string }
+  | {
+      kind: 'tuya';
+      providerId: string;
+      devices: { deviceId: string; name: string; address: string; localKey: string }[];
+    };
 
 export interface WidgetBridge {
   publish(
@@ -135,6 +140,23 @@ export function toCredentials(
               },
             ]
           : [];
+
+      case 'tuya':
+        // Exported unconditionally, like Hue: a local key drives lighting on
+        // this network and nothing else. It is not the same class of secret as
+        // a Home Assistant token, which is why that one waits for an opt-in.
+        return [
+          {
+            kind: 'tuya',
+            providerId: credential.id,
+            devices: credential.devices.map((device) => ({
+              deviceId: device.deviceId,
+              name: device.name,
+              address: device.address,
+              localKey: device.localKey,
+            })),
+          },
+        ];
 
       default: {
         const unreachable: never = credential;

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { decodeFrames, encodeFrame, TuyaCommand } from '../src/main/tuya/TuyaCodec';
 import { dpsPayloadSchema, Dp } from '../src/main/tuya/dto';
+import { createTuyaAdapter } from '../src/main/tuya/TuyaAdapter';
 
 /**
  * Hardware smoke test, in the spirit of live.bridge.test.ts.
@@ -81,4 +82,83 @@ describe.skipIf(!ip || !deviceId || !localKey)('live Tuya device', () => {
       code: 'Unauthorized',
     });
   }, 15_000);
+});
+
+/**
+ * The whole adapter against the real device — transport, session, coalescing
+ * and the LightingApi on top. The codec tests prove the bytes; this proves the
+ * layers above them agree with a bulb that is actually plugged in.
+ */
+describe.skipIf(!ip || !deviceId || !localKey)('live Tuya adapter', () => {
+  const credential = {
+    kind: 'tuya' as const,
+    id: 'tuya-local',
+    name: 'Tuya (local)',
+    address: 'local network',
+    devices: [{ deviceId: deviceId!, name: 'Test bulb', address: ip!, localKey: localKey! }],
+  };
+
+  /** recover() is not exercised here, so discovery can be a stub. */
+  const adapter = createTuyaAdapter({
+    repository: { get: () => null, save: () => undefined } as never,
+    discovery: { discover: async () => [] },
+  });
+
+  it('connects, reads the light and drives it', async () => {
+    const changes: number[] = [];
+    const session = await adapter.connect(credential, {
+      onChanges: (change) => changes.push(change.lights.length),
+      onClosed: () => undefined,
+    });
+
+    try {
+      expect(session.detail?.()).toBe('1 device');
+
+      const [light] = session.api.getLights();
+      expect(light).toBeDefined();
+      expect(light!.id).toBe(deviceId);
+      expect(light!.capabilities.dimming).toBe(true);
+
+      const wasOn = light!.isOn;
+
+      await session.api.setLightPower(deviceId!, true);
+      await new Promise((r) => setTimeout(r, 1_500));
+      expect(session.api.getLight(deviceId!).isOn).toBe(true);
+
+      await session.api.setLightBrightness(deviceId!, 40);
+      await new Promise((r) => setTimeout(r, 1_500));
+      expect(session.api.getLight(deviceId!).brightness).toBeCloseTo(40, -1);
+
+      // Leave it as it was found.
+      await session.api.setLightPower(deviceId!, wasOn);
+      await new Promise((r) => setTimeout(r, 1_000));
+    } finally {
+      session.stop();
+    }
+  }, 40_000);
+
+  /** Two writes inside the window must reach the device as one frame. */
+  it('merges rapid writes instead of flooding the device', async () => {
+    const session = await adapter.connect(credential, {
+      onChanges: () => undefined,
+      onClosed: () => undefined,
+    });
+
+    try {
+      const before = session.api.getLight(deviceId!).isOn;
+      await Promise.all([
+        session.api.setLightBrightness(deviceId!, 30),
+        session.api.setLightBrightness(deviceId!, 60),
+        session.api.setLightBrightness(deviceId!, 90),
+      ]);
+      await new Promise((r) => setTimeout(r, 1_500));
+
+      // The last value wins; the intermediate steps never went out.
+      expect(session.api.getLight(deviceId!).brightness).toBeCloseTo(90, -1);
+      await session.api.setLightPower(deviceId!, before);
+      await new Promise((r) => setTimeout(r, 1_000));
+    } finally {
+      session.stop();
+    }
+  }, 40_000);
 });

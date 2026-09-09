@@ -10,6 +10,8 @@ import { startedHidden } from './autostart';
 import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
 import { createBridgePairingService } from './bridge/BridgePairingService';
 import { createHaAdapter } from './homeassistant/HaAdapter';
+import { createTuyaAdapter } from './tuya/TuyaAdapter';
+import { createTuyaDiscoveryService } from './tuya/TuyaDiscoveryService';
 import { createHueAdapter } from './hue/HueAdapter';
 import { createProviderRegistry } from './providers/ProviderRegistry';
 import { createProviderRepository } from './providers/ProviderRepository';
@@ -142,6 +144,7 @@ async function bootstrap(): Promise<void> {
   const settings = createSettingsStorage();
   const repository = createProviderRepository(storage);
   const discovery = createBridgeDiscoveryService(repository);
+  const tuyaDiscovery = createTuyaDiscoveryService();
   const pairing = createBridgePairingService(repository, (state) =>
     broadcast(EVENT_CHANNELS.pairingState, state),
   );
@@ -182,6 +185,7 @@ async function bootstrap(): Promise<void> {
     adapters: {
       hue: createHueAdapter({ repository, discovery }),
       homeassistant: createHaAdapter(),
+      tuya: createTuyaAdapter({ repository, discovery: tuyaDiscovery }),
     },
     onStatuses: (statuses) => {
       broadcast(EVENT_CHANNELS.connectionChanged, statuses);
@@ -246,6 +250,7 @@ async function bootstrap(): Promise<void> {
     providers,
     repository,
     discovery,
+    tuyaDiscovery,
     pairing,
     storage,
     settings,

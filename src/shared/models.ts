@@ -7,7 +7,7 @@
  */
 
 /** Which kind of hub a resource came from. */
-export type ProviderKind = 'hue' | 'homeassistant';
+export type ProviderKind = 'hue' | 'homeassistant' | 'tuya';
 
 export type ConnectionState =
   | 'disconnected'
@@ -119,6 +119,11 @@ export interface ConnectionStatus {
   hub: HubSummary | null;
   /** Set while state is 'reconnecting'; ms until the next attempt. */
   retryInMs?: number;
+  /**
+   * What is behind this connection, when one line is not the whole story —
+   * "3 of 4 devices" for a provider that fans out. Empty for a single hub.
+   */
+  detail?: string;
 }
 
 /** Warning surfaced when the OS has no real secret store (PRD §20, §63.3). */
