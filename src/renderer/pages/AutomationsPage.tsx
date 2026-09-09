@@ -16,7 +16,7 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
 
   if (automations.isLoading) {
     return (
-      <div className="space-y-2 px-4 py-4" aria-busy="true" aria-label="Wczytywanie automatyzacji">
+      <div className="space-y-2 px-4 py-4" aria-busy="true" aria-label="Loading automations">
         <div className="card-stack divide-y divide-line">
           {[0, 1, 2].map((row) => (
             <div key={row} className="flex items-center gap-3 px-4 py-3">
@@ -34,8 +34,8 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
   if (list.length === 0) {
     return (
       <EmptyState
-        title="Brak automatyzacji"
-        description="Automatyzacje tworzy się w aplikacji Philips Hue — pojawią się tutaj, gdy je dodasz."
+        title="No automations"
+        description="Automations are created in the Philips Hue app — they will show up here once you add them."
       />
     );
   }
@@ -43,7 +43,7 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
   return (
     <div className="space-y-3 px-4 py-4 pb-6">
       <p className="px-1 text-xs text-ink-muted">
-        Automatyzacje działają na Bridge'u, także przy zamkniętej aplikacji.
+        Automations run on the Bridge, even while this app is closed.
       </p>
       <div className="card-stack divide-y divide-line">
         {list.map((automation) => (
@@ -51,12 +51,12 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{automation.name}</p>
               <p className="text-xs text-ink-muted">
-                {automation.enabled ? 'Aktywna' : 'Wstrzymana'}
+                {automation.enabled ? 'Active' : 'Paused'}
               </p>
             </div>
             <PowerSwitch
               checked={automation.enabled}
-              label={`Przełącz automatyzację ${automation.name}`}
+              label={`Toggle automation ${automation.name}`}
               onCheckedChange={(enabled) => setEnabled.mutate({ id: automation.id, enabled })}
             />
           </div>

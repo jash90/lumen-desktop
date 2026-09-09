@@ -39,10 +39,10 @@ export function App() {
           <button
             type="button"
             onClick={goHome}
-            aria-label="Wstecz"
+            aria-label="Back"
             className="-ml-1.5 flex min-h-8 items-center gap-0.5 rounded-full px-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 focus-visible:focus-ring"
           >
-            <span aria-hidden>‹</span> Wstecz
+            <span aria-hidden>‹</span> Back
           </button>
         ) : (
           <span className="text-sm font-semibold tracking-tight">Hue Desktop</span>
@@ -56,9 +56,9 @@ export function App() {
         {!connected && view.name !== 'settings' ? (
           status.data?.state === 'disconnected' ? (
             <EmptyState
-              title="Brak połączenia z Hue Bridge"
-              description="Sprawdź, czy Bridge jest włączony i w tej samej sieci co ten komputer."
-              action={{ label: 'Otwórz ustawienia', onClick: () => navigate({ name: 'settings' }) }}
+              title="No connection to the Hue Bridge"
+              description="Check that the Bridge is powered on and on the same network as this computer."
+              action={{ label: 'Open settings', onClick: () => navigate({ name: 'settings' }) }}
             />
           ) : (
             <HomeSkeleton />
@@ -81,19 +81,19 @@ export function App() {
           [
             {
               key: 'home',
-              label: 'Dom',
+              label: 'Home',
               active: view.name !== 'settings' && view.name !== 'automations',
               onClick: goHome,
             },
             {
               key: 'automations',
-              label: 'Automatyzacje',
+              label: 'Automations',
               active: view.name === 'automations',
               onClick: () => navigate({ name: 'automations' }),
             },
             {
               key: 'settings',
-              label: 'Ustawienia',
+              label: 'Settings',
               active: view.name === 'settings',
               onClick: () => navigate({ name: 'settings' }),
             },

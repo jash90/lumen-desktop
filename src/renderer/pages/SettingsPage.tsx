@@ -16,9 +16,9 @@ import { PowerSwitch } from '../components/PowerSwitch';
 import { useUiStore } from '../stores/uiStore';
 
 const THEME_LABELS: Record<ThemePreference, string> = {
-  system: 'Systemowy',
-  light: 'Jasny',
-  dark: 'Ciemny',
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
 };
 
 /** Settings from PRD §29, minus the startup/tray options which are P1. */
@@ -38,7 +38,7 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6 px-4 py-4 pb-6">
-      <h1 className="px-1 text-lg font-semibold tracking-tight">Ustawienia</h1>
+      <h1 className="px-1 text-lg font-semibold tracking-tight">Settings</h1>
 
       <section className="space-y-3">
         <h2 className="label-caps px-1">Bridge</h2>
@@ -66,23 +66,23 @@ export function SettingsPage() {
                     <span className="block truncate pl-3.5 text-xs text-ink-muted">
                       {entry.ip}
                       {entry.swVersion ? ` · firmware ${entry.swVersion}` : ''}
-                      {active ? ' · aktywny' : ''}
+                      {active ? ' · active' : ''}
                     </span>
                   </button>
                   <button
                     type="button"
                     onClick={() => removeBridge.mutate(entry.id)}
-                    aria-label={`Usuń ${entry.name}`}
+                    aria-label={`Remove ${entry.name}`}
                     className="min-h-8 rounded-row px-2 text-sm text-ink-muted transition-colors hover:text-danger focus-visible:focus-ring"
                   >
-                    Usuń
+                    Remove
                   </button>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-sm text-ink-muted">Brak sparowanego Bridge.</p>
+          <p className="text-sm text-ink-muted">No paired Bridge.</p>
         )}
 
         <div className="flex gap-2">
@@ -94,7 +94,7 @@ export function SettingsPage() {
             }}
             className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
           >
-            Połącz ponownie
+            Reconnect
           </button>
           <button
             type="button"
@@ -105,13 +105,13 @@ export function SettingsPage() {
             }}
             className="min-h-9 flex-1 rounded-row border border-danger/40 px-4 text-sm text-danger transition-colors hover:bg-danger/10 focus-visible:focus-ring"
           >
-            Zapomnij aktywny
+            Forget the active one
           </button>
         </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Wygląd</h2>
+        <h2 className="label-caps px-1">Appearance</h2>
         <div className="flex gap-2">
           {(Object.keys(THEME_LABELS) as ThemePreference[]).map((theme) => (
             <button
@@ -132,22 +132,22 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Szybkie akcje i skróty</h2>
+        <h2 className="label-caps px-1">Quick actions and shortcuts</h2>
         <ActionEditor connected={status.data?.state === 'connected'} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Uruchamianie</h2>
+        <h2 className="label-caps px-1">Startup</h2>
         <div className="card-stack flex items-center gap-3 p-4">
           <span className="min-w-0 flex-1 text-sm">
-            Uruchamiaj przy starcie systemu
+            Launch at login
             <span className="mt-0.5 block text-xs text-ink-muted">
-              Aplikacja wystartuje w tle, dostępna z paska menu.
+              The app starts in the background, available from the menu bar.
             </span>
           </span>
           <PowerSwitch
             checked={settings.data?.launchAtLogin ?? false}
-            label="Uruchamiaj przy starcie systemu"
+            label="Launch at login"
             onCheckedChange={(launchAtLogin) => updateSettings.mutate({ launchAtLogin })}
           />
         </div>
@@ -155,11 +155,11 @@ export function SettingsPage() {
 
       {health.data?.weak && (
         <section className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400">
-          <p className="font-medium">Słabe zabezpieczenie danych logowania</p>
+          <p className="font-medium">Weak credential protection</p>
           <p className="mt-1">
-            System nie udostępnia pełnego magazynu haseł
-            {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. Klucz aplikacji jest
-            zapisany z minimalną ochroną — rozważ instalację GNOME Keyring lub KWallet.
+            This system provides no full password storage
+            {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. The application key is
+            stored with minimal protection — consider installing GNOME Keyring or KWallet.
           </p>
         </section>
       )}

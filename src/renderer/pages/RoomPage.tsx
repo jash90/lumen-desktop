@@ -27,9 +27,9 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
   if (!room) {
     return (
       <EmptyState
-        title="Nie znaleziono tego pokoju"
-        description="Mógł zostać usunięty w aplikacji Philips Hue."
-        action={{ label: 'Wróć do listy', onClick: goHome }}
+        title="Room not found"
+        description="It may have been removed in the Philips Hue app."
+        action={{ label: 'Back to the list', onClick: goHome }}
       />
     );
   }
@@ -43,7 +43,7 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
         <h1 className="text-lg font-semibold tracking-tight">{room.name}</h1>
         <p className="text-sm text-ink-muted">
           {lightCountLabel(roomLights.length)}
-          {!room.supportsGroupControl && ' · sterowanie pojedynczo'}
+          {!room.supportsGroupControl && ' · controlled one by one'}
         </p>
       </div>
 
@@ -52,14 +52,14 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
         onClick={() => setPower.mutate({ id: room.id, on: !room.isOn })}
         className="min-h-11 w-full rounded-card bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 active:brightness-95 focus-visible:focus-ring"
       >
-        {room.isOn ? 'Wyłącz wszystkie' : 'Włącz wszystkie'}
+        {room.isOn ? 'Turn all off' : 'Turn all on'}
       </button>
 
       {(() => {
         const roomScenes = (scenes.data ?? []).filter((scene) => scene.roomId === room.id);
         return roomScenes.length > 0 ? (
           <section className="space-y-2">
-            <h2 className="label-caps px-1">Sceny</h2>
+            <h2 className="label-caps px-1">Scenes</h2>
             <SceneRow scenes={roomScenes} />
           </section>
         ) : null;
@@ -67,7 +67,7 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
 
       {dimmable && room.isOn && (
         <Slider
-          label="Jasność"
+          label="Brightness"
           value={room.brightness}
           min={1}
           throttleMs={ROOM_THROTTLE_MS}

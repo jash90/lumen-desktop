@@ -39,7 +39,7 @@ export function RoomCard({ room, lights }: RoomCardProps) {
               <h2 className="truncate text-base font-semibold">{room.name}</h2>
               <span className="text-xs text-ink-muted">
                 {lightCountLabel(lights.length)}
-                {onCount > 0 && ` · ${onCount} wł.`}
+                {onCount > 0 && ` · ${onCount} on`}
               </span>
             </span>
             <span
@@ -49,10 +49,10 @@ export function RoomCard({ room, lights }: RoomCardProps) {
               ›
             </span>
           </button>
-          <FavoriteButton target={{ type: 'room', id: room.id }} label={`pokój ${room.name}`} />
+          <FavoriteButton target={{ type: 'room', id: room.id }} label={`room ${room.name}`} />
           <PowerSwitch
             checked={room.isOn}
-            label={`Przełącz pokój ${room.name}`}
+            label={`Toggle room ${room.name}`}
             onCheckedChange={(on) => setPower.mutate({ id: room.id, on })}
           />
         </div>
@@ -62,7 +62,7 @@ export function RoomCard({ room, lights }: RoomCardProps) {
             <div>
               <div className="pt-3">
                 <Slider
-                  label="Jasność pokoju"
+                  label="Room brightness"
                   value={room.brightness}
                   min={1}
                   throttleMs={ROOM_THROTTLE_MS}

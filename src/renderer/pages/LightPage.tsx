@@ -39,9 +39,9 @@ export function LightPage({
   if (!light) {
     return (
       <EmptyState
-        title="Nie znaleziono tej lampy"
-        description="Mogła zostać usunięta w aplikacji Philips Hue."
-        action={{ label: 'Wróć do listy', onClick: goHome }}
+        title="Light not found"
+        description="It may have been removed in the Philips Hue app."
+        action={{ label: 'Back to the list', onClick: goHome }}
       />
     );
   }
@@ -54,7 +54,7 @@ export function LightPage({
         </h1>
         <PowerSwitch
           checked={light.isOn}
-          label={`Przełącz ${light.name}`}
+          label={`Toggle ${light.name}`}
           onCheckedChange={(on) => setPower.mutate({ id: light.id, on })}
         />
       </div>
@@ -62,7 +62,7 @@ export function LightPage({
       <div className="card-stack space-y-5 p-3.5">
         {light.capabilities.dimming && (
           <Slider
-            label="Jasność"
+            label="Brightness"
             value={light.brightness}
             min={1}
             disabled={!light.isOn}
@@ -75,13 +75,13 @@ export function LightPage({
 
         {light.capabilities.colorTemperature && (
           <Slider
-            label="Temperatura barwowa"
+            label="Color temperature"
             value={light.colorTemperature ?? 50}
             disabled={!light.isOn}
             throttleMs={LIGHT_THROTTLE_MS}
             trackGradient="linear-gradient(90deg,#ffb46b,#fff5e8,#cfe4ff)"
             formatValue={(value) =>
-              value < 34 ? 'Ciepła' : value > 66 ? 'Zimna' : 'Neutralna'
+              value < 34 ? 'Warm' : value > 66 ? 'Cool' : 'Neutral'
             }
             onCommit={(temperature) =>
               setTemperature.mutate({ id: light.id, temperature })
@@ -100,7 +100,7 @@ export function LightPage({
           !light.capabilities.colorTemperature &&
           !light.capabilities.color && (
             <p className="text-sm text-ink-muted">
-              Ta lampa obsługuje wyłącznie włącz/wyłącz.
+              This light only supports on/off.
             </p>
           )}
       </div>

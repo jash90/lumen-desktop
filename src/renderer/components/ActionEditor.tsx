@@ -28,13 +28,13 @@ function useChoices(connected: boolean): Choice[] {
   const scenes = useScenes(connected);
 
   return [
-    { label: 'Wyłącz wszystko', action: { kind: 'allOff' } },
+    { label: 'All off', action: { kind: 'allOff' } },
     ...(rooms.data ?? []).map((room) => ({
-      label: `Przełącz: ${room.name}`,
+      label: `Toggle: ${room.name}`,
       action: { kind: 'toggleRoom', id: room.id } as Action,
     })),
     ...(scenes.data ?? []).map((scene) => ({
-      label: `Scena: ${scene.name}`,
+      label: `Scene: ${scene.name}`,
       action: { kind: 'activateScene', id: scene.id } as Action,
     })),
   ];
@@ -42,7 +42,7 @@ function useChoices(connected: boolean): Choice[] {
 
 const describe = (action: Action, choices: Choice[]): string =>
   choices.find((choice) => JSON.stringify(choice.action) === JSON.stringify(action))?.label ??
-  'Nieznana akcja';
+  'Unknown action';
 
 /** Turns a keydown into an Electron accelerator string. */
 function acceleratorFrom(event: React.KeyboardEvent): string | null {
@@ -98,7 +98,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
         <select
           value={selected}
           onChange={(event) => setSelected(Number(event.target.value))}
-          aria-label="Akcja"
+          aria-label="Action"
           className="min-h-9 w-full rounded-row border border-line bg-surface-raised px-2 text-sm focus-visible:focus-ring"
         >
           {choices.map((entry, index) => (
@@ -114,7 +114,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
             onClick={addQuickAction}
             className="min-h-9 flex-1 rounded-row border border-line px-3 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
           >
-            Przypnij jako przycisk
+            Pin as a button
           </button>
           <button
             type="button"
@@ -129,7 +129,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
               capturing ? 'border-accent bg-accent/10' : 'border-line hover:bg-line/40'
             }`}
           >
-            {capturing ? 'Naciśnij skrót…' : 'Przypisz skrót'}
+            {capturing ? 'Press a shortcut…' : 'Assign a shortcut'}
           </button>
         </div>
       </div>
@@ -140,7 +140,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
             <Row
               key={quickAction.id}
               title={quickAction.label}
-              subtitle="Przycisk na ekranie głównym"
+              subtitle="Button on the home screen"
               onRemove={() =>
                 update.mutate({
                   quickActions: quickActions.filter((entry) => entry.id !== quickAction.id),
@@ -162,7 +162,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
                 subtitle={describe(shortcut.action, choices)}
                 // A shortcut the OS refused looks identical to a working one
                 // unless it says so.
-                warning={failed ? 'Skrót zajęty przez inną aplikację' : undefined}
+                warning={failed ? 'Shortcut taken by another app' : undefined}
                 onRemove={() =>
                   update.mutate({
                     shortcuts: shortcuts.filter(
@@ -200,10 +200,10 @@ function Row({
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`Usuń ${title}`}
+        aria-label={`Remove ${title}`}
         className="min-h-8 rounded-row px-2 text-sm text-ink-muted transition-colors hover:text-danger focus-visible:focus-ring"
       >
-        Usuń
+        Remove
       </button>
     </div>
   );
