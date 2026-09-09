@@ -1,11 +1,18 @@
 import { app, nativeTheme } from 'electron';
 
+import { AppError } from '../../shared/errors';
+
 import { EVENT_CHANNELS } from '../../shared/ipc';
 import type { BridgeDiscoveryService } from '../bridge/BridgeDiscoveryService';
 import type { BridgePairingService } from '../bridge/BridgePairingService';
 import { verifyHomeAssistant } from '../homeassistant/HaOnboarding';
 import type { TuyaDiscoveryService } from '../tuya/TuyaDiscoveryService';
-import { buildTuyaCredential, TUYA_PROVIDER_ID } from '../tuya/TuyaOnboarding';
+import {
+  buildTuyaCredential,
+  probeDevices,
+  TUYA_PROVIDER_ID,
+} from '../tuya/TuyaOnboarding';
+import { describeKind } from '../tuya/TuyaDeviceKind';
 import type { ProviderRegistry } from '../providers/ProviderRegistry';
 import { toHubSummary } from '../providers/ProviderCredential';
 import type { ProviderRepository } from '../providers/ProviderRepository';
@@ -99,11 +106,37 @@ export function registerIpcHandlers(context: IpcContext): void {
   });
 
   handle('connectTuya', args.tuya, async ([input]) => {
+    // Ask each device what it is first. Tuya announces an id and nothing else,
+    // so a thermometer and a bulb look identical until one of them answers —
+    // and storing the thermometer would leave a lamp in the list that no
+    // control can move.
+    const probed = await probeDevices(input.devices);
+    const lights = probed.filter((entry) => entry.kind === 'light');
+
+    if (lights.length === 0) {
+      const [first] = probed;
+      throw new AppError(
+        'UnsupportedCapability',
+        first
+          ? `${first.device.name} is ${describeKind(first.kind)}`
+          : 'no device answered',
+      );
+    }
+
+    const credential = buildTuyaCredential(
+      lights.map((entry) => entry.device),
+      repository.get(TUYA_PROVIDER_ID),
+    );
     // add() connects before it resolves, so a wrong key or an unplugged device
     // comes back as an error here rather than sitting silently offline.
-    const credential = buildTuyaCredential(input.devices, repository.get(TUYA_PROVIDER_ID));
     await providers.add(credential);
-    return toHubSummary(credential);
+
+    return {
+      ...toHubSummary(credential),
+      skipped: probed
+        .filter((entry) => entry.kind !== 'light')
+        .map((entry) => ({ name: entry.device.name, reason: describeKind(entry.kind) })),
+    };
   });
 
   // hubs() is deliberately a projection rather than the stored record: an

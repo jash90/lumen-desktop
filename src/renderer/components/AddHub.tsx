@@ -291,6 +291,7 @@ function HomeAssistantConnect({ onConnected }: { onConnected?: () => void }) {
  */
 function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
   const [keys, setKeys] = useState<Record<string, string>>({});
+  const [skipped, setSkipped] = useState<{ name: string; reason: string }[]>([]);
   const queryClient = useQueryClient();
 
   const discovery = useQuery({
@@ -302,9 +303,16 @@ function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
   const connect = useMutation({
     mutationFn: (devices: { deviceId: string; name: string; address: string; localKey: string }[]) =>
       unwrap(window.lumen.connectTuya({ devices })),
-    onSuccess: () => {
+    onSuccess: (hub) => {
       setKeys({});
       void queryClient.invalidateQueries();
+      // Anything that turned out not to be a light is worth saying out loud —
+      // it is easy to paste a key against the wrong row. Staying open lets the
+      // user see why rather than being bounced back to a list without it.
+      if (hub.skipped.length > 0) {
+        setSkipped(hub.skipped);
+        return;
+      }
       onConnected?.();
     },
   });
@@ -399,6 +407,19 @@ function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
           ? 'Connecting…'
           : `Connect ${ready.length || ''} ${ready.length === 1 ? 'device' : 'devices'}`.trim()}
       </button>
+
+      {skipped.length > 0 && (
+        <div className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+          <p className="font-medium">Connected, but not everything is a light</p>
+          <ul className="mt-1 space-y-0.5">
+            {skipped.map((entry) => (
+              <li key={entry.name}>
+                {entry.name} — {entry.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {connect.isError && (
         <p className="rounded-card border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-danger">
