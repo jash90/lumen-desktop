@@ -23,7 +23,24 @@ export interface HueCredential {
   swVersion?: string;
 }
 
-export type ProviderCredential = HueCredential;
+/**
+ * A Home Assistant instance, reached at a base URL the user typed with a
+ * long-lived access token.
+ *
+ * The token is a far bigger secret than a Hue application key: it grants the
+ * whole Home Assistant API — locks, cameras, alarms — not just the lighting on
+ * one local network. It stays inside SecureStorage and never crosses IPC.
+ */
+export interface HomeAssistantCredential {
+  kind: 'homeassistant';
+  id: string;
+  name: string;
+  /** Base URL, e.g. http://homeassistant.local:8123 — no trailing slash. */
+  address: string;
+  token: string;
+}
+
+export type ProviderCredential = HueCredential | HomeAssistantCredential;
 
 export function toHubSummary(credential: ProviderCredential): HubSummary {
   return {
@@ -31,7 +48,7 @@ export function toHubSummary(credential: ProviderCredential): HubSummary {
     kind: credential.kind,
     name: credential.name,
     address: credential.address,
-    modelId: credential.modelId,
-    swVersion: credential.swVersion,
+    modelId: credential.kind === 'hue' ? credential.modelId : undefined,
+    swVersion: credential.kind === 'hue' ? credential.swVersion : undefined,
   };
 }

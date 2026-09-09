@@ -95,3 +95,55 @@ export const UNNAMED_AUTOMATION = {
   status: 'disabled',
   type: 'behavior_instance',
 };
+
+/*
+ * Home Assistant entities. The attribute sets are deliberately uneven: what an
+ * entity reports depends on the integration behind it, so a Tuya bulb and a
+ * Zigbee one do not look alike.
+ */
+
+/** Colour bulb: reports hs/color_temp, so it dims without listing 'brightness'. */
+export const HA_COLOR_LIGHT = {
+  entity_id: 'light.kitchen_ceiling',
+  state: 'on',
+  attributes: {
+    friendly_name: 'Kitchen Ceiling',
+    brightness: 128,
+    supported_color_modes: ['color_temp', 'hs'],
+    color_mode: 'hs',
+    rgb_color: [255, 180, 90],
+    min_color_temp_kelvin: 2000,
+    max_color_temp_kelvin: 6500,
+  },
+};
+
+/** White Ambiance equivalent: temperature but no colour, and in no area. */
+export const HA_TEMPERATURE_LIGHT = {
+  entity_id: 'light.desk',
+  state: 'on',
+  attributes: {
+    friendly_name: 'Desk',
+    brightness: 200,
+    supported_color_modes: ['color_temp'],
+    color_mode: 'color_temp',
+    color_temp_kelvin: 2900,
+    min_color_temp_kelvin: 2000,
+    max_color_temp_kelvin: 6500,
+  },
+};
+
+/** A plain switch: no brightness of its own, and no kelvin range either. */
+export const HA_ONOFF_LIGHT = {
+  entity_id: 'light.hallway',
+  state: 'on',
+  attributes: { friendly_name: 'Hallway', supported_color_modes: ['onoff'] },
+};
+
+export const HA_SCENE = {
+  entity_id: 'scene.movie_night',
+  // Scene state is the timestamp it was last applied, never 'on'.
+  state: '2026-09-09T20:11:00+00:00',
+  attributes: { friendly_name: 'Movie night' },
+};
+
+export const HA_KITCHEN_AREA = { area_id: 'kitchen', name: 'Kitchen' };
