@@ -2,23 +2,17 @@ import Foundation
 
 // MARK: - Credentials
 //
-// Written by the Electron app into the shared App Group container. The widget
-// needs them because it queries and controls the bridge itself rather than going
+// Handed in by LightingClients, which reads the exported hubs out of the shared
+// App Group container. The widget talks to the bridge itself rather than going
 // through the app — that is what makes it work while the app is not running.
 
-struct HueCredentials: Codable {
+struct HueCredentials {
+    /// The bridge id, which is also the Common Name its certificate is checked
+    /// against — the pinning below is worthless without it.
     let bridgeId: String
-    let ip: String
+    /// Its address on the local network.
+    let address: String
     let applicationKey: String
-
-    static func load() -> HueCredentials? {
-        guard let group = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: SnapshotStore.appGroup
-        ) else { return nil }
-        let url = group.appendingPathComponent("widget-credentials.json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(HueCredentials.self, from: data)
-    }
 }
 
 enum HueBridgeError: Error {
@@ -159,7 +153,7 @@ enum HueBridgeClient {
         path: String,
         body: Data? = nil
     ) -> URLRequest {
-        var request = URLRequest(url: URL(string: "https://\(credentials.ip)\(path)")!)
+        var request = URLRequest(url: URL(string: "https://\(credentials.address)\(path)")!)
         request.httpMethod = method
         request.setValue(credentials.applicationKey, forHTTPHeaderField: "hue-application-key")
         if let body {
@@ -183,13 +177,15 @@ enum HueBridgeClient {
         return try JSONDecoder().decode(HueEnvelope.self, from: data).data
     }
 
-    static func fetchSnapshot() async throws -> StateSnapshot {
-        guard let credentials = HueCredentials.load() else { throw HueBridgeError.notPaired }
-        return snapshot(from: try await fetchResources(credentials))
+    static func fetchRooms(
+        credentials: HueCredentials,
+        providerId: String
+    ) async throws -> (rooms: [RoomSnapshot], lightsOn: Int, lightsTotal: Int) {
+        let snapshot = snapshot(from: try await fetchResources(credentials), providerId: providerId)
+        return (snapshot.rooms, snapshot.lightsOn, snapshot.lightsTotal)
     }
 
-    static func setRoomPower(roomId: String, on: Bool) async throws {
-        guard let credentials = HueCredentials.load() else { throw HueBridgeError.notPaired }
+    static func setRoomPower(credentials: HueCredentials, roomId: String, on: Bool) async throws {
         let resources = try await fetchResources(credentials)
         guard let room = resources.first(where: { $0.type == "room" && $0.id == roomId }),
               let groupedLight = groupedLightId(of: room)
@@ -199,8 +195,7 @@ enum HueBridgeClient {
 
     /// "Everything off" means every room's grouped_light — one request per room
     /// rather than per bulb, matching what the app does in HueApi.setRoomPower.
-    static func setAllPower(on: Bool) async throws {
-        guard let credentials = HueCredentials.load() else { throw HueBridgeError.notPaired }
+    static func setAllPower(credentials: HueCredentials, on: Bool) async throws {
         let resources = try await fetchResources(credentials)
         let ids = resources.filter { $0.type == "room" }.compactMap(groupedLightId(of:))
         guard !ids.isEmpty else { throw HueBridgeError.noGroupedLight }
@@ -240,7 +235,10 @@ enum HueBridgeClient {
     // authoritative for a room's power and brightness, and the average over the
     // lit bulbs is the fallback for rooms that do not expose one.
 
-    fileprivate static func snapshot(from resources: [HueResource]) -> StateSnapshot {
+    fileprivate static func snapshot(
+        from resources: [HueResource],
+        providerId: String
+    ) -> StateSnapshot {
         let lights = resources.filter { $0.type == "light" }
         let groupedLights = Dictionary(
             uniqueKeysWithValues: resources.filter { $0.type == "grouped_light" }.map { ($0.id, $0) }
@@ -266,10 +264,12 @@ enum HueBridgeClient {
 
             return RoomSnapshot(
                 id: room.id,
+                providerId: providerId,
                 name: room.metadata?.name ?? "—",
                 isOn: grouped?.on?.on ?? !lit.isEmpty,
                 brightness: grouped?.dimming.map { Int($0.brightness.rounded()) } ?? averageBrightness,
-                lightCount: inRoom.count
+                lightCount: inRoom.count,
+                controllable: true
             )
         }
 

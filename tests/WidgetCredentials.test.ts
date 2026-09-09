@@ -38,37 +38,42 @@ const credential: HueCredential = {
   applicationKey: 'secret-key',
 };
 
+const exported = [
+  {
+    kind: 'hue' as const,
+    providerId: credential.id,
+    address: credential.address,
+    applicationKey: credential.applicationKey,
+  },
+];
+
 afterAll(() => fs.rmSync(home, { recursive: true, force: true }));
 
 describe.runIf(process.platform === 'darwin')('publishCredentials', () => {
   beforeEach(() => fs.rmSync(credentialsPath, { force: true }));
 
   it('writes what the widget needs, readable only by this user', () => {
-    createWidgetBridge().publishCredentials(credential);
+    createWidgetBridge().publishCredentials(exported);
 
-    expect(JSON.parse(fs.readFileSync(credentialsPath, 'utf8'))).toEqual({
-      bridgeId: '001788fffe1234ab',
-      ip: '192.168.1.42',
-      applicationKey: 'secret-key',
-    });
-    // The Hue key is no longer Keychain-protected once exported.
+    expect(JSON.parse(fs.readFileSync(credentialsPath, 'utf8'))).toEqual(exported);
+    // These secrets are no longer Keychain-protected once exported.
     expect(fs.statSync(credentialsPath).mode & 0o777).toBe(0o600);
   });
 
-  it('removes the key when the bridge is forgotten', () => {
+  it('removes the file when every hub is forgotten', () => {
     const widget = createWidgetBridge();
-    widget.publishCredentials(credential);
-    widget.publishCredentials(null);
+    widget.publishCredentials(exported);
+    widget.publishCredentials([]);
 
     expect(fs.existsSync(credentialsPath)).toBe(false);
   });
 
   it('does not rewrite the file when nothing changed', () => {
     const widget = createWidgetBridge();
-    widget.publishCredentials(credential);
+    widget.publishCredentials(exported);
     const first = fs.statSync(credentialsPath).mtimeMs;
 
-    widget.publishCredentials({ ...credential });
+    widget.publishCredentials([{ ...exported[0]! }]);
     expect(fs.statSync(credentialsPath).mtimeMs).toBe(first);
   });
 
@@ -78,11 +83,11 @@ describe.runIf(process.platform === 'darwin')('publishCredentials', () => {
       throw new Error('disk full');
     });
 
-    widget.publishCredentials(credential);
+    widget.publishCredentials(exported);
     expect(fs.existsSync(credentialsPath)).toBe(false);
 
     write.mockRestore();
-    widget.publishCredentials(credential);
+    widget.publishCredentials(exported);
     expect(fs.existsSync(credentialsPath)).toBe(true);
   });
 });

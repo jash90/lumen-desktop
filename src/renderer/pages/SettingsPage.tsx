@@ -49,6 +49,9 @@ export function SettingsPage() {
   const removeHub = useRemoveHub();
   const known = hubs.data ?? [];
 
+  // The widget only has a Home Assistant client to feed if there is one.
+  const hasHomeAssistant = known.some((hub) => hub.kind === 'homeassistant');
+
   /** Hubs run side by side, so each carries its own state rather than one badge. */
   const stateOf = (id: string): ConnectionState =>
     statuses.data?.find((status) => status.providerId === id)?.state ?? 'disconnected';
@@ -162,6 +165,30 @@ export function SettingsPage() {
           />
         </div>
       </section>
+
+      {hasHomeAssistant && (
+        <section className="space-y-3">
+          <h2 className="label-caps px-1">Widget</h2>
+          <div className="card-stack flex items-center gap-3 p-4">
+            <span className="min-w-0 flex-1 text-sm">
+              Let the widget control Home Assistant
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                The widget works while the app is closed, so it needs its own copy of the access
+                token in a file outside the keychain. That token grants your whole Home Assistant —
+                locks and cameras included — not just the lighting. Left off, the widget still shows
+                these rooms but cannot switch them.
+              </span>
+            </span>
+            <PowerSwitch
+              checked={settings.data?.exportHomeAssistantToWidget ?? false}
+              label="Let the widget control Home Assistant"
+              onCheckedChange={(exportHomeAssistantToWidget) =>
+                updateSettings.mutate({ exportHomeAssistantToWidget })
+              }
+            />
+          </div>
+        </section>
+      )}
 
       {health.data?.weak && (
         <section className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400">

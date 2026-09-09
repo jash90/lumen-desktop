@@ -11,10 +11,14 @@ import WidgetKit
 
 struct RoomSnapshot: Codable, Identifiable {
     let id: String
+    /// Which hub owns it — a tap has to reach the right one.
+    let providerId: String
     let name: String
     let isOn: Bool
     let brightness: Int
     let lightCount: Int
+    /// False when no credential was exported for that hub; the row is a reading.
+    let controllable: Bool
 }
 
 struct StateSnapshot: Codable {
@@ -65,9 +69,18 @@ struct StateProvider: TimelineProvider {
     private static let preview = StateSnapshot(
         connected: true,
         rooms: [
-            RoomSnapshot(id: "1", name: "Salon", isOn: true, brightness: 72, lightCount: 4),
-            RoomSnapshot(id: "2", name: "Biuro", isOn: true, brightness: 45, lightCount: 1),
-            RoomSnapshot(id: "3", name: "Sypialnia", isOn: false, brightness: 0, lightCount: 2),
+            RoomSnapshot(
+                id: "1", providerId: "preview", name: "Living Room",
+                isOn: true, brightness: 72, lightCount: 4, controllable: true
+            ),
+            RoomSnapshot(
+                id: "2", providerId: "preview", name: "Office",
+                isOn: true, brightness: 45, lightCount: 1, controllable: true
+            ),
+            RoomSnapshot(
+                id: "3", providerId: "preview", name: "Bedroom",
+                isOn: false, brightness: 0, lightCount: 2, controllable: true
+            ),
         ],
         lightsOn: 5,
         lightsTotal: 7
@@ -87,7 +100,7 @@ struct StateProvider: TimelineProvider {
         Task {
             // Asking the bridge directly is what keeps the widget honest while the
             // app is closed; the app's snapshot is the fallback when it is not.
-            let snapshot = (try? await HueBridgeClient.fetchSnapshot()) ?? SnapshotStore.load()
+            let snapshot = await LightingClients.fetchSnapshot()
             let entry = StateEntry(date: .now, snapshot: snapshot)
             // WidgetKit throttles refreshes to its own budget, so asking for a
             // minute yields a few. Tapping a toggle reloads immediately regardless.
@@ -108,17 +121,19 @@ struct ToggleRoomIntent: AppIntent {
     // The defaults matter: without them AppIntents cannot rebuild the parameter
     // from the archived widget view and perform() is never reached.
     @Parameter(title: "Room", default: "") var roomId: String
+    @Parameter(title: "Hub", default: "") var providerId: String
     @Parameter(title: "On", default: false) var on: Bool
 
     init() {}
 
-    init(roomId: String, on: Bool) {
+    init(providerId: String, roomId: String, on: Bool) {
+        self.providerId = providerId
         self.roomId = roomId
         self.on = on
     }
 
     func perform() async throws -> some IntentResult {
-        try await HueBridgeClient.setRoomPower(roomId: roomId, on: on)
+        try await LightingClients.setRoomPower(providerId: providerId, roomId: roomId, on: on)
         return .result()
     }
 }
@@ -133,7 +148,7 @@ struct ToggleAllIntent: AppIntent {
     init(on: Bool) { self.on = on }
 
     func perform() async throws -> some IntentResult {
-        try await HueBridgeClient.setAllPower(on: on)
+        try await LightingClients.setAllPower(on: on)
         return .result()
     }
 }
@@ -221,17 +236,31 @@ struct RoomRow: View {
 
             // The dot doubles as the switch — a full Toggle does not fit four
             // rooms into a medium widget, and the tap target is still 22pt.
-            Button(intent: ToggleRoomIntent(roomId: room.id, on: !room.isOn)) {
-                Image(systemName: room.isOn ? "lightbulb.fill" : "lightbulb")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(room.isOn ? accent : Color.secondary)
-                    .frame(width: 22, height: 22)
-                    .background(
-                        Circle().fill(Color.secondary.opacity(room.isOn ? 0.18 : 0.10))
+            // Without a credential for that hub it is only an indicator: a
+            // button that could not possibly work is worse than none.
+            if room.controllable {
+                Button(
+                    intent: ToggleRoomIntent(
+                        providerId: room.providerId, roomId: room.id, on: !room.isOn
                     )
+                ) {
+                    bulb
+                }
+                .buttonStyle(.plain)
+            } else {
+                bulb.opacity(0.55)
             }
-            .buttonStyle(.plain)
         }
+    }
+}
+
+extension RoomRow {
+    private var bulb: some View {
+        Image(systemName: room.isOn ? "lightbulb.fill" : "lightbulb")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(room.isOn ? accent : Color.secondary)
+            .frame(width: 22, height: 22)
+            .background(Circle().fill(Color.secondary.opacity(room.isOn ? 0.18 : 0.10)))
     }
 }
 

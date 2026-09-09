@@ -45,7 +45,10 @@ TARGET="arm64-apple-macos14.0"
 SOURCES=(
   "$GENERATED/Identity.swift"
   "$ROOT/widget/LumenWidget.swift"
+  "$ROOT/widget/WidgetCredentials.swift"
+  "$ROOT/widget/LightingClients.swift"
   "$ROOT/widget/HueBridgeClient.swift"
+  "$ROOT/widget/HaClient.swift"
 )
 
 # Xcode writes this list into DerivedData; it is not shipped with the toolchain,

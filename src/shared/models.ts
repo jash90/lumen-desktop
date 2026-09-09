@@ -170,6 +170,16 @@ export interface Settings {
   theme: ThemePreference;
   /** Start with the system, into the tray rather than into a visible window. */
   launchAtLogin: boolean;
+  /**
+   * Whether the macOS widget may hold a copy of the Home Assistant token.
+   *
+   * Off by default, and deliberately a separate choice from having the widget
+   * at all: the token grants the whole Home Assistant API — locks, cameras,
+   * alarms — while the Hue key the widget already carries only controls
+   * lighting on one local network. Left off, the widget still shows Home
+   * Assistant rooms from the app's snapshot; it just cannot switch them itself.
+   */
+  exportHomeAssistantToWidget: boolean;
   shortcuts: Shortcut[];
   quickActions: QuickAction[];
   /**

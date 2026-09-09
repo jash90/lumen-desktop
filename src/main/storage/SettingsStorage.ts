@@ -9,6 +9,7 @@ import type { Settings } from '../../shared/models';
 const DEFAULTS: Settings = {
   theme: 'system',
   launchAtLogin: false,
+  exportHomeAssistantToWidget: false,
   favorites: [],
   shortcuts: [],
   quickActions: [],

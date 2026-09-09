@@ -20,7 +20,7 @@ import { createSecureStorage } from './storage/SecureStorage';
 import { createSettingsStorage } from './storage/SettingsStorage';
 import { createShortcutRegistrar } from './shortcuts/GlobalShortcuts';
 import { createTray, type TrayController } from './tray/Tray';
-import { createWidgetBridge } from './widget/WidgetBridge';
+import { createWidgetBridge, toCredentials } from './widget/WidgetBridge';
 
 if (started) app.quit();
 
@@ -154,18 +154,24 @@ async function bootstrap(): Promise<void> {
    */
   const publishWidgetState = (): void => {
     try {
-      // The widget speaks to the bridge itself, so it needs the credentials even
-      // while the app cannot reach it — this goes before the connected check.
-      // Only Hue for now; the widget has no client for anything else.
-      const hue = repository.list().find((entry) => entry.kind === 'hue') ?? null;
-      widget.publishCredentials(hue);
+      // The widget speaks to the hubs itself, so it needs the credentials even
+      // while the app cannot reach them — this goes before the connected check.
+      const exported = toCredentials(
+        repository.list(),
+        settings.get().exportHomeAssistantToWidget,
+      );
+      widget.publishCredentials(exported);
+
+      // A room whose hub was not exported still shows, but as a reading rather
+      // than a switch — a dead button would be worse than an honest label.
+      const controllable = new Set(exported.map((entry) => entry.providerId));
 
       const connected = providers.statuses().some((status) => status.state === 'connected');
       if (!connected) {
-        widget.publish(false, [], []);
+        widget.publish(false, [], [], controllable);
         return;
       }
-      widget.publish(true, providers.getRooms(), providers.getLights());
+      widget.publish(true, providers.getRooms(), providers.getLights(), controllable);
     } catch (error) {
       console.warn('[widget] snapshot skipped:', error);
     }
