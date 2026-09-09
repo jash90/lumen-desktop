@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
 
-import type { HueCredential } from '../providers/ProviderCredential';
+import type { ProviderCredential } from '../providers/ProviderCredential';
 import { APP_GROUP, RELOAD_HELPER } from '../../shared/identity';
 import type { Light, Room } from '../../shared/models';
 
@@ -14,23 +14,32 @@ import type { Light, Room } from '../../shared/models';
  * Two files go into the shared App Group container:
  *
  *   - `widget-state.json` — a denormalised snapshot of what the app currently
- *     knows. The widget falls back to it when the bridge is unreachable.
- *   - `widget-credentials.json` — bridge address and application key, so the
- *     widget can query and control the bridge on its own, including while the
- *     app is not running.
+ *     knows. The widget falls back to it when a hub is unreachable.
+ *   - `widget-credentials.json` — how to reach each hub, so the widget can
+ *     query and control it on its own, including while the app is not running.
  *
- * Exporting the key is a deliberate trade-off: it leaves the Keychain-backed
- * store for a 0600 file readable by anything running as this user. A Hue
- * application key only grants control of local lighting — it is not an account
- * credential — and unpairing deletes the file again.
+ * Exporting a secret is a deliberate trade-off: it leaves the Keychain-backed
+ * store for a 0600 file readable by anything running as this user. For Hue that
+ * is defensible — an application key only grants control of lighting on the
+ * local network and is not an account credential.
+ *
+ * A Home Assistant token is not comparable: it grants that whole API, locks and
+ * cameras included, and works remotely if the instance is exposed. So it is
+ * exported only when the user has explicitly turned it on. Without it the
+ * widget still *shows* Home Assistant rooms from the snapshot — it just cannot
+ * switch them.
  */
 
 export interface WidgetRoom {
   id: string;
+  /** Which hub to send a tap to; the widget holds a client per kind. */
+  providerId: string;
   name: string;
   isOn: boolean;
   brightness: number;
   lightCount: number;
+  /** False when no credential was exported — the row renders read-only. */
+  controllable: boolean;
 }
 
 export interface WidgetSnapshot {
@@ -40,17 +49,20 @@ export interface WidgetSnapshot {
   lightsTotal: number;
 }
 
-/** What the widget needs to reach the bridge itself. */
-export interface WidgetCredentials {
-  bridgeId: string;
-  ip: string;
-  applicationKey: string;
-}
+/** What the widget needs to reach a hub itself, discriminated like the stored one. */
+export type WidgetCredential =
+  | { kind: 'hue'; providerId: string; address: string; applicationKey: string }
+  | { kind: 'homeassistant'; providerId: string; address: string; token: string };
 
 export interface WidgetBridge {
-  publish(connected: boolean, rooms: readonly Room[], lights: readonly Light[]): void;
-  /** `null` removes the exported key — that is what unpairing does. */
-  publishCredentials(credential: HueCredential | null): void;
+  publish(
+    connected: boolean,
+    rooms: readonly Room[],
+    lights: readonly Light[],
+    controllable: ReadonlySet<string>,
+  ): void;
+  /** An empty list removes the file — that is what forgetting every hub does. */
+  publishCredentials(credentials: readonly WidgetCredential[]): void;
 }
 
 const FILE_NAME = 'widget-state.json';
@@ -68,27 +80,55 @@ export function buildSnapshot(
   connected: boolean,
   rooms: readonly Room[],
   lights: readonly Light[],
+  controllable: ReadonlySet<string> = new Set(),
 ): WidgetSnapshot {
   return {
     connected,
     rooms: rooms.map((room) => ({
       id: room.id,
+      providerId: room.providerId,
       name: room.name,
       isOn: room.isOn,
       brightness: room.brightness,
       lightCount: room.lightIds.length,
+      controllable: controllable.has(room.providerId),
     })),
     lightsOn: lights.filter((light) => light.isOn).length,
     lightsTotal: lights.length,
   };
 }
 
-export function toCredentials(credential: HueCredential): WidgetCredentials {
-  return {
-    bridgeId: credential.id,
-    ip: credential.address,
-    applicationKey: credential.applicationKey,
-  };
+/**
+ * Which stored hubs the widget may be given the keys to.
+ *
+ * Hue always; Home Assistant only behind the explicit opt-in, because its token
+ * is a different order of secret — see the note at the top of this file.
+ */
+export function toCredentials(
+  credentials: readonly ProviderCredential[],
+  exportHomeAssistant: boolean,
+): WidgetCredential[] {
+  return credentials.flatMap((credential): WidgetCredential[] => {
+    if (credential.kind === 'hue') {
+      return [
+        {
+          kind: 'hue',
+          providerId: credential.id,
+          address: credential.address,
+          applicationKey: credential.applicationKey,
+        },
+      ];
+    }
+    if (!exportHomeAssistant) return [];
+    return [
+      {
+        kind: 'homeassistant',
+        providerId: credential.id,
+        address: credential.address,
+        token: credential.token,
+      },
+    ];
+  });
 }
 
 export function createWidgetBridge(): WidgetBridge {
@@ -123,8 +163,8 @@ export function createWidgetBridge(): WidgetBridge {
   };
 
   return {
-    publish(connected, rooms, lights) {
-      const payload = JSON.stringify(buildSnapshot(connected, rooms, lights));
+    publish(connected, rooms, lights, controllable) {
+      const payload = JSON.stringify(buildSnapshot(connected, rooms, lights, controllable));
       // Every SSE event would otherwise rewrite the file and wake WidgetKit even
       // when nothing the widget shows has actually changed.
       if (payload === lastPayload) return;
@@ -146,18 +186,18 @@ export function createWidgetBridge(): WidgetBridge {
       });
     },
 
-    publishCredentials(credential) {
-      const payload = credential ? JSON.stringify(toCredentials(credential)) : '';
+    publishCredentials(credentials) {
+      const payload = credentials.length > 0 ? JSON.stringify(credentials) : '';
       if (payload === lastCredentials) return;
       lastCredentials = payload;
 
       try {
-        if (!credential) {
+        if (credentials.length === 0) {
           fs.rmSync(credentialsPath, { force: true });
           return;
         }
-        // 0600: the key is no longer Keychain-protected once it lives here, so at
-        // least keep it off other accounts on the machine.
+        // 0600: these secrets are no longer Keychain-protected once they live
+        // here, so at least keep them off other accounts on the machine.
         writeAtomic(credentialsPath, payload, 0o600);
       } catch (error) {
         console.warn('[widget] could not write credentials:', error);

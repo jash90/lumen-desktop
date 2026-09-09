@@ -103,6 +103,7 @@ export const args = {
     z.object({
       theme: z.enum(['system', 'light', 'dark']).optional(),
       launchAtLogin: z.boolean().optional(),
+      exportHomeAssistantToWidget: z.boolean().optional(),
       shortcuts: z
         .array(z.object({ accelerator: z.string().min(1).max(64), action: actionSchema }))
         .max(10)
