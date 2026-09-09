@@ -203,7 +203,13 @@ async function bootstrap(): Promise<void> {
     });
   };
   const shortcuts = createShortcutRegistrar(runAction);
-  app.on('will-quit', () => shortcuts.dispose());
+  app.on('will-quit', () => {
+    shortcuts.dispose();
+    // Hue and Home Assistant get away with leaving their handles to the process
+    // teardown; a provider holding a raw socket and a heartbeat interval would
+    // keep the event loop alive and the app would simply not exit.
+    providers.stop();
+  });
 
   const showWindow = (): void => {
     const existing = BrowserWindow.getAllWindows()[0];
