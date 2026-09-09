@@ -1,6 +1,6 @@
 import type { Light, Room } from '../../shared/models';
 import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
-import { useSetRoomBrightness, useSetRoomPower } from '../hooks/useLighting';
+import { useHubLabels, useSetRoomBrightness, useSetRoomPower } from '../hooks/useLighting';
 import { lightCountLabel } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
 import { FavoriteButton } from './FavoriteButton';
@@ -23,6 +23,9 @@ export function RoomCard({ room, lights }: RoomCardProps) {
   const setPower = useSetRoomPower();
   const setBrightness = useSetRoomBrightness();
   const navigate = useUiStore((state) => state.navigate);
+  // Empty unless more than one hub is connected, so a single-hub house sees no
+  // labelling it does not need.
+  const hubName = useHubLabels().get(room.providerId);
 
   const onCount = lights.filter((light) => light.isOn).length;
 
@@ -40,6 +43,7 @@ export function RoomCard({ room, lights }: RoomCardProps) {
               <span className="text-xs text-ink-muted">
                 {lightCountLabel(lights.length)}
                 {onCount > 0 && ` · ${onCount} on`}
+                {hubName && ` · ${hubName}`}
               </span>
             </span>
             <span

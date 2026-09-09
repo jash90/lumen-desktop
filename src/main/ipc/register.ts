@@ -3,7 +3,9 @@ import { app, nativeTheme } from 'electron';
 import { EVENT_CHANNELS } from '../../shared/ipc';
 import type { BridgeDiscoveryService } from '../bridge/BridgeDiscoveryService';
 import type { BridgePairingService } from '../bridge/BridgePairingService';
+import { verifyHomeAssistant } from '../homeassistant/HaOnboarding';
 import type { ProviderRegistry } from '../providers/ProviderRegistry';
+import { toHubSummary } from '../providers/ProviderCredential';
 import type { ProviderRepository } from '../providers/ProviderRepository';
 import type { ActionRunner } from '../actions/ActionRunner';
 import type { ShortcutRegistrar } from '../shortcuts/GlobalShortcuts';
@@ -55,6 +57,14 @@ export function registerIpcHandlers(context: IpcContext): void {
 
   handle('cancelPairing', args.none, () => {
     pairing.cancel();
+  });
+
+  handle('connectHomeAssistant', args.homeAssistant, async ([input]) => {
+    const credential = await verifyHomeAssistant(input);
+    // add() connects before it resolves, so a bad URL or token comes back as an
+    // error here rather than as a hub that silently sits offline in the list.
+    await providers.add(credential);
+    return toHubSummary(credential);
   });
 
   // hubs() is deliberately a projection rather than the stored record: an

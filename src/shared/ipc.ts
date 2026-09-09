@@ -44,6 +44,7 @@ export const INVOKE_CHANNELS = [
   'discoverBridges',
   'pairBridge',
   'cancelPairing',
+  'connectHomeAssistant',
   'reconnectHubs',
   'getConnectionStatuses',
   'getStorageHealth',
@@ -94,6 +95,12 @@ export interface LumenApi {
   /** Runs the full link-button ceremony; progress arrives via onPairingState. */
   pairBridge(ip: string): Promise<Result<HubSummary>>;
   cancelPairing(): Promise<Result<void>>;
+  /** Home Assistant needs no ceremony — a URL and a long-lived token is all. */
+  connectHomeAssistant(input: {
+    baseUrl: string;
+    token: string;
+    name?: string;
+  }): Promise<Result<HubSummary>>;
 
   // Every configured hub is connected at once, so the state is a list rather
   // than one value. No key or token ever crosses this boundary.
