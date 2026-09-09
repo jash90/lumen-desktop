@@ -60,6 +60,22 @@ describe.runIf(process.platform === 'darwin')('publishCredentials', () => {
     expect(fs.statSync(credentialsPath).mode & 0o777).toBe(0o600);
   });
 
+  /**
+   * The file outlives the process, so a fresh bridge has to assume nothing about
+   * what is already on disk. Seeding the dedup marker with the same value an
+   * empty export produces made the first publish after start a no-op, and a
+   * usable key survived for a hub the app no longer knew about — which is what
+   * a keychain reset looks like from here.
+   */
+  it('removes a file left behind by an earlier run', () => {
+    fs.mkdirSync(path.dirname(credentialsPath), { recursive: true });
+    fs.writeFileSync(credentialsPath, JSON.stringify(exported), { mode: 0o600 });
+
+    createWidgetBridge().publishCredentials([]);
+
+    expect(fs.existsSync(credentialsPath)).toBe(false);
+  });
+
   it('removes the file when every hub is forgotten', () => {
     const widget = createWidgetBridge();
     widget.publishCredentials(exported);

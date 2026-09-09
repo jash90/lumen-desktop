@@ -108,26 +108,39 @@ export function toCredentials(
   credentials: readonly ProviderCredential[],
   exportHomeAssistant: boolean,
 ): WidgetCredential[] {
+  // Exhaustive on purpose: the old "anything that isn't Hue is Home Assistant"
+  // chain would have swept a new hub kind into the Home Assistant branch, so a
+  // third brand's secret could leave the keychain under a consent toggle
+  // labelled for Home Assistant.
   return credentials.flatMap((credential): WidgetCredential[] => {
-    if (credential.kind === 'hue') {
-      return [
-        {
-          kind: 'hue',
-          providerId: credential.id,
-          address: credential.address,
-          applicationKey: credential.applicationKey,
-        },
-      ];
+    switch (credential.kind) {
+      case 'hue':
+        return [
+          {
+            kind: 'hue',
+            providerId: credential.id,
+            address: credential.address,
+            applicationKey: credential.applicationKey,
+          },
+        ];
+
+      case 'homeassistant':
+        return exportHomeAssistant
+          ? [
+              {
+                kind: 'homeassistant',
+                providerId: credential.id,
+                address: credential.address,
+                token: credential.token,
+              },
+            ]
+          : [];
+
+      default: {
+        const unreachable: never = credential;
+        throw new Error(`no widget export for ${JSON.stringify(unreachable)}`);
+      }
     }
-    if (!exportHomeAssistant) return [];
-    return [
-      {
-        kind: 'homeassistant',
-        providerId: credential.id,
-        address: credential.address,
-        token: credential.token,
-      },
-    ];
   });
 }
 
@@ -147,7 +160,15 @@ export function createWidgetBridge(): WidgetBridge {
   const credentialsPath = path.join(containerPath, CREDENTIALS_FILE);
   const helperPath = path.join(path.dirname(app.getPath('exe')), RELOAD_HELPER);
   let lastPayload = '';
-  let lastCredentials = '';
+  /**
+   * Deliberately not '': an empty export serialises to '' too, so seeding this
+   * with the same value made the first publishCredentials([]) after start a
+   * no-op — and a credentials file written by an earlier run then survived,
+   * with a usable key in it, for a hub the app had already forgotten. That is
+   * exactly what happens when the keychain is reset and every credential
+   * suddenly reads back as null.
+   */
+  let lastCredentials: string | null = null;
 
   /**
    * The widget may read at any moment, so the file must never be seen
@@ -201,7 +222,9 @@ export function createWidgetBridge(): WidgetBridge {
         writeAtomic(credentialsPath, payload, 0o600);
       } catch (error) {
         console.warn('[widget] could not write credentials:', error);
-        lastCredentials = '';
+        // Back to "nothing known", so the next publish writes rather than
+        // matching against a value that never reached the disk.
+        lastCredentials = null;
       }
     },
   };
