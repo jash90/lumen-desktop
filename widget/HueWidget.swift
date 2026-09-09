@@ -103,12 +103,12 @@ struct HueProvider: TimelineProvider {
 // the real post-command state from the bridge instead of guessing at it.
 
 struct ToggleRoomIntent: AppIntent {
-    static var title: LocalizedStringResource = "Przełącz pokój"
+    static var title: LocalizedStringResource = "Toggle room"
 
     // The defaults matter: without them AppIntents cannot rebuild the parameter
     // from the archived widget view and perform() is never reached.
-    @Parameter(title: "Pokój", default: "") var roomId: String
-    @Parameter(title: "Włącz", default: false) var on: Bool
+    @Parameter(title: "Room", default: "") var roomId: String
+    @Parameter(title: "On", default: false) var on: Bool
 
     init() {}
 
@@ -124,9 +124,9 @@ struct ToggleRoomIntent: AppIntent {
 }
 
 struct ToggleAllIntent: AppIntent {
-    static var title: LocalizedStringResource = "Przełącz całe oświetlenie"
+    static var title: LocalizedStringResource = "Toggle all lights"
 
-    @Parameter(title: "Włącz", default: false) var on: Bool
+    @Parameter(title: "On", default: false) var on: Bool
 
     init() {}
 
@@ -148,7 +148,7 @@ struct DisconnectedView: View {
             Image(systemName: "lightbulb.slash")
                 .font(.system(size: 22, weight: .medium))
                 .foregroundStyle(.secondary)
-            Text("Brak połączenia")
+            Text("No connection")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -180,7 +180,7 @@ struct SmallView: View {
                 + Text("/\(snapshot.lightsTotal)")
                 .font(.system(size: 20, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
-            Text(snapshot.lightsOn == 1 ? "lampa włączona" : "lamp włączonych")
+            Text(snapshot.lightsOn == 1 ? "light on" : "lights on")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -254,7 +254,7 @@ struct MediumView: View {
 
             if snapshot.rooms.isEmpty {
                 Spacer()
-                Text("Brak pokoi")
+                Text("No rooms")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
@@ -262,7 +262,7 @@ struct MediumView: View {
             } else {
                 ForEach(snapshot.rooms.prefix(4)) { RoomRow(room: $0) }
                 if snapshot.rooms.count > 4 {
-                    Text("+\(snapshot.rooms.count - 4) więcej")
+                    Text("+\(snapshot.rooms.count - 4) more")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -299,7 +299,7 @@ struct HueWidget: Widget {
             HueWidgetView(entry: entry)
         }
         .configurationDisplayName("Hue Desktop")
-        .description("Stan oświetlenia Philips Hue w Twoim domu.")
+        .description("The state of the Philips Hue lighting in your home.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
