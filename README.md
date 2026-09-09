@@ -266,8 +266,8 @@ routes by id and logs a warning if two hubs ever do claim the same one.
 
 ## Limitations
 
-- **Verified on macOS only.** The Windows and Linux configuration exists, but those
-  packages have never been built or run.
+- **Verified on macOS only.** CI builds the Windows and Linux packages, so they compile
+  and package cleanly — but nobody has installed or run either of them.
 - **mDNS does not cross subnets**, VPNs, or some access points. When the Bridge sits on a
   different subnet than the computer, cloud discovery or a manually entered IP address
   will do the job.
