@@ -79,6 +79,11 @@ every other credential and never leave your machine.
 Re-pairing a device issues a new local key, which the app reports as a lost
 authorisation rather than retrying forever.
 
+A Tuya device announces an id and nothing else — nothing says whether it is a bulb, a
+socket or a thermometer. The app works that out from the data points a device reports
+when it first answers, keeps the lights and tells you what the rest were, so a sensor
+pasted against the wrong row does not end up in the list as a lamp with dead controls.
+
 ## macOS widget
 
 The app ships a WidgetKit extension — a widget showing the state of your lighting,
