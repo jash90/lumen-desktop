@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { PRODUCT_NAME } from '../src/shared/identity';
+
 import {
   buildTrayMenuTemplate,
   MAX_ROOMS,
@@ -31,7 +33,7 @@ describe('buildTrayMenuTemplate', () => {
     expect(labels({ ...base, connected: false, rooms: [room('room-1', 'Living Room')] })).toEqual([
       'No connection to the Hue Bridge',
       undefined,
-      'Open Hue Desktop',
+      `Open ${PRODUCT_NAME}`,
       'Quit',
     ]);
   });

@@ -183,7 +183,7 @@ enum HueBridgeClient {
         return try JSONDecoder().decode(HueEnvelope.self, from: data).data
     }
 
-    static func fetchSnapshot() async throws -> HueSnapshot {
+    static func fetchSnapshot() async throws -> StateSnapshot {
         guard let credentials = HueCredentials.load() else { throw HueBridgeError.notPaired }
         return snapshot(from: try await fetchResources(credentials))
     }
@@ -240,7 +240,7 @@ enum HueBridgeClient {
     // authoritative for a room's power and brightness, and the average over the
     // lit bulbs is the fallback for rooms that do not expose one.
 
-    fileprivate static func snapshot(from resources: [HueResource]) -> HueSnapshot {
+    fileprivate static func snapshot(from resources: [HueResource]) -> StateSnapshot {
         let lights = resources.filter { $0.type == "light" }
         let groupedLights = Dictionary(
             uniqueKeysWithValues: resources.filter { $0.type == "grouped_light" }.map { ($0.id, $0) }
@@ -273,7 +273,7 @@ enum HueBridgeClient {
             )
         }
 
-        return HueSnapshot(
+        return StateSnapshot(
             connected: true,
             rooms: roomSnapshots.sorted { $0.name.localizedCompare($1.name) == .orderedAscending },
             lightsOn: lights.filter { $0.on?.on == true }.count,

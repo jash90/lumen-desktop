@@ -1,7 +1,7 @@
 import type { Light, Room } from '../../shared/models';
 import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
-import { useSetRoomBrightness, useSetRoomPower } from '../hooks/useHue';
-import { lightCountLabel } from '../lib/hue';
+import { useSetRoomBrightness, useSetRoomPower } from '../hooks/useLighting';
+import { lightCountLabel } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
 import { FavoriteButton } from './FavoriteButton';
 import { LightCard } from './LightCard';

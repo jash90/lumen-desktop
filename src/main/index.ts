@@ -4,6 +4,7 @@ import started from 'electron-squirrel-startup';
 
 import type { Action } from '../shared/models';
 import { EVENT_CHANNELS } from '../shared/ipc';
+import { PRODUCT_NAME } from '../shared/identity';
 import { createActionRunner } from './actions/ActionRunner';
 import { startedHidden } from './autostart';
 import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
@@ -11,6 +12,7 @@ import { createBridgePairingService } from './bridge/BridgePairingService';
 import { createBridgeRepository } from './bridge/BridgeRepository';
 import { createConnectionManager } from './bridge/ConnectionManager';
 import { broadcast } from './ipc/handlers';
+import { runUserDataMigration } from './migrateUserData';
 import { registerIpcHandlers } from './ipc/register';
 import { createSecureStorage } from './storage/SecureStorage';
 import { createSettingsStorage } from './storage/SettingsStorage';
@@ -118,7 +120,7 @@ void app.whenReady().then(async () => {
     // A failure here used to leave Electron alive with no window at all.
     console.error('[startup] failed:', error);
     dialog.showErrorBox(
-      'Hue Desktop could not start',
+      `${PRODUCT_NAME} could not start`,
       error instanceof Error ? error.message : String(error),
     );
     app.quit();
@@ -127,6 +129,10 @@ void app.whenReady().then(async () => {
 
 async function bootstrap(): Promise<void> {
   applyContentSecurityPolicy();
+
+  // Has to happen before the first read: renaming the app moved the data
+  // directory, and this carries the previous installation's files across.
+  runUserDataMigration();
 
   // safeStorage is only usable once the app is ready, so the whole object graph
   // is built here rather than at module scope.

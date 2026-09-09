@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { lightCountLabel } from '../src/renderer/lib/hue';
+import { lightCountLabel } from '../src/renderer/lib/api';
 
 /**
  * Shared by RoomCard and RoomPage, which used to carry their own copies — one of

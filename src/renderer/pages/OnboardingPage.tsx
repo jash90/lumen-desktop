@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import type { PairingState } from '../../shared/ipc';
-import { messageOf, unwrap } from '../lib/hue';
-import { useStorageHealth } from '../hooks/useHue';
+import { messageOf, unwrap } from '../lib/api';
+import { useStorageHealth } from '../hooks/useLighting';
 import { Skeleton } from '../components/Skeleton';
+import { PRODUCT_NAME } from '../../shared/identity';
 
 /**
  * First-run flow (PRD §5, §22, §40).
@@ -16,16 +17,16 @@ export function OnboardingPage() {
   const [pairing, setPairing] = useState<PairingState>({ status: 'idle' });
   const [manualIp, setManualIp] = useState('');
 
-  useEffect(() => window.hue.onPairingState(setPairing), []);
+  useEffect(() => window.lumen.onPairingState(setPairing), []);
 
   const discovery = useQuery({
     queryKey: ['discovery'],
-    queryFn: () => unwrap(window.hue.discoverBridges()),
+    queryFn: () => unwrap(window.lumen.discoverBridges()),
     retry: false,
   });
 
   const pair = useMutation({
-    mutationFn: (ip: string) => unwrap(window.hue.pairBridge(ip)),
+    mutationFn: (ip: string) => unwrap(window.lumen.pairBridge(ip)),
   });
 
   const health = useStorageHealth();
@@ -35,7 +36,7 @@ export function OnboardingPage() {
   return (
     <div className="flex h-full flex-col overflow-y-auto px-6 pt-12 pb-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold">Hue Desktop</h1>
+        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
         <p className="mt-1 text-sm text-ink-muted">
           Connect this app to the Hue Bridge on your home network.
         </p>
@@ -55,7 +56,7 @@ export function OnboardingPage() {
           </p>
           <button
             type="button"
-            onClick={() => void window.hue.cancelPairing()}
+            onClick={() => void window.lumen.cancelPairing()}
             className="mt-4 rounded-row px-2 py-1 text-sm text-ink-muted underline decoration-line underline-offset-4 focus-visible:focus-ring"
           >
             Cancel

@@ -2,7 +2,7 @@ import https from 'node:https';
 import type { IncomingMessage } from 'node:http';
 import type { PeerCertificate } from 'node:tls';
 
-import { HueError } from '../../shared/errors';
+import { AppError } from '../../shared/errors';
 import { BRIDGE_ID_PATTERN, HUE_BRIDGE_ROOT_CA } from './certs';
 
 export interface TransportResponse {
@@ -62,25 +62,25 @@ const OFFLINE_ERROR_CODES = new Set([
  * Turns a raw Node network failure into the domain error model. The UI must never
  * see ECONNREFUSED (PRD §32).
  */
-export function mapTransportError(error: unknown): HueError {
-  if (error instanceof HueError) return error;
+export function mapTransportError(error: unknown): AppError {
+  if (error instanceof AppError) return error;
 
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   const message = error instanceof Error ? error.message : String(error);
 
   if (code && CERT_ERROR_CODES.has(code)) {
-    return new HueError('CertificateError', message, { cause: error });
+    return new AppError('CertificateError', message, { cause: error });
   }
   if (code && OFFLINE_ERROR_CODES.has(code)) {
-    return new HueError('BridgeOffline', message, { cause: error });
+    return new AppError('BridgeOffline', message, { cause: error });
   }
   if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
-    return new HueError('NetworkError', message, { cause: error });
+    return new AppError('NetworkError', message, { cause: error });
   }
   if (code === 'ABORT_ERR' || (error as Error)?.name === 'AbortError') {
-    return new HueError('BridgeOffline', 'request aborted', { cause: error });
+    return new AppError('BridgeOffline', 'request aborted', { cause: error });
   }
-  return new HueError('NetworkError', message, { cause: error });
+  return new AppError('NetworkError', message, { cause: error });
 }
 
 /**

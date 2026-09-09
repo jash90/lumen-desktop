@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import { HueError } from '../../shared/errors';
+import { AppError } from '../../shared/errors';
 import { envelopeSchema } from './dto';
 import type { HueTransport } from './HueTransport';
 
@@ -21,16 +21,16 @@ export interface HueClient {
 
 function assertOk(status: number, body: string): void {
   if (status === 401 || status === 403) {
-    throw new HueError('Unauthorized', `HTTP ${status}`);
+    throw new AppError('Unauthorized', `HTTP ${status}`);
   }
   if (status === 404) {
-    throw new HueError('RequestFailed', 'resource not found');
+    throw new AppError('RequestFailed', 'resource not found');
   }
   if (status === 429) {
-    throw new HueError('RequestFailed', 'bridge rate limit exceeded');
+    throw new AppError('RequestFailed', 'bridge rate limit exceeded');
   }
   if (status < 200 || status >= 300) {
-    throw new HueError('RequestFailed', `HTTP ${status}: ${body.slice(0, 200)}`);
+    throw new AppError('RequestFailed', `HTTP ${status}: ${body.slice(0, 200)}`);
   }
 }
 
@@ -39,17 +39,17 @@ function parseEnvelope(body: string): unknown[] {
   try {
     json = JSON.parse(body);
   } catch (error) {
-    throw new HueError('RequestFailed', 'bridge returned malformed JSON', { cause: error });
+    throw new AppError('RequestFailed', 'bridge returned malformed JSON', { cause: error });
   }
 
   const envelope = envelopeSchema.safeParse(json);
   if (!envelope.success) {
-    throw new HueError('RequestFailed', 'unexpected response shape');
+    throw new AppError('RequestFailed', 'unexpected response shape');
   }
 
   // A v2 response can be HTTP 200 and still carry errors for individual resources.
   if (envelope.data.errors?.length) {
-    throw new HueError('RequestFailed', envelope.data.errors.map((e) => e.description).join('; '));
+    throw new AppError('RequestFailed', envelope.data.errors.map((e) => e.description).join('; '));
   }
 
   return envelope.data.data ?? [];
@@ -113,7 +113,7 @@ export function createHueClient(transport: HueTransport, applicationKey: string)
       const items = await call('GET', `${API_ROOT}/${resourceType}/${id}`);
       const parsed = schema.safeParse(items[0]);
       if (!parsed.success) {
-        throw new HueError('RequestFailed', `unexpected ${resourceType} shape`);
+        throw new AppError('RequestFailed', `unexpected ${resourceType} shape`);
       }
       return parsed.data;
     },

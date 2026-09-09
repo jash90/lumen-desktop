@@ -4,14 +4,14 @@ import {
   channelName,
   EVENT_CHANNELS,
   INVOKE_CHANNELS,
-  type HueApi,
+  type LumenApi,
   type Unsubscribe,
 } from '../shared/ipc';
 
 /**
  * The only bridge between renderer and main (PRD §16, §33).
  *
- * The renderer receives `window.hue` and nothing else — no ipcRenderer, no fs, no
+ * The renderer receives `window.lumen` and nothing else — no ipcRenderer, no fs, no
  * Node globals. Because the surface is generated from INVOKE_CHANNELS, a channel
  * that is not in the contract simply cannot be called from the UI.
  */
@@ -37,6 +37,6 @@ const api = {
   onRoomChanged: (listener) => subscribe(EVENT_CHANNELS.roomChanged, listener),
   onConnectionChanged: (listener) => subscribe(EVENT_CHANNELS.connectionChanged, listener),
   onPairingState: (listener) => subscribe(EVENT_CHANNELS.pairingState, listener),
-} as HueApi;
+} as LumenApi;
 
-contextBridge.exposeInMainWorld('hue', api);
+contextBridge.exposeInMainWorld('lumen', api);

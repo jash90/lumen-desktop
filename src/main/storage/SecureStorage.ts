@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app, safeStorage } from 'electron';
 
-import { HueError } from '../../shared/errors';
+import { AppError } from '../../shared/errors';
 import type { StorageHealth } from '../../shared/models';
 
 /**
@@ -73,7 +73,7 @@ export function createSecureStorage(fileName = 'credentials.enc'): SecureStorage
 
     write(value) {
       if (!safeStorage.isEncryptionAvailable()) {
-        throw new HueError('StorageUnavailable', 'safeStorage is not available');
+        throw new AppError('StorageUnavailable', 'safeStorage is not available');
       }
       const encrypted = safeStorage.encryptString(JSON.stringify(value));
       // Write-then-rename so an interrupted write cannot leave a half-file that

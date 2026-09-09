@@ -1,5 +1,5 @@
 import type { Scene } from '../../shared/models';
-import { useActivateScene, useToggleFavorite } from '../hooks/useHue';
+import { useActivateScene, useToggleFavorite } from '../hooks/useLighting';
 
 /**
  * Scenes as a row of chips. The bridge ships a handful per room and their names

@@ -4,13 +4,13 @@ import {
   useScenes,
   useSetRoomBrightness,
   useSetRoomPower,
-} from '../hooks/useHue';
+} from '../hooks/useLighting';
 import { EmptyState } from '../components/EmptyState';
 import { LightCard } from '../components/LightCard';
 import { SceneRow } from '../components/SceneRow';
 import { Slider } from '../components/Slider';
 import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
-import { lightCountLabel } from '../lib/hue';
+import { lightCountLabel } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
 
 /** Whole-room control (PRD §9) — one grouped_light request rather than one per bulb. */

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BridgeCredential } from '../src/main/bridge/BridgeRepository';
+import { APP_GROUP } from '../src/shared/identity';
 
 /**
  * Exercises the real filesystem side of the App Group export: the widget reads
@@ -11,7 +12,7 @@ import type { BridgeCredential } from '../src/main/bridge/BridgeRepository';
  * are the contract, not an implementation detail.
  */
 
-const home = fs.mkdtempSync(path.join(os.tmpdir(), 'hue-widget-'));
+const home = fs.mkdtempSync(path.join(os.tmpdir(), 'lumen-widget-'));
 
 vi.mock('electron', () => ({
   app: {
@@ -21,7 +22,6 @@ vi.mock('electron', () => ({
 
 const { createWidgetBridge } = await import('../src/main/widget/WidgetBridge');
 
-const APP_GROUP = 'H2X8YGN869.com.bartlomiejzimny.huedesktop';
 const credentialsPath = path.join(
   home,
   'Library',

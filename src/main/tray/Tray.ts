@@ -3,6 +3,7 @@ import { app, Menu, nativeImage, Tray } from 'electron';
 
 import type { Action } from '../../shared/models';
 import { buildTrayMenuTemplate, type TraySnapshot } from './menu';
+import { PRODUCT_NAME } from '../../shared/identity';
 
 /**
  * The menu bar / system tray entry.
@@ -61,7 +62,7 @@ export function createTray(deps: TrayDependencies): TrayController {
     image.setTemplateImage(true);
 
     tray = new Tray(image);
-    tray.setToolTip('Hue Desktop');
+    tray.setToolTip(PRODUCT_NAME);
 
     // On Windows and Linux a left click has to do something useful, because the
     // context menu is bound to the right button there.

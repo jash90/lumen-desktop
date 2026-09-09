@@ -2,12 +2,12 @@
  * The full contract between renderer and main (PRD §17).
  *
  * This file is the single source of truth for both sides: the preload script
- * builds `window.hue` from INVOKE_CHANNELS, and the main process registers a
+ * builds `window.lumen` from INVOKE_CHANNELS, and the main process registers a
  * handler for every one of them. Adding a method here and forgetting the
  * handler is a compile error on the main side.
  */
 
-import type { SerializedHueError } from './errors';
+import type { SerializedAppError } from './errors';
 import type {
   Action,
   Automation,
@@ -26,7 +26,7 @@ import type {
  * Handlers never throw across IPC — Electron flattens Error subclasses into
  * opaque strings, which would leak technical detail and lose the error code.
  */
-export type Result<T> = { ok: true; data: T } | { ok: false; error: SerializedHueError };
+export type Result<T> = { ok: true; data: T } | { ok: false; error: SerializedAppError };
 
 /** Pairing state machine (PRD §40) — drives the whole onboarding UI. */
 export type PairingState =
@@ -36,7 +36,7 @@ export type PairingState =
   | { status: 'waitingForButton'; ip: string; secondsLeft: number }
   | { status: 'pairing'; ip: string }
   | { status: 'connected'; bridge: BridgeSummary }
-  | { status: 'failed'; error: SerializedHueError };
+  | { status: 'failed'; error: SerializedAppError };
 
 /** Allowlist of invokable channels. The preload exposes nothing outside this list. */
 export const INVOKE_CHANNELS = [
@@ -75,21 +75,21 @@ export const INVOKE_CHANNELS = [
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
 
 export const EVENT_CHANNELS = {
-  lightChanged: 'hue:lightChanged',
-  roomChanged: 'hue:roomChanged',
-  connectionChanged: 'hue:connectionChanged',
-  pairingState: 'hue:pairingState',
+  lightChanged: 'lumen:lightChanged',
+  roomChanged: 'lumen:roomChanged',
+  connectionChanged: 'lumen:connectionChanged',
+  pairingState: 'lumen:pairingState',
 } as const;
 
-export const channelName = (channel: InvokeChannel): string => `hue:${channel}`;
+export const channelName = (channel: InvokeChannel): string => `lumen:${channel}`;
 
 export type Unsubscribe = () => void;
 
 /**
- * `window.hue` as the renderer sees it. Deliberately flat, mirroring PRD §16 —
+ * `window.lumen` as the renderer sees it. Deliberately flat, mirroring PRD §16 —
  * no ipcRenderer, no Node primitives, no application key.
  */
-export interface HueApi {
+export interface LumenApi {
   getVersion(): Promise<Result<string>>;
 
   // Bridge
@@ -156,6 +156,6 @@ export interface HueApi {
 
 declare global {
   interface Window {
-    hue: HueApi;
+    lumen: LumenApi;
   }
 }
