@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeFrames, encodeFrame, TuyaCommand } from '../src/main/tuya/TuyaCodec';
 import { dpsPayloadSchema, Dp } from '../src/main/tuya/dto';
 import { createTuyaAdapter } from '../src/main/tuya/TuyaAdapter';
+import { probeDevices } from '../src/main/tuya/TuyaOnboarding';
 
 /**
  * Hardware smoke test, in the spirit of live.bridge.test.ts.
@@ -157,6 +158,61 @@ describe.skipIf(!ip || !deviceId || !localKey)('live Tuya adapter', () => {
       expect(session.api.getLight(deviceId!).brightness).toBeCloseTo(90, -1);
       await session.api.setLightPower(deviceId!, before);
       await new Promise((r) => setTimeout(r, 1_000));
+    } finally {
+      session.stop();
+    }
+  }, 40_000);
+});
+
+/**
+ * Classification against real hardware. This network has a bulb and a
+ * temperature sensor, which is exactly the pair that makes the distinction
+ * matter: both are Tuya, both answer on 6668, and only one is a light.
+ *
+ * Needs the sensor too:
+ *   TUYA_SENSOR_IP=… TUYA_SENSOR_DEVICE_ID=… TUYA_SENSOR_LOCAL_KEY=… npm test
+ */
+const sensorIp = process.env.TUYA_SENSOR_IP;
+const sensorId = process.env.TUYA_SENSOR_DEVICE_ID;
+const sensorKey = process.env.TUYA_SENSOR_LOCAL_KEY;
+
+describe.skipIf(!sensorIp || !sensorId || !sensorKey || !ip)('live Tuya classification', () => {
+  it('tells a bulb from a sensor by what each one reports', async () => {
+    const probed = await probeDevices([
+      { deviceId: deviceId!, name: 'Bulb', address: ip!, localKey: localKey! },
+      { deviceId: sensorId!, name: 'Sensor', address: sensorIp!, localKey: sensorKey! },
+    ]);
+
+    const byName = new Map(probed.map((entry) => [entry.device.name, entry.kind]));
+    expect(byName.get('Bulb')).toBe('light');
+    expect(byName.get('Sensor')).not.toBe('light');
+  }, 30_000);
+
+  /** A sensor added by mistake must be refused, not stored as a dead lamp. */
+  it('keeps a sensor out of the lighting list', async () => {
+    const adapter = createTuyaAdapter({
+      repository: { get: () => null, save: () => undefined } as never,
+      discovery: { discover: async () => [] },
+    });
+
+    const session = await adapter.connect(
+      {
+        kind: 'tuya',
+        id: 'tuya-local',
+        name: 'Tuya',
+        address: 'local network',
+        devices: [
+          { deviceId: deviceId!, name: 'Bulb', address: ip!, localKey: localKey! },
+          { deviceId: sensorId!, name: 'Sensor', address: sensorIp!, localKey: sensorKey! },
+        ],
+      },
+      { onChanges: () => undefined, onClosed: () => undefined },
+    );
+
+    try {
+      const ids = session.api.getLights().map((light) => light.id);
+      expect(ids).toContain(deviceId);
+      expect(ids).not.toContain(sensorId);
     } finally {
       session.stop();
     }

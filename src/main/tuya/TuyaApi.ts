@@ -3,6 +3,7 @@ import type { Light, LightCapabilities, Room } from '../../shared/models';
 import type { ChangeSet, LightingApi } from '../providers/LightingProvider';
 import { Dp, dpsPayloadSchema, type DpValue } from './dto';
 import { levelToUi, rgbToTuyaColor, tuyaColorToRgb, uiToLevel } from './TuyaColor';
+import { classifyDevice } from './TuyaDeviceKind';
 
 /**
  * `LightingApi` over a set of Tuya devices reached directly on the LAN.
@@ -116,13 +117,22 @@ export function createTuyaApi(options: TuyaApiOptions): LightingApi {
     return device;
   };
 
+  /** Writing to something that is not a light would just be thrown away. */
+  const requireLight = (id: string): TuyaDeviceHandle => {
+    const device = require_(id);
+    if (classifyDevice(device.state()) !== 'light') {
+      throw new AppError('UnsupportedCapability', `${device.name} is not a light`);
+    }
+    return device;
+  };
+
   /**
    * Merges a write into whatever is already queued for that device and returns
    * a promise that settles when the merged batch actually goes out. Two rapid
    * slider steps become one frame; the caller still learns whether it worked.
    */
   const write = (id: string, dps: Record<string, DpValue>): Promise<void> => {
-    const device = require_(id);
+    const device = requireLight(id);
     buffered.set(id, { ...(buffered.get(id) ?? {}), ...dps });
 
     const pending = waiters.get(id) ?? [];
@@ -151,13 +161,21 @@ export function createTuyaApi(options: TuyaApiOptions): LightingApi {
     return settled;
   };
 
-  const live = (): TuyaDeviceHandle[] => devices.filter((device) => device.reachable());
+  /**
+   * Only what is actually a light, and only while it is answering.
+   *
+   * A Tuya device announces nothing about what it is, so a thermometer or a
+   * metering socket added by mistake would otherwise sit in the list as a lamp
+   * with no controls that do anything.
+   */
+  const live = (): TuyaDeviceHandle[] =>
+    devices.filter((device) => device.reachable() && classifyDevice(device.state()) === 'light');
 
   return {
     refresh: refreshAll,
 
     getLights: () => live().map((device) => toLight(device, providerId)),
-    getLight: (id) => toLight(require_(id), providerId),
+    getLight: (id) => toLight(requireLight(id), providerId),
 
     // A Tuya device has none of these locally; the registry concatenates the
     // empty lists and the UI simply shows nothing extra.

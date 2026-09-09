@@ -116,10 +116,16 @@ export interface LumenApi {
    * re-runnable: a device that stayed quiet in one pass turns up in the next.
    */
   discoverTuyaDevices(): Promise<Result<DiscoveredTuyaSummary[]>>;
-  /** Each device carries its own local key; there is no hub in front of them. */
+  /**
+   * Each device carries its own local key; there is no hub in front of them.
+   *
+   * Only the ones that turn out to be lights are kept — a Tuya device says
+   * nothing about what it is until it answers — and the rest come back in
+   * `skipped` so the form can say which and why.
+   */
   connectTuya(input: {
     devices: { deviceId: string; name: string; address: string; localKey: string }[];
-  }): Promise<Result<HubSummary>>;
+  }): Promise<Result<HubSummary & { skipped: { name: string; reason: string }[] }>>;
 
   // Every configured hub is connected at once, so the state is a list rather
   // than one value. No key or token ever crosses this boundary.
