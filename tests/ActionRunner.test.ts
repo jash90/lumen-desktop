@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { createActionRunner } from '../src/main/actions/ActionRunner';
 import type { ConnectionManager } from '../src/main/bridge/ConnectionManager';
-import { createHueApi, type HueApi } from '../src/main/hue/HueApi';
+import { createHueApi } from '../src/main/hue/HueApi';
+import type { LightingApi } from '../src/main/providers/LightingProvider';
 import { createHueClient } from '../src/main/hue/HueClient';
 import { createFakeTransport, jsonResponse } from './fakeTransport';
 import {
@@ -33,7 +34,7 @@ async function createRunner(lights: unknown[] = [CEILING_LIGHT, PLAIN_LIGHT]) {
     return jsonResponse([]);
   });
 
-  const api: HueApi = createHueApi(createHueClient(transport, 'key'));
+  const api: LightingApi = createHueApi(createHueClient(transport, 'key'));
   await api.refresh();
   transport.calls.length = 0;
 

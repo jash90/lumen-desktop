@@ -1,5 +1,6 @@
 import { AppError } from '../../shared/errors';
-import type { Automation, Light, RgbColor, Room, Scene } from '../../shared/models';
+import type { Light, Room } from '../../shared/models';
+import type { LightingApi } from '../providers/LightingProvider';
 import {
   behaviorInstanceDtoSchema,
   groupedLightDtoSchema,
@@ -26,34 +27,13 @@ import {
 } from './HueMapper';
 
 /**
- * Domain operations over the Hue resources (PRD §43).
+ * The Hue implementation of `LightingApi` (PRD §43).
  *
  * Holds the last known resource state because three things need it: the
  * light→room join, translating partial event-stream updates into full domain
  * objects, and resolving a bulb's own mirek range before writing a colour
  * temperature. Without the cache each of those would cost an extra round trip.
  */
-export interface HueApi {
-  refresh(): Promise<void>;
-  getLights(): Light[];
-  getLight(id: string): Light;
-  getRooms(): Room[];
-  getRoom(id: string): Room;
-  getScenes(): Scene[];
-  getAutomations(): Automation[];
-  /** Enables or disables an automation the user created in the Hue app. */
-  setAutomationEnabled(id: string, enabled: boolean): Promise<void>;
-  /** Applies a stored scene; the resulting light changes arrive over the event stream. */
-  activateScene(id: string): Promise<void>;
-  setLightPower(id: string, on: boolean): Promise<void>;
-  setLightBrightness(id: string, brightness: number): Promise<void>;
-  setLightColor(id: string, color: RgbColor): Promise<void>;
-  setLightTemperature(id: string, temperature: number): Promise<void>;
-  setRoomPower(id: string, on: boolean): Promise<void>;
-  setRoomBrightness(id: string, brightness: number): Promise<void>;
-  /** Applies partial resource updates from the event stream; returns what changed. */
-  applyUpdates(updates: readonly UnknownResource[]): ChangeSet;
-}
 
 export interface UnknownResource {
   id: string;
@@ -61,13 +41,11 @@ export interface UnknownResource {
   [key: string]: unknown;
 }
 
-export interface ChangeSet {
-  lights: Light[];
-  rooms: Room[];
-}
-
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isResource = (value: unknown): value is UnknownResource =>
+  isPlainObject(value) && typeof value.id === 'string';
 
 /**
  * Event-stream updates are partial: a brightness change sends `dimming` with only
@@ -84,7 +62,7 @@ function mergeResource<T extends object>(base: T, update: Record<string, unknown
   return merged as T;
 }
 
-export function createHueApi(client: HueClient): HueApi {
+export function createHueApi(client: HueClient): LightingApi {
   const lightDtos = new Map<string, LightDto>();
   const roomDtos = new Map<string, RoomDto>();
   const groupedLightDtos = new Map<string, GroupedLightDto>();
@@ -234,6 +212,9 @@ export function createHueApi(client: HueClient): HueApi {
       const changedRoomIds = new Set<string>();
 
       for (const update of updates) {
+        // The stream is remote input; a malformed frame must be skipped rather
+        // than throw its way out through the connection's onUpdates callback.
+        if (!isResource(update)) continue;
         const { id, type } = update;
         if (type === 'light' && lightDtos.has(id)) {
           lightDtos.set(id, mergeResource(lightDtos.get(id)!, update));

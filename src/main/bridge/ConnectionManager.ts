@@ -1,21 +1,23 @@
 import { AppError } from '../../shared/errors';
-import type { ChangeSet, HueApi } from '../hue/HueApi';
-import { createHueApi } from '../hue/HueApi';
-import { createHueClient } from '../hue/HueClient';
-import { startEventStream, type EventStreamHandle } from '../hue/HueEventStream';
-import { createHueTransport, type HueTransport } from '../hue/HueTransport';
+import type {
+  ChangeSet,
+  LightingApi,
+  ProviderAdapter,
+  ProviderSession,
+} from '../providers/LightingProvider';
 import type { ConnectionState, ConnectionStatus } from '../../shared/models';
 import { backoffDelay, BACKOFF_STEPS_MS } from '../backoff';
-import type { BridgeDiscoveryService } from './BridgeDiscoveryService';
 import type { BridgeCredential, BridgeRepository } from './BridgeRepository';
 
 /**
- * Owns the live connection: transport, client, event stream and the retry policy
- * (PRD §25, §51).
+ * Owns one live connection and its retry policy (PRD §25, §51).
  *
- * Retry lives here and nowhere else. The event stream reports that it closed and
- * this decides what to do, so a flapping bridge cannot start two competing
- * reconnect loops.
+ * Retry lives here and nowhere else. The provider reports that its push channel
+ * closed and this decides what to do, so a flapping hub cannot start two
+ * competing reconnect loops.
+ *
+ * What it does *not* know is how the connection is made — that is the adapter's
+ * job, so the same policy covers any brand.
  */
 
 export interface ConnectionManager {
@@ -28,24 +30,22 @@ export interface ConnectionManager {
   forget(): Promise<void>;
   status(): ConnectionStatus;
   /** Throws BridgeOffline unless a live connection exists. */
-  requireApi(): HueApi;
+  requireApi(): LightingApi;
 }
 
 export interface ConnectionManagerOptions {
   repository: BridgeRepository;
-  discovery: BridgeDiscoveryService;
+  adapter: ProviderAdapter<BridgeCredential>;
   onStatus(status: ConnectionStatus): void;
   onChanges(changes: ChangeSet): void;
 }
 
 export function createConnectionManager(options: ConnectionManagerOptions): ConnectionManager {
-  const { repository, discovery, onStatus, onChanges } = options;
+  const { repository, adapter, onStatus, onChanges } = options;
 
   let state: ConnectionState = 'disconnected';
   let credential: BridgeCredential | null = null;
-  let transport: HueTransport | null = null;
-  let api: HueApi | null = null;
-  let stream: EventStreamHandle | null = null;
+  let session: ProviderSession | null = null;
   let retryTimer: NodeJS.Timeout | null = null;
   let retryAttempt = 0;
   let retryInMs: number | undefined;
@@ -72,11 +72,8 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
   };
 
   const teardown = (): void => {
-    stream?.stop();
-    stream = null;
-    transport?.destroy();
-    transport = null;
-    api = null;
+    session?.stop();
+    session = null;
     if (retryTimer) {
       clearTimeout(retryTimer);
       retryTimer = null;
@@ -97,49 +94,33 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
     }, retryInMs);
   }
 
-  async function openStream(active: BridgeCredential, activeTransport: HueTransport) {
-    const myGeneration = generation;
-    stream = await startEventStream({
-      transport: activeTransport,
-      applicationKey: active.applicationKey,
-      onUpdates: (updates) => {
-        if (!api) return;
-        const changes = api.applyUpdates(updates);
-        if (changes.lights.length > 0 || changes.rooms.length > 0) onChanges(changes);
-      },
-      onClosed: () => {
-        // Ignore closures caused by our own teardown or by a newer connection.
-        if (myGeneration !== generation || state === 'disconnected') return;
-        teardown();
-        scheduleRetry();
-      },
-    });
-  }
-
   async function attemptConnect(): Promise<void> {
     if (!credential) throw new AppError('BridgeNotFound', 'no stored credentials');
     const myGeneration = generation;
     setState(state === 'reconnecting' ? 'reconnecting' : 'connecting');
 
     try {
-      const activeTransport = createHueTransport(credential.bridgeIp, credential.bridgeId);
-      const client = createHueClient(activeTransport, credential.applicationKey);
-      const activeApi = createHueApi(client);
-      await activeApi.refresh();
+      const active = await adapter.connect(credential, {
+        onChanges,
+        onClosed: () => {
+          // Ignore closures caused by our own teardown or by a newer connection.
+          if (myGeneration !== generation || state === 'disconnected') return;
+          teardown();
+          scheduleRetry();
+        },
+      });
 
       if (myGeneration !== generation) {
-        activeTransport.destroy();
+        active.stop();
         return;
       }
 
-      transport = activeTransport;
-      api = activeApi;
-      await openStream(credential, activeTransport);
+      session = active;
 
-      // Reset the backoff only once the connection is fully up, event stream
-      // included. Resetting before openStream meant a bridge whose REST API
-      // answers but whose event stream keeps failing would retry every second
-      // forever instead of backing off.
+      // Reset the backoff only once the connection is fully up, push channel
+      // included — which is what the adapter's promise stands for. Resetting
+      // earlier meant a bridge whose REST API answers but whose event stream
+      // keeps failing would retry every second forever instead of backing off.
       retryAttempt = 0;
       retryInMs = undefined;
       setState('connected');
@@ -152,7 +133,7 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
         throw error;
       }
 
-      // The bridge may simply have a new address after a DHCP lease renewal.
+      // The hub may simply have a new address after a DHCP lease renewal.
       const relocated = await relocate();
       if (relocated && myGeneration === generation) {
         return attemptConnect();
@@ -163,13 +144,11 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
     }
   }
 
-  /** Re-runs discovery to find the same bridge id at a different address (PRD §51). */
   async function relocate(): Promise<boolean> {
-    if (!credential) return false;
-    const ip = await discovery.findKnownBridge(credential.bridgeId);
-    if (!ip || ip === credential.bridgeIp) return false;
-    repository.updateIp(credential.bridgeId, ip);
-    credential = { ...credential, bridgeIp: ip };
+    if (!credential || !adapter.recover) return false;
+    const recovered = await adapter.recover(credential);
+    if (!recovered) return false;
+    credential = recovered;
     return true;
   }
 
@@ -232,8 +211,8 @@ export function createConnectionManager(options: ConnectionManagerOptions): Conn
     status: buildStatus,
 
     requireApi() {
-      if (!api) throw new AppError('BridgeOffline', 'not connected to a bridge');
-      return api;
+      if (!session) throw new AppError('BridgeOffline', 'not connected to a bridge');
+      return session.api;
     },
   };
 }
