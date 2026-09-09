@@ -3,7 +3,7 @@ import path from 'node:path';
 import { app } from 'electron';
 
 import { legacyDesktopEntryPath } from './autostart';
-import { LEGACY_PRODUCT_NAME } from '../shared/identity';
+import { LEGACY_APP_GROUP, LEGACY_PRODUCT_NAME } from '../shared/identity';
 
 /**
  * The product name feeds `app.getPath('userData')`, so renaming the app moves
@@ -25,6 +25,28 @@ export interface MigrationReport {
   /** False when there was nothing to do — already migrated, or a fresh install. */
   migrated: boolean;
   files: string[];
+}
+
+/**
+ * Deletes the widget export the previous name left behind.
+ *
+ * The rename moved the App Group, so the old container is orphaned — and the
+ * file in it holds a usable application key in plaintext, mode 0600, for a
+ * bridge this installation can no longer even see. Nothing else will ever clean
+ * it up: the app only writes to its current container.
+ *
+ * The snapshot beside it is harmless and left alone; this removes the secret.
+ */
+export function removeLegacyWidgetCredentials(home: string, appGroup: string): boolean {
+  const target = path.join(home, 'Library', 'Group Containers', appGroup, 'widget-credentials.json');
+  try {
+    if (!fs.existsSync(target)) return false;
+    fs.rmSync(target, { force: true });
+    return true;
+  } catch (error) {
+    console.warn('[migration] could not remove the old widget credentials:', error);
+    return false;
+  }
 }
 
 export function migrateUserData(
@@ -81,5 +103,14 @@ export function runUserDataMigration(): MigrationReport {
   if (report.migrated) {
     console.info('[migration] carried over from the previous name:', report.files.join(', '));
   }
+
+  // Unconditional, not part of the one-shot migration above: the marker may
+  // already be set from an earlier run that did not know to do this.
+  if (process.platform === 'darwin') {
+    if (removeLegacyWidgetCredentials(app.getPath('home'), LEGACY_APP_GROUP)) {
+      console.info('[migration] removed the widget key left in the old App Group');
+    }
+  }
+
   return report;
 }
