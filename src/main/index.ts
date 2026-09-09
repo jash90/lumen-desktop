@@ -11,6 +11,7 @@ import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
 import { createBridgePairingService } from './bridge/BridgePairingService';
 import { createBridgeRepository } from './bridge/BridgeRepository';
 import { createConnectionManager } from './bridge/ConnectionManager';
+import { createHueAdapter } from './hue/HueAdapter';
 import { broadcast } from './ipc/handlers';
 import { runUserDataMigration } from './migrateUserData';
 import { registerIpcHandlers } from './ipc/register';
@@ -170,7 +171,7 @@ async function bootstrap(): Promise<void> {
 
   const connection = createConnectionManager({
     repository,
-    discovery,
+    adapter: createHueAdapter({ repository, discovery }),
     onStatus: (status) => {
       broadcast(EVENT_CHANNELS.connectionChanged, status);
       publishWidgetState();
