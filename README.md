@@ -4,10 +4,11 @@
 
 # Lumen Desktop
 
-**Control your Philips Hue lighting from the desktop — without reaching for your phone.**
+**Control your smart lighting from the desktop — without reaching for your phone.**
 
-A lightweight desktop app for macOS, Windows and Linux that talks to the Hue Bridge
-directly over the local network. No backend, no account, no cloud.
+A lightweight desktop app for macOS, Windows and Linux. It speaks to a Philips Hue
+Bridge directly over the local network, and to everything else through your own Home
+Assistant. Several hubs at once, one screen. No backend of ours, no account, no cloud.
 
 </div>
 
@@ -19,25 +20,37 @@ directly over the local network. No backend, no account, no cloud.
 
 ## What it does
 
-- **Finds the Bridge** — mDNS, `discovery.meethue.com`, the last known address, or a manually entered IP
-- **Pairs** through the physical button on the Bridge and remembers it between launches
+- **Several hubs at once** — a Hue Bridge in the hallway and a Home Assistant covering
+  the rest of the house appear as one list of rooms, not two apps
+- **Finds a Bridge** — mDNS, `discovery.meethue.com`, the last known address, or a
+  manually entered IP; pairs through the physical button and remembers it
+- **Connects to Home Assistant** with its address and a long-lived access token
 - **Controls lights** — on/off, brightness, color temperature, RGB color
-- **Controls rooms** with a single `grouped_light` request instead of one command per bulb
-- **Activates scenes** saved in the Hue app, grouped by room
+- **Controls rooms** with one grouped request rather than one command per bulb
+- **Activates scenes** saved on the hub, grouped by room
 - **Favorites** — pin a room, a light or a scene to the top of the screen
 - **Menu bar** — control without opening the window, with favorites and "all off"
 - **Keyboard shortcuts** that work globally, including while the app is in the background
 - **Quick actions** — one click for whatever you do most often
-- **Automations** created in the Hue app: view and pause them
-- **Multiple Bridges** — switch between them, e.g. home and office
+- **Automations** created on the hub: view and pause them
 - **Launch at login**, straight into the menu bar
-- **Reacts to outside changes** — a wall switch, the Hue app or a voice assistant
-  refreshes the view instantly through the Hue API v2 event stream
-- **Recovers from dropped connections** — exponential backoff, and if DHCP changes the
-  Bridge address the app finds it again by its identifier
+- **Reacts to outside changes** — a wall switch, the vendor's own app or a voice
+  assistant refreshes the view instantly, through the Hue v2 event stream and the Home
+  Assistant WebSocket
+- **Recovers from dropped connections** — exponential backoff per hub, so one going
+  quiet says nothing about the others, and if DHCP changes a Bridge address the app
+  finds it again by its identifier
 
 The controls follow what the hardware can do: a plain White bulb only gets a power
 switch, White Ambiance adds temperature, and a color bulb gets the full picker.
+
+### Which bulbs does this cover?
+
+Anything with a Hue Bridge, directly. Everything else through Home Assistant — which is
+how brands with no documented API of their own, **Spectrum Smart** among them, end up
+here: Home Assistant already talks to them (Tuya, LocalTuya, Zigbee2MQTT and so on) and
+exposes them as `light.*` entities, so this app needs no code per brand. If Home
+Assistant can see a light, so can this.
 
 ## macOS widget
 
@@ -53,16 +66,22 @@ size you want. The app has to live in `/Applications`.
 The widget **controls the lighting**: in the small size the whole tile is an
 "everything on/off" switch, in the medium size each room has its own button.
 
-It talks to the Bridge on its own, so it works **even while the app is closed**. That
-requires exporting the Hue application key into a shared App Group container (a file
-with `0600` permissions) — a deliberate trade-off: the key leaves the Keychain-protected
-store. It only grants control over the lighting on the local network and is not an
-account credential, and unpairing the Bridge deletes the file. TLS is verified exactly
-as it is in the app — the same Signify CA and the same Common Name comparison against
-the Bridge identifier.
+It talks to the hubs on its own, so it works **even while the app is closed**. That
+requires exporting credentials into a shared App Group container (a file with `0600`
+permissions), and the two kinds are not treated alike:
 
-When the Bridge is unreachable, the widget shows the last snapshot written by the app
-instead of an empty tile.
+- **Hue** is exported always. The application key only grants control over lighting on
+  the local network, it is not an account credential, and unpairing deletes the file.
+  TLS is verified exactly as in the app — the same Signify CA, the same Common Name
+  comparison against the Bridge identifier.
+- **Home Assistant is off by default.** A long-lived token grants that whole API —
+  locks, cameras, alarms — and works remotely if the instance is exposed, which is
+  nothing like the Hue key. Turn it on under *Settings → Widget* if you want the widget
+  to switch those rooms. Left off, they still appear in the widget, as a reading rather
+  than a button.
+
+When a hub is unreachable, the widget shows the last snapshot written by the app instead
+of an empty tile.
 
 **Refreshing:** after a button tap the state is immediate. Automatic refreshes ask for a
 one-minute interval, but WidgetKit throttles them against its own budget — in practice
@@ -102,9 +121,18 @@ keys on the name, so the first launch migrates what it can and asks for the rest
 
 ## Requirements
 
-- A Philips Hue Bridge v2 (model BSB002) on the same network
+At least one hub — either or both:
+
+**Philips Hue**
+- A Hue Bridge v2 (model BSB002) on the same network
 - Firmware supporting Hue API v2 (`/clip/v2`)
 - Physical access to the Bridge for the first pairing — Hue requires a button press
+
+**Home Assistant**
+- A reachable instance, and a long-lived access token
+  (your profile → Security → Long-lived access tokens)
+- The lights set up there already, and assigned to areas — areas become the rooms this
+  app shows
 
 ## Development
 
@@ -117,11 +145,13 @@ npm run lint
 npm run make       # builds the installers into out/make
 ```
 
-A test against real hardware (skipped by default) — it performs a full TLS handshake
-with the Bridge at the given address:
+Tests against real hardware, skipped by default. The Hue one performs a full TLS
+handshake with the Bridge; the Home Assistant one authenticates over the WebSocket and
+checks that a real install's entities map onto the domain model:
 
 ```bash
 HUE_BRIDGE_IP=192.168.1.42 npm test
+HA_BASE_URL=http://homeassistant.local:8123 HA_TOKEN=<long-lived> npm test
 ```
 
 A signed and notarized macOS build, widget included:
@@ -148,32 +178,47 @@ credentials:
 
 ```
 React (Zustand + TanStack Query)
-      │  window.hue — the domain model, nothing else
+      │  window.lumen — the domain model, nothing else
       ▼
 Electron preload (contextBridge)
       │  typed IPC, Zod validation on the main side
       ▼
 Electron main
-      │  HueApi · HueClient · HueTransport · HueEventStream
-      │  BridgeDiscovery · BridgePairing · ConnectionManager · SecureStorage
-      ▼  HTTPS (local)
-Philips Hue Bridge  →  Zigbee  →  💡
+      │  ProviderRegistry — every hub live at once, merged reads,
+      │  writes routed by resource id · SecureStorage
+      ▼
+   ProviderAdapter  (LightingApi: Light · Room · Scene · Automation)
+      ├─ Hue      HueClient · HueTransport · HueEventStream   ──HTTPS──▶  Bridge ─▶ 💡
+      └─ HomeAss. HaClient · HaTransport · HaWebSocket        ──HTTP───▶  HA ─▶ 💡💡💡
 ```
 
-The renderer has no idea what HTTPS, mDNS, CIE xy or `hue-application-key` are. It only
-knows `Light`, `Room` and `Bridge`. Because of that, a change in the Hue API version
-never reaches the UI layer.
+The renderer has no idea what HTTPS, mDNS, CIE xy, `hue-application-key` or a bearer
+token are. It only knows `Light`, `Room` and `Hub`. That is what made the second brand
+cheap: `LightingApi` was already written in those terms, so adding Home Assistant meant
+a new adapter behind it and no change to the UI at all.
+
+**Adding another brand** means implementing `ProviderAdapter` in `src/main/providers/` —
+`connect()` returning a `LightingApi` plus a push channel — and nothing else. Everything
+above it, tray and widget included, is already brand-neutral.
+
+Ids are deliberately **not** namespaced by provider. Hue issues UUIDs and Home Assistant
+uses `light.kitchen`, so they cannot collide in practice, and prefixing them would have
+invalidated every favourite, shortcut and quick action already on disk. `ResourceIndex`
+routes by id and logs a warning if two hubs ever do claim the same one.
 
 ### Security
 
 - `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true` — the renderer has
   no access to any Node API
-- The application key is encrypted through `safeStorage` (Keychain / DPAPI / secret
-  service) and never reaches the renderer — the Bridge list passed over IPC carries the
-  address and the name, but not the key
-- **Exception:** the macOS widget gets a copy of the key in the App Group container
-  (`0600`) so it can talk to the Bridge while the app is closed. See
+- Credentials are encrypted through `safeStorage` (Keychain / DPAPI / secret service)
+  and never reach the renderer — the hub list passed over IPC carries the address and
+  the name, but neither the Hue application key nor a Home Assistant token
+- **Exception:** the macOS widget gets a copy in the App Group container (`0600`) so it
+  can talk to the hubs while the app is closed. Hue always; Home Assistant only if you
+  turn it on, because its token is a far larger secret. See
   [macOS widget](#macos-widget)
+- **Home Assistant is reached with ordinary TLS verification.** A self-signed
+  certificate is something to fix on the server, not something this app waves through
 - **TLS is verified, not disabled.** The Bridge presents a certificate issued by a
   private Signify CA (`CN=root-bridge`) which is in no system trust store and carries no
   `subjectAltName` field. The app bundles that CA, trusts **only** it, and replaces the
@@ -190,12 +235,15 @@ never reaches the UI layer.
   will do the job.
 - **Linux without a system password store**: when `safeStorage` reports the `basic_text`
   backend, the app shows a warning that the key is not meaningfully protected.
-- **Automations can only be enabled and disabled**, not created — every `behavior_script`
-  has its own configuration schema, and the Bridge runs the rules independently of this
-  app.
-- **Multiple Bridges work by switching the active one**, not in parallel. Controlling two
-  at once would mean separating resource identifiers throughout the domain model.
-- Control from outside the home network needs v2 — see [Roadmap](#roadmap).
+- **Automations can only be enabled and disabled**, not created — every rule has its own
+  configuration schema, and the hub runs them independently of this app.
+- **Home Assistant needs its own setup.** This app is a client, not a replacement: the
+  lights have to work there first, and be assigned to areas, or they show up ungrouped.
+- **Home Assistant scenes never read as "active".** A scene entity's state is when it was
+  last applied, so the hub simply cannot say which one is currently showing.
+- **No Home Assistant discovery yet** — its address is typed in by hand.
+- Control from outside the home network needs v2 — see [Roadmap](#roadmap). A Home
+  Assistant reachable from outside already works, at your own configuration.
 - The macOS widget requires **macOS 14 or newer** and is available on macOS only.
 
 ## Roadmap
@@ -204,10 +252,11 @@ never reaches the UI layer.
 |---|---|---|
 | MVP | Bridge, lights, rooms, brightness, temperature, color, connection state | ✅ |
 | v1 | Scenes, menu bar / tray, favorites, keyboard shortcuts, launch at login | ✅ |
-| **v1.5** *(current)* | Multiple Bridges, quick actions, automations | ✅ |
-| v2 | Hue Remote API, control from outside the home network | planned |
+| v1.5 | Multiple Bridges, quick actions, automations | ✅ |
+| **v2** *(current)* | Provider abstraction, Home Assistant, several hubs in parallel | ✅ |
+| v3 | Hue Remote API, control from outside the home network | planned |
 
-### v2 — what has to be settled before it starts
+### v3 — what has to be settled before it starts
 
 Control from outside the home needs the Signify cloud, and that comes with a condition
 which cannot be met quietly:
@@ -228,8 +277,9 @@ which cannot be met quietly:
 - Sign-in has to go through the system browser (`shell.openExternal`), never through a
   `BrowserWindow` — the Hue account password must not pass through our process.
 
-The feasibility comes from `HueClient`, `HueApi` and `HueMapper` depending on nothing but
-the `HueTransport` interface — `HueApi` itself would not change by a single line.
+The feasibility comes from the same seam the Home Assistant work used: everything above
+`ProviderAdapter` is written against `LightingApi`, so a remote Hue transport is another
+adapter rather than a change to the domain or the UI.
 
 ## License
 
