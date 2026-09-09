@@ -9,6 +9,7 @@ import { createActionRunner } from './actions/ActionRunner';
 import { startedHidden } from './autostart';
 import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
 import { createBridgePairingService } from './bridge/BridgePairingService';
+import { createHaAdapter } from './homeassistant/HaAdapter';
 import { createHueAdapter } from './hue/HueAdapter';
 import { createProviderRegistry } from './providers/ProviderRegistry';
 import { createProviderRepository } from './providers/ProviderRepository';
@@ -172,7 +173,10 @@ async function bootstrap(): Promise<void> {
 
   const providers = createProviderRegistry({
     repository,
-    adapters: { hue: createHueAdapter({ repository, discovery }) },
+    adapters: {
+      hue: createHueAdapter({ repository, discovery }),
+      homeassistant: createHaAdapter(),
+    },
     onStatuses: (statuses) => {
       broadcast(EVENT_CHANNELS.connectionChanged, statuses);
       publishWidgetState();

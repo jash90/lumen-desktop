@@ -55,8 +55,7 @@ describe('ProviderRepository', () => {
     repository.updateAddress('bridge-1', '192.0.2.77');
 
     const moved = repository.get('bridge-1');
-    expect(moved?.address).toBe('192.0.2.77');
-    expect(moved?.applicationKey).toBe('key-bridge-1');
+    expect(moved).toMatchObject({ address: '192.0.2.77', applicationKey: 'key-bridge-1' });
   });
 
   it('leaves the other hubs alone when one is removed', () => {
