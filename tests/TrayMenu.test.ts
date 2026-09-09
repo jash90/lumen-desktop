@@ -11,6 +11,7 @@ import type { Room, Scene } from '../src/shared/models';
 
 const room = (id: string, name: string, isOn = true): Room => ({
   id,
+  providerId: 'bridge-1',
   name,
   lightIds: [`${id}-a`],
   isOn,
@@ -18,7 +19,13 @@ const room = (id: string, name: string, isOn = true): Room => ({
   supportsGroupControl: true,
 });
 
-const scene = (id: string, name: string): Scene => ({ id, name, roomId: 'room-1', isActive: false });
+const scene = (id: string, name: string): Scene => ({
+  id,
+  providerId: 'bridge-1',
+  name,
+  roomId: 'room-1',
+  isActive: false,
+});
 
 const handlers = () => ({ action: vi.fn(), show: vi.fn(), quit: vi.fn() });
 

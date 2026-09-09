@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
 
-import type { BridgeCredential } from '../bridge/BridgeRepository';
+import type { HueCredential } from '../providers/ProviderCredential';
 import { APP_GROUP, RELOAD_HELPER } from '../../shared/identity';
 import type { Light, Room } from '../../shared/models';
 
@@ -50,7 +50,7 @@ export interface WidgetCredentials {
 export interface WidgetBridge {
   publish(connected: boolean, rooms: readonly Room[], lights: readonly Light[]): void;
   /** `null` removes the exported key — that is what unpairing does. */
-  publishCredentials(credential: BridgeCredential | null): void;
+  publishCredentials(credential: HueCredential | null): void;
 }
 
 const FILE_NAME = 'widget-state.json';
@@ -83,10 +83,10 @@ export function buildSnapshot(
   };
 }
 
-export function toCredentials(credential: BridgeCredential): WidgetCredentials {
+export function toCredentials(credential: HueCredential): WidgetCredentials {
   return {
-    bridgeId: credential.bridgeId,
-    ip: credential.bridgeIp,
+    bridgeId: credential.id,
+    ip: credential.address,
     applicationKey: credential.applicationKey,
   };
 }

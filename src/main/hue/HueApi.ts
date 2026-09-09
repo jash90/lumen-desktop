@@ -62,7 +62,7 @@ function mergeResource<T extends object>(base: T, update: Record<string, unknown
   return merged as T;
 }
 
-export function createHueApi(client: HueClient): LightingApi {
+export function createHueApi(client: HueClient, providerId: string): LightingApi {
   const lightDtos = new Map<string, LightDto>();
   const roomDtos = new Map<string, RoomDto>();
   const groupedLightDtos = new Map<string, GroupedLightDto>();
@@ -78,7 +78,7 @@ export function createHueApi(client: HueClient): LightingApi {
     return undefined;
   };
 
-  const projectLight = (dto: LightDto): Light => toLight(dto, roomIndex);
+  const projectLight = (dto: LightDto): Light => toLight(dto, roomIndex, providerId);
 
   const projectRoom = (dto: RoomDto): Room => {
     const lightsInRoom = [...lightDtos.values()]
@@ -86,7 +86,7 @@ export function createHueApi(client: HueClient): LightingApi {
       .map(projectLight);
     const groupedLightId = groupedLightIdOf(dto);
     const groupedLight = groupedLightId ? groupedLightDtos.get(groupedLightId) : undefined;
-    return toRoom(dto, lightsInRoom, groupedLight);
+    return toRoom(dto, lightsInRoom, groupedLight, providerId);
   };
 
   const requireLightDto = (id: string): LightDto => {
@@ -150,10 +150,10 @@ export function createHueApi(client: HueClient): LightingApi {
     getRoom: (id) => projectRoom(requireRoomDto(id)),
 
     getScenes: () =>
-      [...sceneDtos.values()].map(toScene).sort((a, b) => a.name.localeCompare(b.name)),
+      [...sceneDtos.values()].map((dto) => toScene(dto, providerId)).sort((a, b) => a.name.localeCompare(b.name)),
 
     getAutomations: () =>
-      [...automationDtos.values()].map(toAutomation).sort((a, b) => a.name.localeCompare(b.name)),
+      [...automationDtos.values()].map((dto) => toAutomation(dto, providerId)).sort((a, b) => a.name.localeCompare(b.name)),
 
     async setAutomationEnabled(id, enabled) {
       const dto = automationDtos.get(id);

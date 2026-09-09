@@ -69,7 +69,11 @@ export function mirekSchemaOf(dto: LightDto): MirekSchema {
  * @param roomIdByDeviceId maps `light.owner.rid` to a room; a light whose device
  *   belongs to no room still shows up, just ungrouped.
  */
-export function toLight(dto: LightDto, roomIdByDeviceId: ReadonlyMap<string, string>): Light {
+export function toLight(
+  dto: LightDto,
+  roomIdByDeviceId: ReadonlyMap<string, string>,
+  providerId: string,
+): Light {
   const capabilities = capabilitiesOf(dto);
   const isOn = dto.on.on;
 
@@ -92,6 +96,7 @@ export function toLight(dto: LightDto, roomIdByDeviceId: ReadonlyMap<string, str
 
   return {
     id: dto.id,
+    providerId,
     name: dto.metadata.name,
     roomId: roomIdByDeviceId.get(dto.owner.rid) ?? null,
     isOn,
@@ -121,6 +126,7 @@ export function toRoom(
   dto: RoomDto,
   lightsInRoom: readonly Light[],
   groupedLight: GroupedLightDto | undefined,
+  providerId: string,
 ): Room {
   const litLights = lightsInRoom.filter((light) => light.isOn);
 
@@ -135,6 +141,7 @@ export function toRoom(
 
   return {
     id: dto.id,
+    providerId,
     name: dto.metadata.name,
     lightIds: lightsInRoom.map((light) => light.id),
     isOn,
@@ -151,9 +158,10 @@ export function toRoom(
  * rooms only, so those get a null roomId and are shown in their own section
  * rather than being dropped.
  */
-export function toScene(dto: SceneDto): Scene {
+export function toScene(dto: SceneDto, providerId: string): Scene {
   return {
     id: dto.id,
+    providerId,
     name: dto.metadata.name,
     roomId: dto.group.rtype === 'room' ? dto.group.rid : null,
     isActive: (dto.status?.active ?? 'inactive') !== 'inactive',
@@ -161,10 +169,11 @@ export function toScene(dto: SceneDto): Scene {
 }
 
 /** Falls back to the script id, because an unnamed automation still has to be listable. */
-export function toAutomation(dto: BehaviorInstanceDto): Automation {
+export function toAutomation(dto: BehaviorInstanceDto, providerId: string): Automation {
   return {
     id: dto.id,
-    name: dto.metadata?.name ?? `Automatyzacja ${dto.script_id.slice(0, 8)}`,
+    providerId,
+    name: dto.metadata?.name ?? `Automation ${dto.script_id.slice(0, 8)}`,
     enabled: dto.enabled,
   };
 }

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BridgeCredential } from '../src/main/bridge/BridgeRepository';
+import type { HueCredential } from '../src/main/providers/ProviderCredential';
 import { APP_GROUP } from '../src/shared/identity';
 
 /**
@@ -30,9 +30,10 @@ const credentialsPath = path.join(
   'widget-credentials.json',
 );
 
-const credential: BridgeCredential = {
-  bridgeId: '001788fffe1234ab',
-  bridgeIp: '192.168.1.42',
+const credential: HueCredential = {
+  kind: 'hue',
+  id: '001788fffe1234ab',
+  address: '192.168.1.42',
   name: 'Hue Bridge',
   applicationKey: 'secret-key',
 };

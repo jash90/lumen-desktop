@@ -1,7 +1,7 @@
 import { ConnectionStatusBadge } from './components/ConnectionStatus';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/Toaster';
-import { useConnectionStatus, useLightingEvents } from './hooks/useLighting';
+import { useConnectionStatuses, useLightingEvents } from './hooks/useLighting';
 import { AutomationsPage } from './pages/AutomationsPage';
 import { HomePage, HomeSkeleton } from './pages/HomePage';
 import { LightPage } from './pages/LightPage';
@@ -20,17 +20,22 @@ import { PRODUCT_NAME } from '../shared/identity';
 export function App() {
   useLightingEvents();
 
-  const status = useConnectionStatus();
+  const statuses = useConnectionStatuses();
   const view = useUiStore((state) => state.view);
   const navigate = useUiStore((state) => state.navigate);
   const goHome = useUiStore((state) => state.goHome);
 
-  // Nothing stored means we have never paired — start the onboarding flow.
-  if (status.isSuccess && status.data.bridge === null) {
+  // No hub stored at all means we have never paired — start onboarding.
+  if (statuses.isSuccess && statuses.data.length === 0) {
     return <OnboardingPage />;
   }
 
-  const connected = status.data?.state === 'connected';
+  const all = statuses.data ?? [];
+  // One reachable hub is enough to have something worth showing: the lists are
+  // merged, so waiting for every hub would blank the screen over one unplugged
+  // bridge in another room.
+  const connected = all.some((status) => status.state === 'connected');
+  const allDown = all.length > 0 && all.every((status) => status.state === 'disconnected');
   const canGoBack = view.name === 'room' || view.name === 'light';
 
   return (
@@ -49,16 +54,16 @@ export function App() {
           <span className="text-sm font-semibold tracking-tight">{PRODUCT_NAME}</span>
         )}
         <span className="ml-auto">
-          <ConnectionStatusBadge status={status.data} />
+          <ConnectionStatusBadge statuses={all} />
         </span>
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto">
         {!connected && view.name !== 'settings' ? (
-          status.data?.state === 'disconnected' ? (
+          allDown ? (
             <EmptyState
-              title="No connection to the Hue Bridge"
-              description="Check that the Bridge is powered on and on the same network as this computer."
+              title="No hub reachable"
+              description="Check that your hub is powered on and on the same network as this computer."
               action={{ label: 'Open settings', onClick: () => navigate({ name: 'settings' }) }}
             />
           ) : (

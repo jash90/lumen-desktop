@@ -1,6 +1,7 @@
 import type { BridgeDiscoveryService } from '../bridge/BridgeDiscoveryService';
-import type { BridgeCredential, BridgeRepository } from '../bridge/BridgeRepository';
 import type { ProviderAdapter, ProviderSession } from '../providers/LightingProvider';
+import type { HueCredential } from '../providers/ProviderCredential';
+import type { ProviderRepository } from '../providers/ProviderRepository';
 import { createHueApi } from './HueApi';
 import { createHueClient } from './HueClient';
 import { startEventStream } from './HueEventStream';
@@ -16,23 +17,22 @@ import { createHueTransport } from './HueTransport';
  */
 
 export interface HueAdapterOptions {
-  repository: BridgeRepository;
+  repository: ProviderRepository;
   discovery: BridgeDiscoveryService;
 }
 
-export function createHueAdapter(
-  options: HueAdapterOptions,
-): ProviderAdapter<BridgeCredential> {
+export function createHueAdapter(options: HueAdapterOptions): ProviderAdapter<HueCredential> {
   const { repository, discovery } = options;
 
   return {
     kind: 'hue',
 
     async connect(credential, hooks): Promise<ProviderSession> {
-      const transport = createHueTransport(credential.bridgeIp, credential.bridgeId);
+      const transport = createHueTransport(credential.address, credential.id);
 
       try {
-        const api = createHueApi(createHueClient(transport, credential.applicationKey));
+        const client = createHueClient(transport, credential.applicationKey);
+        const api = createHueApi(client, credential.id);
         await api.refresh();
 
         const stream = await startEventStream({
@@ -61,10 +61,10 @@ export function createHueAdapter(
 
     /** Finds the same bridge id at a different address after a DHCP renewal (PRD §51). */
     async recover(credential) {
-      const ip = await discovery.findKnownBridge(credential.bridgeId);
-      if (!ip || ip === credential.bridgeIp) return null;
-      repository.updateIp(credential.bridgeId, ip);
-      return { ...credential, bridgeIp: ip };
+      const ip = await discovery.findKnownBridge(credential.id);
+      if (!ip || ip === credential.address) return null;
+      repository.updateAddress(credential.id, ip);
+      return { ...credential, address: ip };
     },
   };
 }

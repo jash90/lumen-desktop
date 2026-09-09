@@ -5,7 +5,7 @@ import { AppError } from '../../shared/errors';
 import type { DiscoveredBridge } from '../../shared/models';
 import { bridgeConfigSchema, cloudDiscoverySchema, type BridgeConfigDto } from '../hue/dto';
 import { createHueTransport } from '../hue/HueTransport';
-import type { BridgeRepository } from './BridgeRepository';
+import type { ProviderRepository } from '../providers/ProviderRepository';
 
 /**
  * Finding the bridge (PRD §21, §63.1).
@@ -139,17 +139,18 @@ export interface BridgeDiscoveryService {
 }
 
 export function createBridgeDiscoveryService(
-  repository: BridgeRepository,
+  repository: ProviderRepository,
 ): BridgeDiscoveryService {
   async function collect(): Promise<DiscoveredBridge[]> {
     const byId = new Map<string, DiscoveredBridge>();
 
     // Ordered by trust: a locally observed address beats a cloud-reported one,
     // which beats a possibly stale remembered one.
-    for (const bridge of repository.list()) {
-      byId.set(bridge.bridgeId, {
-        id: bridge.bridgeId,
-        ip: bridge.bridgeIp,
+    // Only Hue hubs belong here; the others are not found by this discovery.
+    for (const bridge of repository.list().filter((entry) => entry.kind === 'hue')) {
+      byId.set(bridge.id, {
+        id: bridge.id,
+        ip: bridge.address,
         name: bridge.name,
         source: 'cache',
       });

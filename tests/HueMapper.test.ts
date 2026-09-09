@@ -18,6 +18,9 @@ const ceiling = lightDtoSchema.parse(CEILING_LIGHT);
 const plain = lightDtoSchema.parse(PLAIN_LIGHT);
 const room = roomDtoSchema.parse(LIVING_ROOM);
 
+/** Which hub a resource came from; irrelevant to the maths under test here. */
+const HUB = 'bridge-1';
+
 describe('brightness', () => {
   it('clamps to the range the bridge accepts', () => {
     // 0 is rejected by the bridge; "off" is a separate property.
@@ -74,29 +77,29 @@ describe('toLight', () => {
   const index = buildRoomIndex([room]);
 
   it('joins a light to its room through the owning device', () => {
-    expect(toLight(ceiling, index).roomId).toBe('room-living');
+    expect(toLight(ceiling, index, HUB).roomId).toBe('room-living');
   });
 
   it('reports no room for a light outside every room', () => {
-    expect(toLight(ceiling, new Map()).roomId).toBeNull();
+    expect(toLight(ceiling, new Map(), HUB).roomId).toBeNull();
   });
 
   it('gives a non-dimmable bulb the only two levels it has', () => {
-    expect(toLight(plain, index).brightness).toBe(0);
-    expect(toLight({ ...plain, on: { on: true } }, index).brightness).toBe(100);
+    expect(toLight(plain, index, HUB).brightness).toBe(0);
+    expect(toLight({ ...plain, on: { on: true } }, index, HUB).brightness).toBe(100);
   });
 
   it('omits colour temperature while the bulb is showing a colour', () => {
     const inColourMode = { ...ceiling, color_temperature: { ...ceiling.color_temperature, mirek: null } };
-    expect(toLight(inColourMode, index).colorTemperature).toBeUndefined();
-    expect(toLight(inColourMode, index).capabilities.colorTemperature).toBe(true);
+    expect(toLight(inColourMode, index, HUB).colorTemperature).toBeUndefined();
+    expect(toLight(inColourMode, index, HUB).capabilities.colorTemperature).toBe(true);
   });
 });
 
 describe('toRoom', () => {
   it('prefers the grouped_light state over the per-light aggregate', () => {
-    const lights = [toLight(plain, buildRoomIndex([room]))];
-    const mapped = toRoom(room, lights, LIVING_ROOM_GROUP);
+    const lights = [toLight(plain, buildRoomIndex([room]), HUB)];
+    const mapped = toRoom(room, lights, LIVING_ROOM_GROUP, HUB);
 
     expect(mapped.isOn).toBe(true); // group says on, though its only light is off
     expect(mapped.brightness).toBe(65);
@@ -105,10 +108,10 @@ describe('toRoom', () => {
 
   it('falls back to the member lights when there is no group service', () => {
     const index = buildRoomIndex([room]);
-    const lights = [toLight(ceiling, index), toLight(plain, index)];
+    const lights = [toLight(ceiling, index, HUB), toLight(plain, index, HUB)];
     const roomWithoutGroup = { ...room, services: [] };
 
-    const mapped = toRoom(roomWithoutGroup, lights, undefined);
+    const mapped = toRoom(roomWithoutGroup, lights, undefined, HUB);
     expect(mapped.isOn).toBe(true);
     expect(mapped.brightness).toBe(72); // only the lit bulb counts
     expect(mapped.supportsGroupControl).toBe(false);

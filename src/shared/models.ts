@@ -1,9 +1,13 @@
 /**
  * Domain model exposed to the renderer (PRD §31).
  *
- * The renderer never sees Hue API DTOs, mirek, CIE xy or application keys —
- * only these types. Swapping the Hue API version must not reach the UI.
+ * The renderer never sees vendor DTOs, mirek, CIE xy, application keys or
+ * access tokens — only these types. Swapping an API version, or adding a whole
+ * second brand of hardware, must not reach the UI.
  */
+
+/** Which kind of hub a resource came from. */
+export type ProviderKind = 'hue' | 'homeassistant';
 
 export type ConnectionState =
   | 'disconnected'
@@ -27,6 +31,8 @@ export interface RgbColor {
 
 export interface Light {
   id: string;
+  /** Which connected hub owns it — several can be live at once. */
+  providerId: string;
   name: string;
   /** Room the owning device belongs to; null for lights outside any room. */
   roomId: string | null;
@@ -41,6 +47,7 @@ export interface Light {
 
 export interface Room {
   id: string;
+  providerId: string;
   name: string;
   lightIds: string[];
   /** true when any member light is on — matches how the Hue app reports a room. */
@@ -59,6 +66,7 @@ export interface Room {
  */
 export interface Scene {
   id: string;
+  providerId: string;
   name: string;
   roomId: string | null;
   /** True while the bridge reports this scene as the one currently applied. */
@@ -72,14 +80,20 @@ export interface Scene {
  */
 export interface Automation {
   id: string;
+  providerId: string;
   name: string;
   enabled: boolean;
 }
 
-export interface BridgeSummary {
+/**
+ * A hub the app is configured to talk to. `address` is an IP for a bridge on the
+ * local network and a base URL for one reached over HTTP.
+ */
+export interface HubSummary {
   id: string;
+  kind: ProviderKind;
   name: string;
-  ip: string;
+  address: string;
   modelId?: string;
   swVersion?: string;
 }
@@ -93,9 +107,16 @@ export interface DiscoveredBridge {
   source: DiscoverySource;
 }
 
+/**
+ * One per configured hub. They connect independently, so a bridge going quiet
+ * says nothing about the others and the UI shows a state per hub rather than
+ * one state for the app.
+ */
 export interface ConnectionStatus {
+  providerId: string;
+  kind: ProviderKind;
   state: ConnectionState;
-  bridge: BridgeSummary | null;
+  hub: HubSummary | null;
   /** Set while state is 'reconnecting'; ms until the next attempt. */
   retryInMs?: number;
 }

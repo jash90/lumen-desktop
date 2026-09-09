@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { createActionRunner } from '../src/main/actions/ActionRunner';
-import type { ConnectionManager } from '../src/main/bridge/ConnectionManager';
 import { createHueApi } from '../src/main/hue/HueApi';
 import type { LightingApi } from '../src/main/providers/LightingProvider';
 import { createHueClient } from '../src/main/hue/HueClient';
@@ -34,14 +33,13 @@ async function createRunner(lights: unknown[] = [CEILING_LIGHT, PLAIN_LIGHT]) {
     return jsonResponse([]);
   });
 
-  const api: LightingApi = createHueApi(createHueClient(transport, 'key'));
+  const api: LightingApi = createHueApi(createHueClient(transport, 'key'), 'bridge-1');
   await api.refresh();
   transport.calls.length = 0;
 
-  // The runner only ever reaches for requireApi(); the rest of the manager is
-  // irrelevant here.
-  const connection = { requireApi: () => api } as unknown as ConnectionManager;
-  return { transport, runner: createActionRunner(connection) };
+  // One hub is enough here: the runner reads and writes through the facade,
+  // which a single API satisfies just as well as the registry does.
+  return { transport, runner: createActionRunner(api) };
 }
 
 describe('ActionRunner', () => {

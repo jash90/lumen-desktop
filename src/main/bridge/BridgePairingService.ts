@@ -2,12 +2,13 @@ import os from 'node:os';
 
 import { AppError, toSerializedError } from '../../shared/errors';
 import type { PairingState } from '../../shared/ipc';
-import type { BridgeSummary } from '../../shared/models';
+import type { HubSummary } from '../../shared/models';
 import { pairingResponseSchema } from '../hue/dto';
 import { createHueTransport } from '../hue/HueTransport';
 import { probeBridge } from './BridgeDiscoveryService';
-import type { BridgeRepository } from './BridgeRepository';
+import type { ProviderRepository } from '../providers/ProviderRepository';
 import { EXECUTABLE_NAME } from '../../shared/identity';
+import { toHubSummary, type HueCredential } from '../providers/ProviderCredential';
 
 /**
  * The link-button ceremony (PRD §22, §40).
@@ -31,12 +32,12 @@ function deviceType(): string {
 }
 
 export interface BridgePairingService {
-  pair(ip: string): Promise<BridgeSummary>;
+  pair(ip: string): Promise<HubSummary>;
   cancel(): void;
 }
 
 export function createBridgePairingService(
-  repository: BridgeRepository,
+  repository: ProviderRepository,
   onState: (state: PairingState) => void,
 ): BridgePairingService {
   let cancelled = false;
@@ -76,22 +77,19 @@ export function createBridgePairingService(
           const entry = parsed.success ? parsed.data[0] : undefined;
 
           if (entry?.success) {
-            const summary: BridgeSummary = {
+            const credential: HueCredential = {
+              kind: 'hue',
               id: bridgeId,
               name: config.name,
-              ip,
-              modelId: config.modelid,
-              swVersion: config.swversion,
-            };
-            repository.save({
-              bridgeId,
-              bridgeIp: ip,
-              name: config.name,
+              address: ip,
               applicationKey: entry.success.username,
               modelId: config.modelid,
               swVersion: config.swversion,
-            });
-            onState({ status: 'connected', bridge: summary });
+            };
+            repository.save(credential);
+
+            const summary = toHubSummary(credential);
+            onState({ status: 'connected', hub: summary });
             return summary;
           }
 

@@ -15,6 +15,7 @@ export type AppErrorCode =
   | 'UnsupportedCapability'
   | 'NetworkError'
   | 'CertificateError'
+  | 'ResourceUnavailable'
   | 'StorageUnavailable';
 
 /** Plain object shape — Error subclasses do not survive Electron's IPC structured clone. */
@@ -23,17 +24,23 @@ export interface SerializedAppError {
   message: string;
 }
 
+/*
+ * Codes only the Hue adapter can raise still name the bridge — the link-button
+ * ceremony and the pinned certificate are facts about that hardware. The rest
+ * say "hub", because any provider can produce them.
+ */
 const USER_MESSAGES: Record<AppErrorCode, string> = {
   BridgeNotFound: 'No Hue Bridge found on the network.',
-  BridgeOffline: 'Could not connect to the Hue Bridge.',
+  BridgeOffline: 'Could not connect to the hub.',
   PairingRequired: 'Press the button on the Hue Bridge to connect this app.',
   PairingTimeout: 'The button on the Hue Bridge was not pressed in time.',
-  Unauthorized: 'This app lost access to the Hue Bridge. Pair it again.',
-  RequestFailed: 'The Hue Bridge rejected the request.',
+  Unauthorized: 'This app lost access to the hub. Connect it again.',
+  RequestFailed: 'The hub rejected the request.',
   UnsupportedCapability: 'This light does not support that feature.',
   NetworkError: 'Network problem. Check the connection to your home Wi-Fi.',
   CertificateError:
     'Could not verify the identity of the Hue Bridge. The connection was aborted.',
+  ResourceUnavailable: 'That light is not available — its hub is not connected.',
   StorageUnavailable:
     'This system provides no secure password storage. The credentials were not saved.',
 };
