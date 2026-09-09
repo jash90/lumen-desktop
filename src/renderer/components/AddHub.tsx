@@ -371,6 +371,11 @@ function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
                   setKeys((current) => ({ ...current, [device.deviceId]: event.target.value }))
                 }
                 placeholder="local key (16 characters)"
+                // Masked like the Home Assistant token. It is a smaller secret —
+                // lighting on this network, not an account — but it has no more
+                // business being readable over someone's shoulder, or in a
+                // screenshot, than any other key.
+                type="password"
                 autoComplete="off"
                 spellCheck={false}
                 className="mt-1 min-h-8 w-full rounded-row border border-line bg-surface-raised px-2 font-mono text-xs outline-none focus:border-accent focus-visible:focus-ring"
