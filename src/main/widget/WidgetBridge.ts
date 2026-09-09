@@ -142,21 +142,15 @@ export function toCredentials(
           : [];
 
       case 'tuya':
-        // Exported unconditionally, like Hue: a local key drives lighting on
-        // this network and nothing else. It is not the same class of secret as
-        // a Home Assistant token, which is why that one waits for an opt-in.
-        return [
-          {
-            kind: 'tuya',
-            providerId: credential.id,
-            devices: credential.devices.map((device) => ({
-              deviceId: device.deviceId,
-              name: device.name,
-              address: device.address,
-              localKey: device.localKey,
-            })),
-          },
-        ];
+        // Nothing yet. The Swift side has no Tuya client, so exporting the local
+        // keys would write secrets to a file on disk that nothing can read —
+        // all of the cost of leaving the keychain and none of the benefit. The
+        // widget shows these rooms from the snapshot instead, read-only.
+        //
+        // When widget/TuyaClient.swift lands this becomes an unconditional
+        // export, like Hue: a local key drives lighting on one network and is
+        // not the class of secret a Home Assistant token is.
+        return [];
 
       default: {
         const unreachable: never = credential;

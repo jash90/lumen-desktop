@@ -7,8 +7,9 @@
 **Control your smart lighting from the desktop — without reaching for your phone.**
 
 A lightweight desktop app for macOS, Windows and Linux. It speaks to a Philips Hue
-Bridge directly over the local network, and to everything else through your own Home
-Assistant. Several hubs at once, one screen. No backend of ours, no account, no cloud.
+Bridge and to Tuya-based bulbs directly over the local network, and to everything else
+through your own Home Assistant. Several hubs at once, one screen. No backend of ours,
+no account, no cloud.
 
 </div>
 
@@ -20,11 +21,13 @@ Assistant. Several hubs at once, one screen. No backend of ours, no account, no 
 
 ## What it does
 
-- **Several hubs at once** — a Hue Bridge in the hallway and a Home Assistant covering
-  the rest of the house appear as one list of rooms, not two apps
+- **Several hubs at once** — a Hue Bridge in the hallway, a Tuya bulb on the desk and a
+  Home Assistant covering the rest appear as one list, not three apps
 - **Finds a Bridge** — mDNS, `discovery.meethue.com`, the last known address, or a
   manually entered IP; pairs through the physical button and remembers it
 - **Connects to Home Assistant** with its address and a long-lived access token
+- **Finds Tuya devices** by listening for what they broadcast, and drives them straight
+  over the LAN with their local key — no cloud, no hub, works without internet
 - **Controls lights** — on/off, brightness, color temperature, RGB color
 - **Controls rooms** with one grouped request rather than one command per bulb
 - **Activates scenes** saved on the hub, grouped by room
@@ -46,11 +49,35 @@ switch, White Ambiance adds temperature, and a color bulb gets the full picker.
 
 ### Which bulbs does this cover?
 
-Anything with a Hue Bridge, directly. Everything else through Home Assistant — which is
-how brands with no documented API of their own, **Spectrum Smart** among them, end up
-here: Home Assistant already talks to them (Tuya, LocalTuya, Zigbee2MQTT and so on) and
-exposes them as `light.*` entities, so this app needs no code per brand. If Home
-Assistant can see a light, so can this.
+Three ways in, in order of directness:
+
+- **Philips Hue**, through the Bridge on your network.
+- **Tuya**, straight to the device. A great many brands are Tuya underneath and never say
+  so — **Spectrum Smart** among them. If a bulb pairs with the Tuya Smart or Smart Life
+  app, or with a vendor app built on the same SDK, this talks to it directly. You need
+  its *local key*; see [Tuya devices](#tuya-devices).
+- **Everything else**, through your own Home Assistant. If Home Assistant can see a
+  light, so can this — no code per brand.
+
+### Tuya devices
+
+A Tuya device encrypts its LAN traffic with a 16-character **local key**, issued when the
+device is paired and stored in exactly two places: the device's own firmware and Tuya's
+cloud. It cannot be read out of the device, so getting it means asking the cloud once:
+
+1. Create a free project at `iot.tuya.com` — **pick the data centre your account is in**,
+   Central Europe for most of the EU.
+2. Subscribe the project to *IoT Core* and *Authorization Token Management*.
+3. *Devices → Link App Account* and scan the QR with your app.
+4. `pip install tinytuya` then `python -m tinytuya wizard`, which prints a local key per
+   device.
+
+After that the cloud is never used again — you can revoke the project's key and the app
+carries on. Paste the local keys into *Add a hub → Tuya*; they are stored encrypted like
+every other credential and never leave your machine.
+
+Re-pairing a device issues a new local key, which the app reports as a lost
+authorisation rather than retrying forever.
 
 ## macOS widget
 
@@ -128,6 +155,12 @@ At least one hub — either or both:
 - Firmware supporting Hue API v2 (`/clip/v2`)
 - Physical access to the Bridge for the first pairing — Hue requires a button press
 
+**Tuya (including Spectrum Smart and other rebrands)**
+- The device on the same 2.4 GHz network — these are not 5 GHz devices
+- Its local key, obtained once (see [Tuya devices](#tuya-devices))
+- Protocol 3.3. Firmware speaking 3.4 or 3.5 negotiates a session key and is not
+  supported yet
+
 **Home Assistant**
 - A reachable instance, and a long-lived access token
   (your profile → Security → Long-lived access tokens)
@@ -189,6 +222,7 @@ Electron main
       ▼
    ProviderAdapter  (LightingApi: Light · Room · Scene · Automation)
       ├─ Hue      HueClient · HueTransport · HueEventStream   ──HTTPS──▶  Bridge ─▶ 💡
+      ├─ Tuya     TuyaCodec · TuyaTransport (AES, TCP 6668)   ──LAN────▶  💡
       └─ HomeAss. HaClient · HaTransport · HaWebSocket        ──HTTP───▶  HA ─▶ 💡💡💡
 ```
 
@@ -219,6 +253,10 @@ routes by id and logs a warning if two hubs ever do claim the same one.
   [macOS widget](#macos-widget)
 - **Home Assistant is reached with ordinary TLS verification.** A self-signed
   certificate is something to fix on the server, not something this app waves through
+- **Tuya traffic is AES-128-ECB**, which is weak — identical blocks encrypt alike — but
+  it is what protocol 3.3 specifies and a device will not answer anything else. It never
+  leaves the local network. Tuya fixed this in 3.4 and 3.5; both are different protocols
+  rather than options, and are not supported yet
 - **TLS is verified, not disabled.** The Bridge presents a certificate issued by a
   private Signify CA (`CN=root-bridge`) which is in no system trust store and carries no
   `subjectAltName` field. The app bundles that CA, trusts **only** it, and replaces the
@@ -242,6 +280,12 @@ routes by id and logs a warning if two hubs ever do claim the same one.
 - **Home Assistant scenes never read as "active".** A scene entity's state is when it was
   last applied, so the hub simply cannot say which one is currently showing.
 - **No Home Assistant discovery yet** — its address is typed in by hand.
+- **Tuya covers protocol 3.3 only**, and offers no scenes, rooms or automations: a device
+  exposes none of those locally, so its lights appear under *Outside rooms*.
+- **Tuya devices are not controllable from the macOS widget yet** — they show there as a
+  reading. The widget has no client for them.
+- **Tuya discovery needs patience.** Devices announce themselves every few seconds, so a
+  first pass can miss one; search again, or type the address in.
 - Control from outside the home network needs v2 — see [Roadmap](#roadmap). A Home
   Assistant reachable from outside already works, at your own configuration.
 - The macOS widget requires **macOS 14 or newer** and is available on macOS only.
@@ -253,8 +297,9 @@ routes by id and logs a warning if two hubs ever do claim the same one.
 | MVP | Bridge, lights, rooms, brightness, temperature, color, connection state | ✅ |
 | v1 | Scenes, menu bar / tray, favorites, keyboard shortcuts, launch at login | ✅ |
 | v1.5 | Multiple Bridges, quick actions, automations | ✅ |
-| **v2** *(current)* | Provider abstraction, Home Assistant, several hubs in parallel | ✅ |
-| v3 | Hue Remote API, control from outside the home network | planned |
+| v2 | Provider abstraction, Home Assistant, several hubs in parallel | ✅ |
+| **v2.5** *(current)* | Native Tuya over the LAN — Spectrum Smart and other rebrands | ✅ |
+| v3 | Tuya in the widget, protocol 3.4/3.5, Hue Remote API | planned |
 
 ### v3 — what has to be settled before it starts
 
