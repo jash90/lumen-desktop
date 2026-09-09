@@ -1,4 +1,11 @@
-import type { Automation, Light, RgbColor, Room, Scene } from '../../shared/models';
+import type {
+  Automation,
+  Light,
+  ProviderKind,
+  RgbColor,
+  Room,
+  Scene,
+} from '../../shared/models';
 
 /**
  * What every brand of lighting has to look like from the app's side.
@@ -13,7 +20,12 @@ import type { Automation, Light, RgbColor, Room, Scene } from '../../shared/mode
  * and each would otherwise cost a round trip per call.
  */
 
-export type ProviderKind = 'hue' | 'homeassistant';
+/**
+ * Re-exported so an adapter can reach it without importing the shared model —
+ * it is declared once, in `shared/models`, because a second copy silently
+ * narrows the adapter map's key type against the credential union.
+ */
+export type { ProviderKind } from '../../shared/models';
 
 export interface ChangeSet {
   lights: Light[];
@@ -47,7 +59,15 @@ export interface LightingApi {
 
 export interface ProviderHooks {
   onChanges(changes: ChangeSet): void;
-  /** The push channel ended. Reconnecting is the caller's decision, not ours. */
+  /**
+   * The push channel ended. Reconnecting is the caller's decision, not ours.
+   *
+   * Call it **at most once** per session, and **not** as a result of `stop()` —
+   * the caller asked for that one and already knows. A raw socket naturally
+   * reports a drop twice ('error' then 'close'), so an adapter over one has to
+   * collapse them. The caller guards against a second call anyway, but an
+   * adapter must not rely on that.
+   */
   onClosed(error?: Error): void;
 }
 

@@ -20,7 +20,7 @@ export interface EventStreamOptions {
   transport: HueTransport;
   applicationKey: string;
   onUpdates(updates: UnknownResource[]): void;
-  /** Called once when the stream ends for any reason, including stop(). */
+  /** Called once when the stream drops on its own — never from stop(). */
   onClosed(error?: Error): void;
 }
 

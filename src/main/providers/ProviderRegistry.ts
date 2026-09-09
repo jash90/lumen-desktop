@@ -99,9 +99,21 @@ export function createProviderRegistry(options: ProviderRegistryOptions): Provid
   const collect = <T>(read: (api: LightingApi) => T[]): T[] =>
     live().flatMap(({ api }) => read(api));
 
-  const attach = (credential: ProviderCredential): ProviderConnection => {
+  /**
+   * Returns null rather than throwing for a hub this build cannot drive.
+   *
+   * `start()` maps over the stored credentials, so throwing here escaped the
+   * `.map()` before `Promise.allSettled` was ever entered — one unsupported
+   * entry stopped *every* hub from connecting, and `save()` puts the newest
+   * first, so the offending one is usually at index 0. Downgrading a build that
+   * had written a newer hub kind was enough to trigger it, silently.
+   */
+  const attach = (credential: ProviderCredential): ProviderConnection | null => {
     const adapter = adapters[credential.kind];
-    if (!adapter) throw new AppError('RequestFailed', `no adapter for ${credential.kind}`);
+    if (!adapter) {
+      console.warn(`[providers] no adapter for ${credential.kind}; skipping ${credential.id}`);
+      return null;
+    }
 
     const connection = createProviderConnection({
       credential,
@@ -121,16 +133,37 @@ export function createProviderRegistry(options: ProviderRegistryOptions): Provid
     async start() {
       // Settled, not all: one unreachable hub must not hold up the others.
       await Promise.allSettled(
-        repository.list().map((credential) => attach(credential).connect()),
+        repository
+          .list()
+          .map((credential) => attach(credential))
+          .filter((connection) => connection !== null)
+          .map((connection) => connection.connect()),
       );
       reindex();
       onStatuses(statuses());
     },
 
     async add(credential) {
+      // Re-adding a hub replaces it; the old socket has to go first or it is
+      // simply orphaned when attach() overwrites the map entry.
       connections.get(credential.id)?.stop();
+
+      const connection = attach(credential);
+      if (!connection) {
+        throw new AppError('UnsupportedCapability', `this build cannot drive ${credential.kind}`);
+      }
+
+      // Store only once the hub is actually up. Saving first meant a failed add
+      // left a credential on disk with no connection behind it — and every
+      // later start() then had to cope with it.
+      await connection.connect();
+      if (connection.status().state !== 'connected') {
+        connection.stop();
+        connections.delete(credential.id);
+        throw new AppError('BridgeOffline', `could not reach ${credential.name}`);
+      }
+
       repository.save(credential);
-      await attach(credential).connect();
       reindex();
     },
 
