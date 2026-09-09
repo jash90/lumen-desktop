@@ -35,6 +35,15 @@ export const useConnectionStatuses = () =>
 export const useAnyConnected = (): boolean =>
   (useConnectionStatuses().data ?? []).some((status) => status.state === 'connected');
 
+/**
+ * Names of the connected hubs, keyed by provider id — but only while there is
+ * more than one. With a single hub the label would be noise on every card.
+ */
+export function useHubLabels(): ReadonlyMap<string, string> {
+  const hubs = useHubs().data ?? [];
+  return new Map(hubs.length > 1 ? hubs.map((hub) => [hub.id, hub.name]) : []);
+}
+
 export const useHubs = () =>
   useQuery({
     queryKey: queryKeys.hubs,

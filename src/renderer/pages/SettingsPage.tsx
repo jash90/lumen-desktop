@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import type { ConnectionState, ThemePreference } from '../../shared/models';
 import {
   useAnyConnected,
@@ -10,6 +12,7 @@ import {
   useUpdateSettings,
 } from '../hooks/useLighting';
 import { ActionEditor } from '../components/ActionEditor';
+import { AddHub } from '../components/AddHub';
 import { PowerSwitch } from '../components/PowerSwitch';
 
 const THEME_LABELS: Record<ThemePreference, string> = {
@@ -34,6 +37,7 @@ const STATE_DOTS: Record<ConnectionState, string> = {
 
 /** Settings from PRD §29, minus the startup/tray options which are P1. */
 export function SettingsPage() {
+  const [adding, setAdding] = useState(false);
   const statuses = useConnectionStatuses();
   const anyConnected = useAnyConnected();
   const settings = useSettings();
@@ -91,13 +95,29 @@ export function SettingsPage() {
           <p className="text-sm text-ink-muted">No hub connected.</p>
         )}
 
-        <button
-          type="button"
-          onClick={() => reconnect.mutate()}
-          className="min-h-9 w-full rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
-        >
-          Reconnect all
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => reconnect.mutate()}
+            className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
+          >
+            Reconnect all
+          </button>
+          <button
+            type="button"
+            onClick={() => setAdding((open) => !open)}
+            aria-expanded={adding}
+            className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
+          >
+            {adding ? 'Cancel' : 'Add a hub'}
+          </button>
+        </div>
+
+        {adding && (
+          <div className="card-stack p-4">
+            <AddHub onConnected={() => setAdding(false)} />
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { mapHaError, normaliseBaseUrl, socketUrlFor } from '../src/main/homeassistant/HaTransport';
+import { homeAssistantIdFor } from '../src/main/homeassistant/HaOnboarding';
 
 describe('normaliseBaseUrl', () => {
   it('drops a trailing slash, which would otherwise double up in every path', () => {
@@ -53,5 +54,24 @@ describe('mapHaError', () => {
 
   it('never leaks the technical detail into what the user is shown', () => {
     expect(mapHaError(withCause('ECONNREFUSED')).userMessage).not.toContain('ECONNREFUSED');
+  });
+});
+
+describe('homeAssistantIdFor', () => {
+  /**
+   * Derived from the address so re-adding the same instance replaces it rather
+   * than listing it twice — and independent of the token, because rotating one
+   * should update a hub, not create a second.
+   */
+  it('is stable across a token change and a trailing slash', () => {
+    expect(homeAssistantIdFor(normaliseBaseUrl('http://ha.local:8123/'))).toBe(
+      homeAssistantIdFor(normaliseBaseUrl('http://ha.local:8123')),
+    );
+  });
+
+  it('tells two instances apart by host and port', () => {
+    expect(homeAssistantIdFor('http://ha.local:8123')).not.toBe(
+      homeAssistantIdFor('http://ha.local:8124'),
+    );
   });
 });

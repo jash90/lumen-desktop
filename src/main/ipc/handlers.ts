@@ -88,6 +88,15 @@ export const args = {
         'expected an IPv4 address',
       ),
   ]),
+  homeAssistant: z.tuple([
+    z.object({
+      // A long URL is usually a paste of the wrong thing; the token is the one
+      // field with no sane upper bound short of absurd.
+      baseUrl: z.string().min(1).max(2048),
+      token: z.string().min(1).max(4096),
+      name: z.string().min(1).max(64).optional(),
+    }),
+  ]),
   idAndBoolean: z.tuple([z.string().min(1).max(128), z.boolean()]),
   idAndPercent: z.tuple([z.string().min(1).max(128), z.number().min(0).max(100)]),
   settingsPatch: z.tuple([
