@@ -84,7 +84,7 @@ describe('mapTransportError', () => {
     }));
 
     expect(error.code).toBe('BridgeOffline');
-    expect(error.userMessage).toBe('Nie udało się połączyć z Hue Bridge.');
+    expect(error.userMessage).toBe('Could not connect to the Hue Bridge.');
     expect(error.userMessage).not.toContain('ECONNREFUSED');
   });
 
