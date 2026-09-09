@@ -58,15 +58,15 @@ export function LightCard({ light }: { light: Light }) {
             {light.isOn
               ? light.capabilities.dimming
                 ? `${light.brightness}%`
-                : 'Włączona'
-              : 'Wyłączona'}
+                : 'On'
+              : 'Off'}
           </span>
         </button>
 
         <FavoriteButton target={{ type: 'light', id: light.id }} label={light.name} />
         <PowerSwitch
           checked={light.isOn}
-          label={`Przełącz ${light.name}`}
+          label={`Toggle ${light.name}`}
           onCheckedChange={(on) => setPower.mutate({ id: light.id, on })}
         />
       </div>
@@ -78,7 +78,7 @@ export function LightCard({ light }: { light: Light }) {
           <div>
             <div className="pt-3 pl-10">
               <Slider
-                label="Jasność"
+                label="Brightness"
                 value={light.brightness}
                 min={1}
                 throttleMs={LIGHT_THROTTLE_MS}

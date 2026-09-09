@@ -29,10 +29,10 @@ export function HomePage({ connected }: { connected: boolean }) {
   if (rooms.isError || lights.isError) {
     return (
       <EmptyState
-        title="Nie udało się wczytać lamp"
-        description="Hue Bridge nie odpowiedział. Sprawdź, czy jest w tej samej sieci."
+        title="Could not load the lights"
+        description="The Hue Bridge did not respond. Check that it is on the same network."
         action={{
-          label: 'Spróbuj ponownie',
+          label: 'Try again',
           onClick: () => {
             void rooms.refetch();
             void lights.refetch();
@@ -68,8 +68,8 @@ export function HomePage({ connected }: { connected: boolean }) {
   if (allLights.length === 0) {
     return (
       <EmptyState
-        title="Brak lamp"
-        description="Ten Hue Bridge nie zgłasza żadnych lamp. Dodaj je w aplikacji Philips Hue, a pojawią się tutaj."
+        title="No lights"
+        description="This Hue Bridge reports no lights. Add them in the Philips Hue app and they will show up here."
       />
     );
   }
@@ -80,7 +80,7 @@ export function HomePage({ connected }: { connected: boolean }) {
 
       {hasFavorites && (
         <section className="space-y-2">
-          <h2 className="label-caps px-1">Ulubione</h2>
+          <h2 className="label-caps px-1">Favorites</h2>
           {favoriteScenes.length > 0 && <SceneRow scenes={favoriteScenes} />}
           {(favoriteRooms.length > 0 || favoriteLights.length > 0) && (
             <div className="card-stack divide-y divide-line">
@@ -105,14 +105,14 @@ export function HomePage({ connected }: { connected: boolean }) {
 
       {zoneScenes.length > 0 && (
         <section className="space-y-2">
-          <h2 className="label-caps px-1">Sceny</h2>
+          <h2 className="label-caps px-1">Scenes</h2>
           <SceneRow scenes={zoneScenes} />
         </section>
       )}
 
       {ungrouped.length > 0 && (
         <section className="space-y-2">
-          <h2 className="label-caps px-1">Poza pokojami</h2>
+          <h2 className="label-caps px-1">Outside rooms</h2>
           <div className="card-stack divide-y divide-line">
             {ungrouped.map((light) => (
               <LightCard key={light.id} light={light} />
@@ -141,13 +141,13 @@ function FavoriteRoomRow({ room }: { room: Room }) {
       >
         <span className="block truncate text-sm font-medium">{room.name}</span>
         <span className="text-xs text-ink-muted">
-          {lightCountLabel(room.lightIds.length)} · pokój
+          {lightCountLabel(room.lightIds.length)} · room
         </span>
       </button>
-      <FavoriteButton target={{ type: 'room', id: room.id }} label={`pokój ${room.name}`} />
+      <FavoriteButton target={{ type: 'room', id: room.id }} label={`room ${room.name}`} />
       <PowerSwitch
         checked={room.isOn}
-        label={`Przełącz pokój ${room.name}`}
+        label={`Toggle room ${room.name}`}
         onCheckedChange={(on) => setPower.mutate({ id: room.id, on })}
       />
     </div>
@@ -161,7 +161,7 @@ function FavoriteRoomRow({ room }: { room: Room }) {
  */
 export function HomeSkeleton() {
   return (
-    <div className="space-y-6 px-4 py-4" aria-busy="true" aria-label="Wczytywanie lamp">
+    <div className="space-y-6 px-4 py-4" aria-busy="true" aria-label="Loading lights">
       {[0, 1, 2].map((card) => (
         <div key={card} className="card-stack">
           <div className="flex items-center gap-3 px-3.5 py-3.5">

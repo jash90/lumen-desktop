@@ -1,10 +1,10 @@
 import type { ConnectionStatus as Status } from '../../shared/models';
 
 const LABELS: Record<Status['state'], string> = {
-  connected: 'Połączono',
-  connecting: 'Łączenie…',
-  reconnecting: 'Ponawianie…',
-  disconnected: 'Brak połączenia',
+  connected: 'Connected',
+  connecting: 'Connecting…',
+  reconnecting: 'Retrying…',
+  disconnected: 'Disconnected',
 };
 
 const DOT_CLASSES: Record<Status['state'], string> = {

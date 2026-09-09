@@ -37,7 +37,7 @@ export function OnboardingPage() {
       <header className="mb-8">
         <h1 className="text-2xl font-semibold">Hue Desktop</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Połącz aplikację z Hue Bridge w Twojej sieci domowej.
+          Connect this app to the Hue Bridge on your home network.
         </p>
       </header>
 
@@ -47,37 +47,37 @@ export function OnboardingPage() {
             <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />
             <span className="absolute inset-0 rounded-full bg-accent/20" />
           </div>
-          <p className="font-medium">Naciśnij przycisk na Hue Bridge</p>
+          <p className="font-medium">Press the button on the Hue Bridge</p>
           <p className="mt-1 text-sm text-ink-muted">
             {pairing.status === 'waitingForButton'
-              ? `Czekam… pozostało ${pairing.secondsLeft} s`
-              : 'Łączenie…'}
+              ? `Waiting… ${pairing.secondsLeft} s left`
+              : 'Connecting…'}
           </p>
           <button
             type="button"
             onClick={() => void window.hue.cancelPairing()}
             className="mt-4 rounded-row px-2 py-1 text-sm text-ink-muted underline decoration-line underline-offset-4 focus-visible:focus-ring"
           >
-            Anuluj
+            Cancel
           </button>
         </div>
       ) : (
         <div className="space-y-6">
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="label-caps">Znalezione Bridge</h2>
+              <h2 className="label-caps">Bridges found</h2>
               <button
                 type="button"
                 onClick={() => void discovery.refetch()}
                 disabled={discovery.isFetching}
                 className="rounded-row px-1 text-xs text-ink underline decoration-line underline-offset-4 transition-colors hover:decoration-ink-muted focus-visible:focus-ring disabled:opacity-50"
               >
-                {discovery.isFetching ? 'Szukam…' : 'Szukaj ponownie'}
+                {discovery.isFetching ? 'Searching…' : 'Search again'}
               </button>
             </div>
 
             {discovery.isFetching && !discovery.data && (
-              <div className="card-stack divide-y divide-line" aria-busy="true" aria-label="Szukam Hue Bridge">
+              <div className="card-stack divide-y divide-line" aria-busy="true" aria-label="Searching for a Hue Bridge">
                 {[0, 1].map((row) => (
                   <div key={row} className="space-y-2 px-4 py-3">
                     <Skeleton className="h-4 w-28" />
@@ -89,8 +89,8 @@ export function OnboardingPage() {
 
             {!discovery.isFetching && (discovery.isError || discovery.data?.length === 0) && (
               <p className="text-sm text-ink-muted">
-                Nie znaleziono Bridge automatycznie. Wpisz adres IP poniżej — mDNS nie działa
-                między podsieciami ani przez VPN.
+                No Bridge was found automatically. Enter an IP address below — mDNS does not
+                cross subnets or work over a VPN.
               </p>
             )}
 
@@ -113,7 +113,7 @@ export function OnboardingPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="label-caps">Adres IP ręcznie</h2>
+            <h2 className="label-caps">Manual IP address</h2>
             <form
               className="flex gap-2"
               onSubmit={(event) => {
@@ -126,7 +126,7 @@ export function OnboardingPage() {
                 onChange={(event) => setManualIp(event.target.value)}
                 placeholder="192.168.1.42"
                 inputMode="numeric"
-                aria-label="Adres IP Hue Bridge"
+                aria-label="Hue Bridge IP address"
                 className="min-h-9 flex-1 rounded-row border border-line bg-surface-raised px-3 text-sm outline-none focus:border-accent focus-visible:focus-ring"
               />
               <button
@@ -134,16 +134,16 @@ export function OnboardingPage() {
                 className="min-h-9 rounded-row bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 focus-visible:focus-ring disabled:opacity-50"
                 disabled={!manualIp.trim()}
               >
-                Połącz
+                Connect
               </button>
             </form>
           </section>
 
           {health.data?.weak && (
             <p className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-              System nie udostępnia bezpiecznego magazynu haseł
-              {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. Po sparowaniu klucz
-              aplikacji nie zostanie zapisany i trzeba będzie parować ponownie po restarcie.
+              This system provides no secure password storage
+              {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. After pairing, the
+              application key will not be saved and you will have to pair again after a restart.
             </p>
           )}
 

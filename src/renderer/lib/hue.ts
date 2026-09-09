@@ -23,7 +23,7 @@ export async function unwrap<T>(promise: Promise<Result<T>>): Promise<T> {
 }
 
 export const messageOf = (error: unknown): string =>
-  error instanceof HueUiError ? error.message : 'Wystąpił nieoczekiwany błąd.';
+  error instanceof HueUiError ? error.message : 'An unexpected error occurred.';
 
 export const queryKeys = {
   lights: ['lights'] as const,
@@ -37,15 +37,7 @@ export const queryKeys = {
   shortcutConflicts: ['shortcutConflicts'] as const,
 };
 
-/**
- * Polish plural for "lampa": 1 takes the singular, 2–4 (but not 12–14) take the
- * "few" form, everything else the genitive plural. Lived in RoomCard before,
- * while RoomPage carried its own version that got "2 lampy" wrong.
- */
+/** Shared by RoomCard and RoomPage, which used to carry their own copies. */
 export function lightCountLabel(count: number): string {
-  if (count === 1) return '1 lampa';
-  const lastTwo = count % 100;
-  const last = count % 10;
-  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
-  return `${count} ${few ? 'lampy' : 'lamp'}`;
+  return count === 1 ? '1 light' : `${count} lights`;
 }

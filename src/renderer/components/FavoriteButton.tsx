@@ -12,7 +12,7 @@ export function FavoriteButton({ target, label }: { target: ResourceRef; label: 
       type="button"
       onClick={() => toggle(target)}
       aria-pressed={pinned}
-      aria-label={pinned ? `Usuń ${label} z ulubionych` : `Dodaj ${label} do ulubionych`}
+      aria-label={pinned ? `Unpin ${label} from favorites` : `Pin ${label} to favorites`}
       className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm transition-colors focus-visible:focus-ring ${
         pinned ? 'text-accent' : 'text-ink-muted opacity-0 group-hover/row:opacity-100 focus:opacity-100'
       }`}
