@@ -11,7 +11,7 @@ import type { SerializedAppError } from './errors';
 import type {
   Action,
   Automation,
-  BridgeSummary,
+  HubSummary,
   ConnectionStatus,
   DiscoveredBridge,
   Light,
@@ -35,7 +35,7 @@ export type PairingState =
   | { status: 'discovered'; bridges: DiscoveredBridge[] }
   | { status: 'waitingForButton'; ip: string; secondsLeft: number }
   | { status: 'pairing'; ip: string }
-  | { status: 'connected'; bridge: BridgeSummary }
+  | { status: 'connected'; hub: HubSummary }
   | { status: 'failed'; error: SerializedAppError };
 
 /** Allowlist of invokable channels. The preload exposes nothing outside this list. */
@@ -44,14 +44,11 @@ export const INVOKE_CHANNELS = [
   'discoverBridges',
   'pairBridge',
   'cancelPairing',
-  'getBridge',
-  'disconnectBridge',
-  'reconnectBridge',
-  'getConnectionStatus',
+  'reconnectHubs',
+  'getConnectionStatuses',
   'getStorageHealth',
-  'listBridges',
-  'setActiveBridge',
-  'removeBridge',
+  'listHubs',
+  'removeHub',
   'getSettings',
   'setSettings',
   'getLights',
@@ -92,22 +89,19 @@ export type Unsubscribe = () => void;
 export interface LumenApi {
   getVersion(): Promise<Result<string>>;
 
-  // Bridge
+  // Hubs
   discoverBridges(): Promise<Result<DiscoveredBridge[]>>;
   /** Runs the full link-button ceremony; progress arrives via onPairingState. */
-  pairBridge(ip: string): Promise<Result<BridgeSummary>>;
+  pairBridge(ip: string): Promise<Result<HubSummary>>;
   cancelPairing(): Promise<Result<void>>;
-  getBridge(): Promise<Result<BridgeSummary | null>>;
-  disconnectBridge(): Promise<Result<void>>;
-  reconnectBridge(): Promise<Result<ConnectionStatus>>;
-  getConnectionStatus(): Promise<Result<ConnectionStatus>>;
-  getStorageHealth(): Promise<Result<StorageHealth>>;
 
-  // Multiple bridges: one is active at a time and the app switches between them.
-  // The application key never crosses this boundary.
-  listBridges(): Promise<Result<BridgeSummary[]>>;
-  setActiveBridge(id: string): Promise<Result<ConnectionStatus>>;
-  removeBridge(id: string): Promise<Result<void>>;
+  // Every configured hub is connected at once, so the state is a list rather
+  // than one value. No key or token ever crosses this boundary.
+  listHubs(): Promise<Result<HubSummary[]>>;
+  getConnectionStatuses(): Promise<Result<ConnectionStatus[]>>;
+  reconnectHubs(): Promise<Result<ConnectionStatus[]>>;
+  removeHub(id: string): Promise<Result<void>>;
+  getStorageHealth(): Promise<Result<StorageHealth>>;
 
   // Preferences (PRD §29). Kept in the main process rather than localStorage so
   // the setting survives regardless of how the renderer origin is treated.
@@ -150,7 +144,7 @@ export interface LumenApi {
   // Push updates (PRD §50) — renderer only ever learns about these three.
   onLightChanged(listener: (lights: Light[]) => void): Unsubscribe;
   onRoomChanged(listener: (rooms: Room[]) => void): Unsubscribe;
-  onConnectionChanged(listener: (status: ConnectionStatus) => void): Unsubscribe;
+  onConnectionChanged(listener: (statuses: ConnectionStatus[]) => void): Unsubscribe;
   onPairingState(listener: (state: PairingState) => void): Unsubscribe;
 }
 

@@ -20,48 +20,56 @@ import { useUiStore } from '../stores/uiStore';
  * touch window.lumen directly, so the IPC surface stays in one place.
  */
 
-export const useConnectionStatus = () =>
+/** One entry per configured hub; they connect independently. */
+export const useConnectionStatuses = () =>
   useQuery({
     queryKey: queryKeys.connection,
-    queryFn: () => unwrap(window.lumen.getConnectionStatus()),
-  });
-
-export const useBridges = () =>
-  useQuery({
-    queryKey: queryKeys.bridges,
-    queryFn: () => unwrap(window.lumen.listBridges()),
+    queryFn: () => unwrap(window.lumen.getConnectionStatuses()),
   });
 
 /**
- * Switching bridges must *remove* the cached resources, not merely invalidate
- * them: invalidated data stays on screen and stays clickable until the refetch
- * lands, so for a moment you can tap a light belonging to the other bridge.
+ * True once *any* hub is up. The lists merge across hubs, so one reachable
+ * bridge is enough to have something worth showing — waiting for all of them
+ * would blank the screen over an unplugged hub in another room.
  */
-export function useSwitchBridge() {
+export const useAnyConnected = (): boolean =>
+  (useConnectionStatuses().data ?? []).some((status) => status.state === 'connected');
+
+export const useHubs = () =>
+  useQuery({
+    queryKey: queryKeys.hubs,
+    queryFn: () => unwrap(window.lumen.listHubs()),
+  });
+
+/**
+ * Removing a hub must *remove* the cached resources, not merely invalidate
+ * them: invalidated data stays on screen and stays clickable until the refetch
+ * lands, so for a moment you can tap a light that is no longer reachable.
+ */
+export function useRemoveHub() {
   const queryClient = useQueryClient();
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
-    mutationFn: (id: string) => unwrap(window.lumen.setActiveBridge(id)),
-    onSuccess: (status) => {
+    mutationFn: (id: string) => unwrap(window.lumen.removeHub(id)),
+    onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.lights });
       queryClient.removeQueries({ queryKey: queryKeys.rooms });
       queryClient.removeQueries({ queryKey: queryKeys.scenes });
       queryClient.removeQueries({ queryKey: queryKeys.automations });
-      queryClient.setQueryData(queryKeys.connection, status);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.bridges });
+      void queryClient.invalidateQueries();
     },
     onError: (error) => pushToast(messageOf(error)),
   });
 }
 
-export function useRemoveBridge() {
+export function useReconnectHubs() {
   const queryClient = useQueryClient();
   const pushToast = useUiStore((state) => state.pushToast);
 
   return useMutation({
-    mutationFn: (id: string) => unwrap(window.lumen.removeBridge(id)),
-    onSuccess: () => queryClient.invalidateQueries(),
+    mutationFn: () => unwrap(window.lumen.reconnectHubs()),
+    onSuccess: (statuses) => queryClient.setQueryData(queryKeys.connection, statuses),
     onError: (error) => pushToast(messageOf(error)),
   });
 }
@@ -329,11 +337,11 @@ export function useLightingEvents() {
       window.lumen.onRoomChanged((rooms) => {
         queryClient.setQueryData<Room[]>(queryKeys.rooms, (current) => mergeById(current, rooms));
       }),
-      window.lumen.onConnectionChanged((status: ConnectionStatus) => {
-        queryClient.setQueryData(queryKeys.connection, status);
+      window.lumen.onConnectionChanged((statuses: ConnectionStatus[]) => {
+        queryClient.setQueryData(queryKeys.connection, statuses);
         // A fresh connection may have been established against a different set of
         // resources, so the lists are refetched once rather than merged.
-        if (status.state === 'connected') {
+        if (statuses.some((status) => status.state === 'connected')) {
           void queryClient.invalidateQueries({ queryKey: queryKeys.lights });
           void queryClient.invalidateQueries({ queryKey: queryKeys.rooms });
           void queryClient.invalidateQueries({ queryKey: queryKeys.scenes });

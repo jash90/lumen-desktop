@@ -3,8 +3,8 @@ import { app, nativeTheme } from 'electron';
 import { EVENT_CHANNELS } from '../../shared/ipc';
 import type { BridgeDiscoveryService } from '../bridge/BridgeDiscoveryService';
 import type { BridgePairingService } from '../bridge/BridgePairingService';
-import type { BridgeRepository } from '../bridge/BridgeRepository';
-import type { ConnectionManager } from '../bridge/ConnectionManager';
+import type { ProviderRegistry } from '../providers/ProviderRegistry';
+import type { ProviderRepository } from '../providers/ProviderRepository';
 import type { ActionRunner } from '../actions/ActionRunner';
 import type { ShortcutRegistrar } from '../shortcuts/GlobalShortcuts';
 import type { SecureStorage } from '../storage/SecureStorage';
@@ -15,10 +15,10 @@ import { args, assertAllChannelsRegistered, broadcast, handle } from './handlers
 export interface IpcContext {
   actions: ActionRunner;
   shortcuts: ShortcutRegistrar;
-  connection: ConnectionManager;
+  providers: ProviderRegistry;
+  repository: ProviderRepository;
   discovery: BridgeDiscoveryService;
   pairing: BridgePairingService;
-  repository: BridgeRepository;
   storage: SecureStorage;
   settings: SettingsStorage;
 }
@@ -29,7 +29,7 @@ export interface IpcContext {
  * without adding structure.
  */
 export function registerIpcHandlers(context: IpcContext): void {
-  const { actions, shortcuts, connection, discovery, pairing, repository, storage, settings } =
+  const { actions, shortcuts, providers, repository, discovery, pairing, storage, settings } =
     context;
 
   /** Last result of applying the stored shortcuts; see getShortcutConflicts. */
@@ -42,13 +42,14 @@ export function registerIpcHandlers(context: IpcContext): void {
 
   handle('getVersion', args.none, () => app.getVersion());
 
-  // Bridge
+  // Hubs
   handle('discoverBridges', args.none, () => discovery.discover());
 
   handle('pairBridge', args.ip, async ([ip]) => {
+    // Pairing only stores the credential; connecting it is the registry's job.
     const summary = await pairing.pair(ip);
-    const credential = repository.getActive();
-    if (credential) await connection.connect(credential);
+    const credential = repository.get(summary.id);
+    if (credential) await providers.add(credential);
     return summary;
   });
 
@@ -56,40 +57,13 @@ export function registerIpcHandlers(context: IpcContext): void {
     pairing.cancel();
   });
 
-  handle('getBridge', args.none, () => connection.status().bridge);
-  handle('disconnectBridge', args.none, () => connection.forget());
-  handle('reconnectBridge', args.none, () => connection.reconnectNow());
-  handle('getConnectionStatus', args.none, () => connection.status());
+  // hubs() is deliberately a projection rather than the stored record: an
+  // application key or an access token must never reach the renderer.
+  handle('listHubs', args.none, () => providers.hubs());
+  handle('getConnectionStatuses', args.none, () => providers.statuses());
+  handle('reconnectHubs', args.none, () => providers.reconnectAll());
+  handle('removeHub', args.id, ([id]) => providers.remove(id));
   handle('getStorageHealth', args.none, () => storage.health());
-
-  // Deliberately maps to BridgeSummary: applicationKey must never reach the
-  // renderer, and returning credentials wholesale would do exactly that.
-  handle('listBridges', args.none, () =>
-    repository.list().map((credential) => ({
-      id: credential.bridgeId,
-      name: credential.name,
-      ip: credential.bridgeIp,
-      modelId: credential.modelId,
-      swVersion: credential.swVersion,
-    })),
-  );
-
-  handle('setActiveBridge', args.id, async ([id]) => {
-    repository.setActive(id);
-    // reconnectNow() already reads getActive(), so switching needs no change in
-    // the connection manager itself.
-    return connection.reconnectNow();
-  });
-
-  handle('removeBridge', args.id, async ([id]) => {
-    const active = repository.getActive();
-    // Forgetting the active bridge has to tear the live connection down too.
-    if (active?.bridgeId === id) {
-      await connection.forget();
-      return;
-    }
-    repository.remove(id);
-  });
 
   // Preferences
   handle('getSettings', args.none, () => settings.get());
@@ -104,35 +78,35 @@ export function registerIpcHandlers(context: IpcContext): void {
   });
 
   // Lights
-  handle('getLights', args.none, () => connection.requireApi().getLights());
-  handle('getLight', args.id, ([id]) => connection.requireApi().getLight(id));
+  handle('getLights', args.none, () => providers.getLights());
+  handle('getLight', args.id, ([id]) => providers.getLight(id));
   handle('setLightPower', args.idAndBoolean, ([id, on]) =>
-    connection.requireApi().setLightPower(id, on),
+    providers.setLightPower(id, on),
   );
   handle('setLightBrightness', args.idAndPercent, ([id, brightness]) =>
-    connection.requireApi().setLightBrightness(id, brightness),
+    providers.setLightBrightness(id, brightness),
   );
   handle('setLightColor', args.idAndColor, ([id, color]) =>
-    connection.requireApi().setLightColor(id, color),
+    providers.setLightColor(id, color),
   );
   handle('setLightTemperature', args.idAndPercent, ([id, temperature]) =>
-    connection.requireApi().setLightTemperature(id, temperature),
+    providers.setLightTemperature(id, temperature),
   );
 
   // Rooms
-  handle('getRooms', args.none, () => connection.requireApi().getRooms());
-  handle('getRoom', args.id, ([id]) => connection.requireApi().getRoom(id));
+  handle('getRooms', args.none, () => providers.getRooms());
+  handle('getRoom', args.id, ([id]) => providers.getRoom(id));
   handle('setRoomPower', args.idAndBoolean, ([id, on]) =>
-    connection.requireApi().setRoomPower(id, on),
+    providers.setRoomPower(id, on),
   );
   handle('setRoomBrightness', args.idAndPercent, ([id, brightness]) =>
-    connection.requireApi().setRoomBrightness(id, brightness),
+    providers.setRoomBrightness(id, brightness),
   );
 
   // Automations
-  handle('getAutomations', args.none, () => connection.requireApi().getAutomations());
+  handle('getAutomations', args.none, () => providers.getAutomations());
   handle('setAutomationEnabled', args.idAndBoolean, ([id, enabled]) =>
-    connection.requireApi().setAutomationEnabled(id, enabled),
+    providers.setAutomationEnabled(id, enabled),
   );
 
   // Actions
@@ -140,8 +114,8 @@ export function registerIpcHandlers(context: IpcContext): void {
   handle('getShortcutConflicts', args.none, () => shortcutConflicts);
 
   // Scenes
-  handle('getScenes', args.none, () => connection.requireApi().getScenes());
-  handle('activateScene', args.id, ([id]) => connection.requireApi().activateScene(id));
+  handle('getScenes', args.none, () => providers.getScenes());
+  handle('activateScene', args.id, ([id]) => providers.activateScene(id));
 
   assertAllChannelsRegistered();
 }

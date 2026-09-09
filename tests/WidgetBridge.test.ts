@@ -8,6 +8,7 @@ const { buildSnapshot, toCredentials } = await import('../src/main/widget/Widget
 
 const room = (over: Partial<Room>): Room => ({
   id: 'r1',
+  providerId: 'bridge-1',
   name: 'Living Room',
   lightIds: ['l1', 'l2'],
   isOn: true,
@@ -18,7 +19,8 @@ const room = (over: Partial<Room>): Room => ({
 
 const light = (over: Partial<Light>): Light => ({
   id: 'l1',
-  name: 'Sufit',
+  providerId: 'bridge-1',
+  name: 'Ceiling',
   roomId: 'r1',
   isOn: true,
   brightness: 70,
@@ -63,8 +65,9 @@ describe('toCredentials', () => {
   it('exports only what the widget needs to reach the bridge', () => {
     expect(
       toCredentials({
-        bridgeId: '001788fffe1234ab',
-        bridgeIp: '192.168.1.42',
+        kind: 'hue',
+        id: '001788fffe1234ab',
+        address: '192.168.1.42',
         name: 'Hue Bridge',
         applicationKey: 'secret-key',
         modelId: 'BSB002',

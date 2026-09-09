@@ -31,7 +31,7 @@ export const queryKeys = {
   scenes: ['scenes'] as const,
   automations: ['automations'] as const,
   connection: ['connection'] as const,
-  bridges: ['bridges'] as const,
+  hubs: ['hubs'] as const,
   storageHealth: ['storageHealth'] as const,
   settings: ['settings'] as const,
   shortcutConflicts: ['shortcutConflicts'] as const,

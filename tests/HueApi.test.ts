@@ -32,7 +32,7 @@ function createApi(
       return jsonResponse(overrides.automations ?? [DIMMER_AUTOMATION, UNNAMED_AUTOMATION]);
     return jsonResponse([]);
   });
-  return { transport, api: createHueApi(createHueClient(transport, 'key')) };
+  return { transport, api: createHueApi(createHueClient(transport, 'key'), 'bridge-1') };
 }
 
 describe('HueApi', () => {

@@ -14,10 +14,23 @@ const DOT_CLASSES: Record<Status['state'], string> = {
   disconnected: 'bg-danger',
 };
 
-/** The status indicator from PRD §7 / §25. */
-export function ConnectionStatusBadge({ status }: { status: Status | undefined }) {
-  const state = status?.state ?? 'connecting';
-  const retrySeconds = status?.retryInMs ? Math.round(status.retryInMs / 1000) : null;
+/** Worst first, so the summary can never hide a hub that has dropped. */
+const SEVERITY: Status['state'][] = ['disconnected', 'reconnecting', 'connecting', 'connected'];
+
+/**
+ * The status indicator from PRD §7 / §25, over however many hubs are configured.
+ *
+ * The count only appears once there is more than one, so the single-hub case
+ * reads exactly as it did before.
+ */
+export function ConnectionStatusBadge({ statuses }: { statuses: readonly Status[] }) {
+  const worst = [...statuses].sort(
+    (a, b) => SEVERITY.indexOf(a.state) - SEVERITY.indexOf(b.state),
+  )[0];
+
+  const state = worst?.state ?? 'connecting';
+  const retrySeconds = worst?.retryInMs ? Math.round(worst.retryInMs / 1000) : null;
+  const connected = statuses.filter((entry) => entry.state === 'connected').length;
 
   return (
     <span
@@ -26,6 +39,7 @@ export function ConnectionStatusBadge({ status }: { status: Status | undefined }
     >
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${DOT_CLASSES[state]}`} />
       {LABELS[state]}
+      {statuses.length > 1 && ` ${connected}/${statuses.length}`}
       {state === 'reconnecting' && retrySeconds !== null && ` (${retrySeconds} s)`}
     </span>
   );

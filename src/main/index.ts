@@ -9,9 +9,9 @@ import { createActionRunner } from './actions/ActionRunner';
 import { startedHidden } from './autostart';
 import { createBridgeDiscoveryService } from './bridge/BridgeDiscoveryService';
 import { createBridgePairingService } from './bridge/BridgePairingService';
-import { createBridgeRepository } from './bridge/BridgeRepository';
-import { createConnectionManager } from './bridge/ConnectionManager';
 import { createHueAdapter } from './hue/HueAdapter';
+import { createProviderRegistry } from './providers/ProviderRegistry';
+import { createProviderRepository } from './providers/ProviderRepository';
 import { broadcast } from './ipc/handlers';
 import { runUserDataMigration } from './migrateUserData';
 import { registerIpcHandlers } from './ipc/register';
@@ -139,7 +139,7 @@ async function bootstrap(): Promise<void> {
   // is built here rather than at module scope.
   const storage = createSecureStorage();
   const settings = createSettingsStorage();
-  const repository = createBridgeRepository(storage);
+  const repository = createProviderRepository(storage);
   const discovery = createBridgeDiscoveryService(repository);
   const pairing = createBridgePairingService(repository, (state) =>
     broadcast(EVENT_CHANNELS.pairingState, state),
@@ -153,27 +153,28 @@ async function bootstrap(): Promise<void> {
    */
   const publishWidgetState = (): void => {
     try {
-      // The widget talks to the bridge itself, so it needs the credentials even
+      // The widget speaks to the bridge itself, so it needs the credentials even
       // while the app cannot reach it — this goes before the connected check.
-      widget.publishCredentials(repository.getActive());
+      // Only Hue for now; the widget has no client for anything else.
+      const hue = repository.list().find((entry) => entry.kind === 'hue') ?? null;
+      widget.publishCredentials(hue);
 
-      const status = connection.status();
-      if (status.state !== 'connected') {
+      const connected = providers.statuses().some((status) => status.state === 'connected');
+      if (!connected) {
         widget.publish(false, [], []);
         return;
       }
-      const api = connection.requireApi();
-      widget.publish(true, api.getRooms(), api.getLights());
+      widget.publish(true, providers.getRooms(), providers.getLights());
     } catch (error) {
       console.warn('[widget] snapshot skipped:', error);
     }
   };
 
-  const connection = createConnectionManager({
+  const providers = createProviderRegistry({
     repository,
-    adapter: createHueAdapter({ repository, discovery }),
-    onStatus: (status) => {
-      broadcast(EVENT_CHANNELS.connectionChanged, status);
+    adapters: { hue: createHueAdapter({ repository, discovery }) },
+    onStatuses: (statuses) => {
+      broadcast(EVENT_CHANNELS.connectionChanged, statuses);
       publishWidgetState();
       tray?.rebuild();
     },
@@ -185,7 +186,7 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  const actions = createActionRunner(connection);
+  const actions = createActionRunner(providers);
   const runAction = (action: Action): void => {
     actions.run(action).catch((error: unknown) => {
       console.error('[action] failed:', error);
@@ -206,13 +207,12 @@ async function bootstrap(): Promise<void> {
 
   tray = createTray({
     snapshot: () => {
-      const connected = connection.status().state === 'connected';
+      const connected = providers.statuses().some((status) => status.state === 'connected');
       if (!connected) return { connected, rooms: [], scenes: [], favorites: [] };
-      const api = connection.requireApi();
       return {
         connected,
-        rooms: api.getRooms(),
-        scenes: api.getScenes(),
+        rooms: providers.getRooms(),
+        scenes: providers.getScenes(),
         favorites: settings.get().favorites,
       };
     },
@@ -227,19 +227,19 @@ async function bootstrap(): Promise<void> {
   registerIpcHandlers({
     actions,
     shortcuts,
-    connection,
+    providers,
+    repository,
     discovery,
     pairing,
-    repository,
     storage,
     settings,
   });
 
   createWindow();
 
-  // Reconnecting to a known bridge happens in the background; the window opens
+  // Connecting to the known hubs happens in the background; the window opens
   // immediately and shows "Connecting…" rather than waiting on the network.
-  connection.start().catch((error: unknown) => {
+  providers.start().catch((error: unknown) => {
     console.error('[startup] initial connection failed:', error);
   });
 

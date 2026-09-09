@@ -1,8 +1,8 @@
 import type { Action } from '../../shared/models';
-import type { ConnectionManager } from '../bridge/ConnectionManager';
+import type { LightingFacade } from '../providers/LightingFacade';
 
 /**
- * Executes an Action against the live bridge.
+ * Executes an Action against whatever hubs are live.
  *
  * This lives in the main process on purpose: a toggle needs the current state to
  * invert it, and the tray, global shortcuts and quick actions all fire while the
@@ -12,11 +12,9 @@ export interface ActionRunner {
   run(action: Action): Promise<void>;
 }
 
-export function createActionRunner(connection: ConnectionManager): ActionRunner {
+export function createActionRunner(api: LightingFacade): ActionRunner {
   return {
     async run(action) {
-      const api = connection.requireApi();
-
       switch (action.kind) {
         case 'toggleLight':
           return api.setLightPower(action.id, !api.getLight(action.id).isOn);
@@ -31,8 +29,9 @@ export function createActionRunner(connection: ConnectionManager): ActionRunner 
           return api.activateScene(action.id);
 
         case 'allOff': {
-          // One request per room rather than per bulb; lights outside any room
-          // have no group to go through and are switched individually.
+          // Everything, on every connected hub — half a dark house is not what
+          // "all off" means. One request per room rather than per bulb; lights
+          // outside any room have no group to go through and go individually.
           await Promise.all(api.getRooms().map((room) => api.setRoomPower(room.id, false)));
           const loose = api.getLights().filter((light) => light.roomId === null && light.isOn);
           await Promise.all(loose.map((light) => api.setLightPower(light.id, false)));
