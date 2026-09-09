@@ -1,7 +1,7 @@
 {
   "name": "lumen-desktop",
   "productName": "Lumen Desktop",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Control your smart lighting from your desktop — Philips Hue and Home Assistant, on macOS, Windows and Linux.",
   "main": ".vite/build/main.js",
   "private": true,
