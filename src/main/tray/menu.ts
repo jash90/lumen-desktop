@@ -30,14 +30,14 @@ export function buildTrayMenuTemplate(
   snapshot: TraySnapshot,
   on: TrayHandlers,
 ): MenuItemConstructorOptions[] {
-  const open: MenuItemConstructorOptions = { label: 'Otwórz Hue Desktop', click: on.show };
-  const quit: MenuItemConstructorOptions = { label: 'Zakończ', click: on.quit };
+  const open: MenuItemConstructorOptions = { label: 'Open Hue Desktop', click: on.show };
+  const quit: MenuItemConstructorOptions = { label: 'Quit', click: on.quit };
 
   // Nothing below this point can be acted on without a bridge, and offering
   // dead switches is worse than offering none.
   if (!snapshot.connected) {
     return [
-      { label: 'Brak połączenia z Hue Bridge', enabled: false },
+      { label: 'No connection to the Hue Bridge', enabled: false },
       { type: 'separator' },
       open,
       quit,
@@ -59,7 +59,7 @@ export function buildTrayMenuTemplate(
     .slice(0, MAX_FAVORITES);
 
   if (favoriteRooms.length > 0 || favoriteScenes.length > 0) {
-    items.push({ label: 'Ulubione', enabled: false });
+    items.push({ label: 'Favorites', enabled: false });
     for (const room of favoriteRooms) {
       items.push({
         label: room.name,
@@ -79,7 +79,7 @@ export function buildTrayMenuTemplate(
 
   const shownRooms = snapshot.rooms.slice(0, MAX_ROOMS);
   if (shownRooms.length > 0) {
-    items.push({ label: 'Pokoje', enabled: false });
+    items.push({ label: 'Rooms', enabled: false });
     for (const room of shownRooms) {
       items.push({
         label: room.name,
@@ -90,7 +90,7 @@ export function buildTrayMenuTemplate(
     }
     if (snapshot.rooms.length > shownRooms.length) {
       items.push({
-        label: `Pozostałe pokoje (${snapshot.rooms.length - shownRooms.length})…`,
+        label: `Other rooms (${snapshot.rooms.length - shownRooms.length})…`,
         click: on.show,
       });
     }
@@ -98,7 +98,7 @@ export function buildTrayMenuTemplate(
   }
 
   items.push({
-    label: 'Wyłącz wszystko',
+    label: 'All off',
     enabled: snapshot.rooms.some((room) => room.isOn),
     click: () => on.action({ kind: 'allOff' }),
   });

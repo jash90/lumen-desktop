@@ -23,7 +23,7 @@ if (started) app.quit();
 const isDevelopment = !app.isPackaged;
 
 /**
- * Closing the window hides it while the tray is around, so "Zakończ" from the
+ * Closing the window hides it while the tray is around, so "Quit" from the
  * tray needs a way to say it really means it.
  */
 let isQuitting = false;
@@ -118,7 +118,7 @@ void app.whenReady().then(async () => {
     // A failure here used to leave Electron alive with no window at all.
     console.error('[startup] failed:', error);
     dialog.showErrorBox(
-      'Hue Desktop nie mógł się uruchomić',
+      'Hue Desktop could not start',
       error instanceof Error ? error.message : String(error),
     );
     app.quit();
@@ -231,7 +231,7 @@ async function bootstrap(): Promise<void> {
   createWindow();
 
   // Reconnecting to a known bridge happens in the background; the window opens
-  // immediately and shows "Łączenie…" rather than waiting on the network.
+  // immediately and shows "Connecting…" rather than waiting on the network.
   connection.start().catch((error: unknown) => {
     console.error('[startup] initial connection failed:', error);
   });

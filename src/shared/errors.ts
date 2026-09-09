@@ -24,18 +24,18 @@ export interface SerializedHueError {
 }
 
 const USER_MESSAGES: Record<HueErrorCode, string> = {
-  BridgeNotFound: 'Nie znaleziono Hue Bridge w sieci.',
-  BridgeOffline: 'Nie udało się połączyć z Hue Bridge.',
-  PairingRequired: 'Naciśnij przycisk na Hue Bridge, aby połączyć aplikację.',
-  PairingTimeout: 'Nie naciśnięto przycisku na Hue Bridge na czas.',
-  Unauthorized: 'Aplikacja straciła dostęp do Hue Bridge. Sparuj ją ponownie.',
-  RequestFailed: 'Hue Bridge odrzucił żądanie.',
-  UnsupportedCapability: 'Ta lampa nie obsługuje tej funkcji.',
-  NetworkError: 'Problem z siecią. Sprawdź połączenie z domową siecią Wi-Fi.',
+  BridgeNotFound: 'No Hue Bridge found on the network.',
+  BridgeOffline: 'Could not connect to the Hue Bridge.',
+  PairingRequired: 'Press the button on the Hue Bridge to connect this app.',
+  PairingTimeout: 'The button on the Hue Bridge was not pressed in time.',
+  Unauthorized: 'This app lost access to the Hue Bridge. Pair it again.',
+  RequestFailed: 'The Hue Bridge rejected the request.',
+  UnsupportedCapability: 'This light does not support that feature.',
+  NetworkError: 'Network problem. Check the connection to your home Wi-Fi.',
   CertificateError:
-    'Nie udało się zweryfikować tożsamości Hue Bridge. Połączenie zostało przerwane.',
+    'Could not verify the identity of the Hue Bridge. The connection was aborted.',
   StorageUnavailable:
-    'System nie udostępnia bezpiecznego magazynu haseł. Nie zapisano danych logowania.',
+    'This system provides no secure password storage. The credentials were not saved.',
 };
 
 export class HueError extends Error {
