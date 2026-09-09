@@ -11,7 +11,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('electron', () => ({ app: { getPath: () => '' } }));
 
-const { migrateUserData } = await import('../src/main/migrateUserData');
+const { migrateUserData, removeLegacyWidgetCredentials } = await import(
+  '../src/main/migrateUserData',
+);
 
 let root: string;
 let current: string;
@@ -66,6 +68,29 @@ describe('migrateUserData', () => {
     migrateUserData(current, legacy, removeLegacyAutostart);
 
     expect(removeLegacyAutostart).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * The rename moved the App Group, so the container the old name owned is
+   * orphaned — and the file in it holds a usable key for a bridge this install
+   * can no longer see. Nothing else would ever remove it.
+   */
+  it('removes the widget key stranded in the old App Group', () => {
+    const group = 'TEAMID.com.example.old';
+    const container = path.join(root, 'Library', 'Group Containers', group);
+    fs.mkdirSync(container, { recursive: true });
+    fs.writeFileSync(path.join(container, 'widget-credentials.json'), '[{"applicationKey":"x"}]');
+    fs.writeFileSync(path.join(container, 'widget-state.json'), '{}');
+
+    expect(removeLegacyWidgetCredentials(root, group)).toBe(true);
+
+    expect(fs.existsSync(path.join(container, 'widget-credentials.json'))).toBe(false);
+    // The snapshot carries no secret and is left where it is.
+    expect(fs.existsSync(path.join(container, 'widget-state.json'))).toBe(true);
+  });
+
+  it('says nothing happened when there is no old container', () => {
+    expect(removeLegacyWidgetCredentials(root, 'TEAMID.com.example.absent')).toBe(false);
   });
 
   it('does nothing on a fresh install, and leaves no marker to trip over', () => {

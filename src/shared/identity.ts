@@ -24,3 +24,8 @@ export const APP_GROUP = `${TEAM_ID}.${BUNDLE_ID}`;
 /** Where the app stored its data before the rename — see `migrateUserData`. */
 export const LEGACY_PRODUCT_NAME = identity.legacyProductName;
 export const LEGACY_EXECUTABLE_NAME = identity.legacyExecutableName;
+/**
+ * The App Group the previous name owned. The rename moved the container, so the
+ * old one is orphaned — with an exported key still in it.
+ */
+export const LEGACY_APP_GROUP = `${TEAM_ID}.${identity.legacyBundleId}`;

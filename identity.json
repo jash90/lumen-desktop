@@ -7,5 +7,6 @@
   "widgetName": "LumenWidget",
   "reloadHelper": "lumen-widget-reload",
   "legacyProductName": "Hue Desktop",
-  "legacyExecutableName": "hue-desktop"
+  "legacyExecutableName": "hue-desktop",
+  "legacyBundleId": "com.bartlomiejzimny.huedesktop"
 }
