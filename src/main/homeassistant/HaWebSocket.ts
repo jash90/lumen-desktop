@@ -40,7 +40,7 @@ export interface HaSocket {
 export interface HaSocketOptions {
   transport: HaTransport;
   onStateChanged(entityId: string, state: EntityState | null): void;
-  /** Called once when the socket ends for any reason, close() included. */
+  /** Called once when the socket drops on its own — never from close(). */
   onClosed(error?: Error): void;
 }
 
@@ -179,8 +179,12 @@ export async function openHaSocket(options: HaSocketOptions): Promise<HaSocket> 
     },
 
     close() {
+      // Deliberately no reportClosed(): the caller asked for this and already
+      // knows. Firing onClosed here would have it treat its own teardown as a
+      // dropped connection. The Hue stream has always behaved this way; this
+      // is the contract now written down in ProviderHooks.
+      closedReported = true;
       socket.close();
-      reportClosed();
     },
   };
 }

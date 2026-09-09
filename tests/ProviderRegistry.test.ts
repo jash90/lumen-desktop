@@ -155,6 +155,55 @@ describe('createProviderRegistry', () => {
     });
   });
 
+  /**
+   * A hub kind this build has no adapter for used to abort start() for every
+   * hub — and since save() puts the newest first, the unsupported one was
+   * usually the one at index 0. Downgrading a build was enough to trigger it.
+   */
+  it('skips a hub it cannot drive instead of stopping every other one', async () => {
+    const repository = createProviderRepository(createMemoryStorage());
+    repository.save({
+      kind: 'homeassistant',
+      id: 'ha-1',
+      name: 'Home Assistant',
+      address: 'http://ha.local:8123',
+      token: 'token',
+    });
+    repository.save(credential('bridge-1'));
+
+    const { adapter } = fakeAdapter();
+    const registry = createProviderRegistry({
+      repository,
+      // Deliberately no 'homeassistant' adapter.
+      adapters: { hue: adapter },
+      onStatuses: () => undefined,
+      onChanges: () => undefined,
+    });
+
+    await registry.start();
+
+    expect(registry.getLights().map((entry) => entry.id)).toEqual(['bridge-1-light']);
+    expect(registry.statuses().map((status) => status.providerId)).toEqual(['bridge-1']);
+  });
+
+  it('refuses to store a hub it cannot reach', async () => {
+    const { registry, repository } = createRegistry([], []);
+    const { adapter } = fakeAdapter(['bridge-9']);
+    const failing = createProviderRegistry({
+      repository,
+      adapters: { hue: adapter },
+      onStatuses: () => undefined,
+      onChanges: () => undefined,
+    });
+
+    await expect(failing.add(credential('bridge-9'))).rejects.toMatchObject({
+      code: 'BridgeOffline',
+    });
+    // Nothing on disk means the next start() has nothing to trip over.
+    expect(repository.get('bridge-9')).toBeNull();
+    expect(registry.statuses()).toHaveLength(0);
+  });
+
   it('drops a removed hub from both the store and the merged lists', async () => {
     const { registry, repository } = createRegistry(['bridge-1', 'bridge-2']);
     await registry.start();

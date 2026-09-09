@@ -89,16 +89,31 @@ export function createProviderConnection(
     }, retryInMs);
   }
 
-  async function attemptConnect(): Promise<void> {
+  async function attemptConnect(allowRelocate = true): Promise<void> {
     const myGeneration = generation;
     setState(state === 'reconnecting' ? 'reconnecting' : 'connecting');
+
+    /** The session this attempt produced, once it exists. */
+    let mine: ProviderSession | null = null;
+    /** Enforces the at-most-once rule here rather than trusting each adapter. */
+    let closeReported = false;
 
     try {
       const active = await adapter.connect(credential, {
         onChanges,
         onClosed: () => {
-          // Ignore closures caused by our own teardown or by a newer connection.
-          if (myGeneration !== generation || state === 'disconnected') return;
+          if (closeReported) return;
+          closeReported = true;
+
+          // Only the session that is *currently* installed may trigger a retry.
+          // A raw socket reports a drop twice — 'error' then 'close' — and by
+          // the time the second one lands the retry may already have produced a
+          // healthy replacement. Keying this on the session itself rather than
+          // on a counter is what stops that closure from tearing down its own
+          // successor. `stop()` and `teardown()` null the session out, so a
+          // closure we caused ourselves lands here as "not mine" too.
+          if (mine === null || session !== mine) return;
+
           teardown();
           scheduleRetry();
         },
@@ -110,6 +125,7 @@ export function createProviderConnection(
       }
 
       session = active;
+      mine = active;
 
       // Reset the backoff only once the connection is fully up, push channel
       // included — which is what the adapter's promise stands for. Resetting
@@ -128,9 +144,13 @@ export function createProviderConnection(
         throw error;
       }
 
-      // The hub may simply have a new address after a DHCP lease renewal.
-      if ((await relocate()) && myGeneration === generation) {
-        return attemptConnect();
+      // The hub may simply have a new address after a DHCP lease renewal — but
+      // only one such immediate retry per backoff cycle. An adapter whose
+      // recover() keeps claiming a new address (a LAN discovery re-finding the
+      // device it just failed on) would otherwise loop at full speed, with no
+      // delay, no backoff and no status but a stuck "connecting".
+      if (allowRelocate && (await relocate()) && myGeneration === generation) {
+        return attemptConnect(false);
       }
 
       if (myGeneration === generation) scheduleRetry();
