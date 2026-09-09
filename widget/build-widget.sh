@@ -93,7 +93,7 @@ cat > "$APPEX/Contents/Info.plist" <<PLIST
   <!-- macOS 15+ gates local-network access behind user consent; without a purpose
        string the request is denied outright rather than prompted for. -->
   <key>NSLocalNetworkUsageDescription</key>
-  <string>Hue Desktop łączy się z Twoim Hue Bridge w sieci lokalnej, aby pokazać i zmienić stan oświetlenia.</string>
+  <string>Hue Desktop connects to your Hue Bridge on the local network to show and change the state of your lighting.</string>
   <key>NSExtension</key>
   <dict>
     <key>NSExtensionAttributes</key>
