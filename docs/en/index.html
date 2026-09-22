@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumen Desktop — Hue, Tuya and Home Assistant lights from your desktop</title>
+  <meta name="description" content="Lumen Desktop is a free desktop app for controlling Philips Hue, Tuya bulbs and Home Assistant lights. Local, no account, no cloud.">
+  <link rel="canonical" href="https://jash90.github.io/lumen-desktop/en/">
+  <link rel="alternate" hreflang="pl" href="https://jash90.github.io/lumen-desktop/">
+  <link rel="alternate" hreflang="en" href="https://jash90.github.io/lumen-desktop/en/">
+  <link rel="alternate" hreflang="x-default" href="https://jash90.github.io/lumen-desktop/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lumen Desktop">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="pl_PL">
+  <meta property="og:url" content="https://jash90.github.io/lumen-desktop/en/">
+  <meta property="og:title" content="Lumen Desktop — your lights, from the desktop, no phone needed">
+  <meta property="og:description" content="Philips Hue, Tuya and Home Assistant in one window, in the menu bar and on a keyboard shortcut. Local, no account, no cloud.">
+  <meta property="og:image" content="https://jash90.github.io/lumen-desktop/assets/og-image-en.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Lumen Desktop icon and two app screenshots: the home screen in the light theme and a single light's controls in the dark theme">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <meta name="theme-color" content="#f3f5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d0f15" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="../assets/css/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Lumen Desktop",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "macOS",
+    "softwareVersion": "0.4.1",
+    "inLanguage": "en",
+    "license": "https://opensource.org/licenses/MIT",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "downloadUrl": "https://github.com/jash90/lumen-desktop/releases/latest",
+    "codeRepository": "https://github.com/jash90/lumen-desktop",
+    "author": { "@type": "Person", "name": "Bartłomiej Zimny" }
+  }
+  </script>
+  <script src="../assets/js/site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="./" aria-label="Lumen Desktop — home">
+        <img src="../assets/img/icon-256.png" width="32" height="32" alt="">
+        <span>Lumen Desktop</span>
+      </a>
+      <nav class="site-nav" aria-label="Page sections">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#developers">For developers</a>
+      </nav>
+      <a class="lang-switch" href="../" hreflang="pl" lang="pl" data-lang-switch>
+        <span aria-hidden="true">EN /</span> Polski
+      </a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <div>
+          <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Version 0.4.1 · open source (MIT)</p>
+          <h1 id="hero-title">Every light in the house, <span class="accent-word">right on your desktop</span></h1>
+          <p class="lede">
+            Lumen Desktop is a lightweight desktop app for Philips Hue, Tuya bulbs and anything
+            your Home Assistant can see. One window, the menu bar and keyboard shortcuts — no
+            reaching for your phone, no account, no cloud.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/jash90/lumen-desktop/releases/latest">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              Download for macOS
+            </a>
+            <a class="btn btn-secondary" href="https://github.com/jash90/lumen-desktop">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.39-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+          <p class="fine-print">
+            Free. macOS on Apple Silicon — signed and notarized by Apple.
+            Windows and Linux packages are built, but not tested yet.
+          </p>
+        </div>
+
+        <div class="hero-shots">
+          <div class="window">
+            <picture>
+              <source srcset="../assets/screens/dashboard-dark.webp" media="(prefers-color-scheme: dark)">
+              <img src="../assets/screens/dashboard-light.webp" width="920" height="1520" fetchpriority="high"
+                   alt="The Lumen Desktop home screen: quick actions, favorite scenes and a light, with the Living room below it, including a brightness slider and its lights">
+            </picture>
+          </div>
+          <div class="window">
+            <picture>
+              <source srcset="../assets/screens/light-dark.webp" media="(prefers-color-scheme: dark)">
+              <img src="../assets/screens/light-light.webp" width="920" height="1520"
+                   alt="A single light's screen: power switch, brightness slider, color temperature slider and a color picker">
+            </picture>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Problem -->
+    <section class="section section-alt" id="problem" aria-labelledby="problem-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">The problem</p>
+          <h2 id="problem-title">You're at your computer, but the lights live on your phone</h2>
+          <p>
+            Dimming a lamp means unlocking the phone, finding the vendor's app and waiting for it
+            to connect. And if the house has Hue, a few cheaper Tuya bulbs and Home Assistant for
+            everything else, that's three apps for one small job.
+          </p>
+        </div>
+        <div class="grid grid-3">
+          <article class="card">
+            <div class="icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>
+            </div>
+            <h3>One list instead of three apps</h3>
+            <p>Hue, Tuya and Home Assistant run side by side. Rooms and lights from every hub show up together.</p>
+          </article>
+          <article class="card">
+            <div class="icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <h3>Right there while you work</h3>
+            <p>The app window, the menu bar, global shortcuts and a macOS widget — change the lights without breaking your flow.</p>
+          </article>
+          <article class="card">
+            <div class="icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            </div>
+            <h3>Local and private</h3>
+            <p>The app talks to devices on your own network. There's no Lumen account or server, and credentials are encrypted by the operating system.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Brands -->
+    <section class="section" id="brands" aria-labelledby="brands-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">Supported devices</p>
+          <h2 id="brands-title">Three ways to reach your bulbs</h2>
+          <p>From the most direct: a Hue Bridge, the Tuya bulb itself, or your Home Assistant standing in for every other brand.</p>
+        </div>
+        <div class="grid grid-3">
+          <article class="card brand-card">
+            <h3>Philips Hue</h3>
+            <p>
+              Through a Hue Bridge v2 on your local network. The app finds the Bridge on its own —
+              via mDNS, Hue's discovery service or an IP address you type in — and you confirm
+              pairing with the button on the Bridge.
+            </p>
+            <span class="tag">Hue API v2 · live updates</span>
+          </article>
+          <article class="card brand-card">
+            <h3>Tuya</h3>
+            <p>
+              Straight to the bulb over your LAN — including brands that never mention they're
+              Tuya underneath, such as Spectrum Smart. You fetch a local key once; after that the
+              cloud is never used again.
+            </p>
+            <span class="tag">Protocol 3.3 · works offline</span>
+          </article>
+          <article class="card brand-card">
+            <h3>Home Assistant</h3>
+            <p>
+              Everything else. If Home Assistant can see a light, so can Lumen — all it takes is the
+              address and a long-lived token. Home Assistant areas become rooms.
+            </p>
+            <span class="tag">WebSocket · any brand in HA</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section section-alt" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">Features</p>
+          <h2 id="features-title">What you use every day — and nothing more</h2>
+        </div>
+
+        <div class="features">
+          <div class="feature">
+            <div class="feature-media">
+              <div class="window">
+                <picture>
+                  <source srcset="../assets/screens/dashboard-dark.webp" media="(prefers-color-scheme: dark)">
+                  <img src="../assets/screens/dashboard-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                       alt="The home screen with quick action buttons, the favorite scenes Relax and Focus, a favorite Desk lamp and the Living room">
+                </picture>
+              </div>
+            </div>
+            <div class="feature-text">
+              <h3>The whole house on one screen</h3>
+              <p>
+                Rooms with their lights, scenes and favorites in one place. Switch, dim, move on.
+                Changes made with a wall switch, the vendor's app or your voice assistant show up
+                instantly.
+              </p>
+              <ul class="checks">
+                <li>Favorite rooms, lights and scenes pinned to the top</li>
+                <li>Quick actions — one click for whatever you do most</li>
+                <li>Connection status for each hub on its own</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature">
+            <div class="feature-media">
+              <div class="window">
+                <picture>
+                  <source srcset="../assets/screens/room-dark.webp" media="(prefers-color-scheme: dark)">
+                  <img src="../assets/screens/room-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                       alt="The Living room view: a button to turn all lights off, the scenes Relax, Read, Movie night and Bright, a brightness slider and three lights">
+                </picture>
+              </div>
+            </div>
+            <div class="feature-text">
+              <h3>A whole room in one move</h3>
+              <p>
+                Turn a room on or off, set every light's brightness at once, or pick a scene saved on
+                the hub. The room gets one grouped command instead of one per bulb.
+              </p>
+              <ul class="checks">
+                <li>Scenes grouped by room</li>
+                <li>One slider for the whole room's brightness</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature">
+            <div class="feature-media">
+              <div class="window">
+                <picture>
+                  <source srcset="../assets/screens/light-dark.webp" media="(prefers-color-scheme: dark)">
+                  <img src="../assets/screens/light-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                       alt="The Ceiling light screen with brightness and color temperature sliders and a color picker with preset swatches">
+                </picture>
+              </div>
+            </div>
+            <div class="feature-text">
+              <h3>Controls that fit the bulb</h3>
+              <p>
+                You only see what a bulb can actually do. A plain white bulb gets a power switch,
+                White Ambiance adds color temperature, and a color bulb gets the full picker.
+              </p>
+              <ul class="checks">
+                <li>Brightness from 1 to 100%</li>
+                <li>Color temperature from warm to cool</li>
+                <li>Color from the picker or a preset swatch</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature">
+            <div class="feature-media">
+              <div class="window">
+                <picture>
+                  <source srcset="../assets/screens/shortcuts-dark.webp" media="(prefers-color-scheme: dark)">
+                  <img src="../assets/screens/shortcuts-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                       alt="Quick action and shortcut settings: buttons shown on the home screen, two global keyboard shortcuts and the launch-at-login option">
+                </picture>
+              </div>
+            </div>
+            <div class="feature-text">
+              <h3>Shortcuts, quick actions and the menu bar</h3>
+              <p>
+                Bind a global keyboard shortcut to a scene, a room or “all off” — it works even while
+                the app is in the background. From the menu bar you control your favorites without
+                opening the window.
+              </p>
+              <ul class="checks">
+                <li>Global keyboard shortcuts</li>
+                <li>Quick action buttons on the home screen</li>
+                <li>Launch at login, straight into the menu bar</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="feature">
+            <div class="feature-media">
+              <div class="window">
+                <picture>
+                  <source srcset="../assets/screens/automations-dark.webp" media="(prefers-color-scheme: dark)">
+                  <img src="../assets/screens/automations-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                       alt="A list of automations with switches: four active, including a wake-up routine and a motion sensor, and two paused">
+                </picture>
+              </div>
+            </div>
+            <div class="feature-text">
+              <h3>Automations under control</h3>
+              <p>
+                See the automations saved on your hub — a wake-up routine, a motion sensor, a dimmer
+                switch — and pause one with a single toggle when it gets in the way. They run on the
+                hub, so they keep working with the app closed.
+              </p>
+              <ul class="checks">
+                <li>Enable or pause in one click</li>
+                <li>New automations are created in your hub's own app</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="more-features grid grid-4">
+          <article class="card">
+            <h3>macOS widget</h3>
+            <p>Small and medium sizes, in Notification Center and on the desktop. Switches lights even with the app closed. Requires macOS 14.</p>
+          </article>
+          <article class="card">
+            <h3>Several hubs at once</h3>
+            <p>Each hub connects independently, so when one goes quiet the others carry on.</p>
+          </article>
+          <article class="card">
+            <h3>Recovers on its own</h3>
+            <p>After a dropped connection the app keeps retrying, and if your router hands the Hue Bridge a new address, it finds it again by its ID.</p>
+          </article>
+          <article class="card">
+            <h3>Light and dark theme</h3>
+            <p>Follow the system or pick one for good — your choice in the app's settings.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">How it works</p>
+          <h2 id="how-title">From install to your first light in minutes</h2>
+        </div>
+        <ol class="steps grid grid-3">
+          <li>
+            <h3>Download and install</h3>
+            <p>Grab the <code>.dmg</code> from the latest GitHub release and drag Lumen Desktop into your Applications folder.</p>
+          </li>
+          <li>
+            <h3>Add a hub</h3>
+            <p>
+              Choose Hue, Home Assistant or Tuya. The Hue Bridge is found automatically — just press
+              its button. Home Assistant needs its address and a token; Tuya needs each device's
+              local key.
+            </p>
+            <div class="window">
+              <picture>
+                <source srcset="../assets/screens/onboarding-dark.webp" media="(prefers-color-scheme: dark)">
+                <img src="../assets/screens/onboarding-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                     alt="First launch: choosing the hub type, with a Hue Bridge found on the network and a field for a manual IP address below">
+              </picture>
+            </div>
+          </li>
+          <li>
+            <h3>Take control</h3>
+            <p>From the app window, the menu bar, a keyboard shortcut or the widget. Add more hubs any time in settings.</p>
+            <div class="window">
+              <picture>
+                <source srcset="../assets/screens/settings-dark.webp" media="(prefers-color-scheme: dark)">
+                <img src="../assets/screens/settings-light.webp" width="920" height="1520" loading="lazy" decoding="async"
+                     alt="Settings with three connected hubs — Hue Bridge, Home Assistant and Tuya — and the theme picker">
+              </picture>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Gallery -->
+    <section class="section section-alt" id="gallery" aria-labelledby="gallery-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">Gallery</p>
+          <h2 id="gallery-title">See it in action</h2>
+          <p>
+            Screenshots of the real app, filled with made-up data. The light or dark theme follows
+            your system settings.
+          </p>
+        </div>
+        <ul class="gallery">
+          <li><figure>
+            <button type="button" data-lightbox data-caption="Home screen" aria-label="Enlarge: home screen">
+              <span class="window"><picture><source srcset="../assets/screens/dashboard-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/dashboard-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="Home screen with favorites and rooms"></picture></span>
+            </button>
+            <figcaption>Home screen</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="A room with its scenes" aria-label="Enlarge: a room with its scenes">
+              <span class="window"><picture><source srcset="../assets/screens/room-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/room-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="A room with scenes, a brightness slider and lights"></picture></span>
+            </button>
+            <figcaption>A room with its scenes</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="A light: brightness, temperature and color" aria-label="Enlarge: a light">
+              <span class="window"><picture><source srcset="../assets/screens/light-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/light-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="A light with brightness and temperature sliders and a color picker"></picture></span>
+            </button>
+            <figcaption>A single light</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="Automations" aria-label="Enlarge: automations">
+              <span class="window"><picture><source srcset="../assets/screens/automations-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/automations-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="A list of automations with switches"></picture></span>
+            </button>
+            <figcaption>Automations</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="Settings and hubs" aria-label="Enlarge: settings and hubs">
+              <span class="window"><picture><source srcset="../assets/screens/settings-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/settings-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="Settings with the list of connected hubs"></picture></span>
+            </button>
+            <figcaption>Settings and hubs</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="Quick actions and keyboard shortcuts" aria-label="Enlarge: quick actions and shortcuts">
+              <span class="window"><picture><source srcset="../assets/screens/shortcuts-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/shortcuts-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="The quick action and global keyboard shortcut editor"></picture></span>
+            </button>
+            <figcaption>Quick actions and shortcuts</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="Adding a Hue Bridge" aria-label="Enlarge: adding a Hue Bridge">
+              <span class="window"><picture><source srcset="../assets/screens/onboarding-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/onboarding-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="Adding a hub: a Hue Bridge found on the network"></picture></span>
+            </button>
+            <figcaption>Adding a Hue Bridge</figcaption>
+          </figure></li>
+          <li><figure>
+            <button type="button" data-lightbox data-caption="Adding Tuya devices with their local keys" aria-label="Enlarge: adding Tuya devices">
+              <span class="window"><picture><source srcset="../assets/screens/onboarding-tuya-dark.webp" media="(prefers-color-scheme: dark)"><img src="../assets/screens/onboarding-tuya-light.webp" width="920" height="1520" loading="lazy" decoding="async" alt="Adding Tuya devices: two bulbs found, each with a field for its local key"></picture></span>
+            </button>
+            <figcaption>Adding Tuya devices</figcaption>
+          </figure></li>
+        </ul>
+      </div>
+    </section>
+
+    <dialog class="lightbox" aria-label="Enlarged screenshot">
+      <figure>
+        <span class="window"><img src="" alt=""></span>
+        <figcaption></figcaption>
+      </figure>
+      <div class="lightbox-controls">
+        <button type="button" data-prev aria-label="Previous screenshot">‹</button>
+        <button type="button" data-close>Close</button>
+        <button type="button" data-next aria-label="Next screenshot">›</button>
+      </div>
+    </dialog>
+
+    <!-- Privacy -->
+    <section class="section" id="privacy" aria-labelledby="privacy-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">Privacy and security</p>
+          <h2 id="privacy-title">Your lights, your network</h2>
+        </div>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>What stays with you</h3>
+            <ul class="list-plain">
+              <li><strong>No cloud, no account.</strong> Lumen has no server of its own — it only talks to the hubs on your network.</li>
+              <li><strong>Credentials are encrypted</strong> by the system's secret store (Keychain on macOS, DPAPI on Windows, the secret service on Linux) and never reach the interface.</li>
+              <li><strong>Tuya stays on your LAN.</strong> You fetch the key from the cloud once; after that the app never goes back.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>How the connection is protected</h3>
+            <ul class="list-plain">
+              <li><strong>The Hue Bridge is verified.</strong> The app trusts only the Signify certificate and checks the Bridge's ID — TLS verification is not switched off anywhere in the code.</li>
+              <li><strong>Home Assistant over ordinary, verified TLS.</strong> A self-signed certificate is something to fix on the server.</li>
+              <li><strong>The Home Assistant token stays out of the widget</strong> until you turn that on yourself — it unlocks your whole Home Assistant, not just the lights.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Requirements & limits -->
+    <section class="section section-alt" id="requirements" aria-labelledby="requirements-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">Before you download</p>
+          <h2 id="requirements-title">Requirements and limitations</h2>
+        </div>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>What you need</h3>
+            <ul class="list-plain">
+              <li><strong>Hue:</strong> a Hue Bridge v2 (BSB002) with Hue API v2, and access to the Bridge's button for the first pairing.</li>
+              <li><strong>Tuya:</strong> the device on a 2.4 GHz network, protocol 3.3, and its local key (how-to in the README).</li>
+              <li><strong>Home Assistant:</strong> a reachable instance, a long-lived token and lights assigned to areas.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Good to know</h3>
+            <ul class="list-plain">
+              <li>The app is tested on macOS. Windows and Linux packages are built automatically, but nobody has run them yet.</li>
+              <li>Tuya: protocol 3.3 only, no scenes, rooms or automations; read-only in the widget.</li>
+              <li>Home Assistant isn't discovered automatically — you type in its address.</li>
+              <li>Controlling Hue from outside the home is planned for version 3.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Developers -->
+    <section class="section" id="developers" aria-labelledby="developers-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="label">For developers</p>
+          <h2 id="developers-title">Open source, TypeScript end to end</h2>
+          <p>
+            The interface knows nothing about HTTPS, tokens or vendor formats — only lights, rooms and
+            hubs. Supporting another brand means one <code>ProviderAdapter</code> implementation in
+            <code>src/main/providers/</code>, with no change to the UI.
+          </p>
+        </div>
+        <div class="dev-grid">
+          <div>
+            <h3>Tech stack</h3>
+            <ul class="stack" aria-label="Technologies">
+              <li>Electron</li>
+              <li>React 19</li>
+              <li>TypeScript</li>
+              <li>Vite</li>
+              <li>Tailwind CSS 4</li>
+              <li>TanStack Query</li>
+              <li>Zustand</li>
+              <li>Zod</li>
+              <li>Vitest</li>
+              <li>Swift · WidgetKit</li>
+            </ul>
+            <p class="arch">
+              <a href="https://github.com/jash90/lumen-desktop#architecture">Architecture and security details in the README →</a>
+            </p>
+          </div>
+          <div>
+            <h3>Run it locally</h3>
+            <pre><code>git clone https://github.com/jash90/lumen-desktop.git
+cd lumen-desktop
+npm install
+npm start          <span class="c"># development mode</span>
+npm test           <span class="c"># tests (Vitest)</span>
+npm run typecheck  <span class="c"># TypeScript, strict mode</span>
+npm run make       <span class="c"># installers into out/make</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-band section-alt" aria-labelledby="cta-title">
+      <div class="container">
+        <img src="../assets/img/icon-256.png" width="80" height="80" alt="" loading="lazy">
+        <h2 id="cta-title">Try Lumen Desktop</h2>
+        <p>Free, no account, no cloud. Connect your first hub in a few minutes.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/jash90/lumen-desktop/releases/latest">Download for macOS</a>
+          <a class="btn btn-secondary" href="https://github.com/jash90/lumen-desktop">View on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="footer-links">
+        <li><a href="https://github.com/jash90/lumen-desktop">GitHub</a></li>
+        <li><a href="https://github.com/jash90/lumen-desktop/releases">Releases</a></li>
+        <li><a href="https://github.com/jash90/lumen-desktop/issues">Report an issue</a></li>
+        <li><a href="https://github.com/jash90/lumen-desktop/blob/main/LICENSE">MIT License</a></li>
+        <li><a href="../" hreflang="pl" lang="pl" data-lang-switch>Polski</a></li>
+      </ul>
+      <p>© 2026 Bartłomiej Zimny. Released under the MIT License.</p>
+      <p>Not affiliated with Signify or Philips Hue. “Philips” and “Hue” are trademarks of Signify Holding.</p>
+    </div>
+  </footer>
+</body>
+</html>
