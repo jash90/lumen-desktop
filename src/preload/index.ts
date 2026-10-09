@@ -37,6 +37,7 @@ const api = {
   onRoomChanged: (listener) => subscribe(EVENT_CHANNELS.roomChanged, listener),
   onConnectionChanged: (listener) => subscribe(EVENT_CHANNELS.connectionChanged, listener),
   onPairingState: (listener) => subscribe(EVENT_CHANNELS.pairingState, listener),
+  onUpdateStatus: (listener) => subscribe(EVENT_CHANNELS.updateStatus, listener),
 } as LumenApi;
 
 contextBridge.exposeInMainWorld('lumen', api);

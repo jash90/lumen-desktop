@@ -27,6 +27,8 @@ export interface TrayDependencies {
   run(action: Action): void;
   show(): void;
   quit(): void;
+  checkForUpdates(): void;
+  installUpdate(): void;
 }
 
 const REBUILD_DEBOUNCE_MS = 250;
@@ -51,6 +53,8 @@ export function createTray(deps: TrayDependencies): TrayController {
           action: deps.run,
           show: deps.show,
           quit: deps.quit,
+          checkForUpdates: deps.checkForUpdates,
+          installUpdate: deps.installUpdate,
         }),
       ),
     );

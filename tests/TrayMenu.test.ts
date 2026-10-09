@@ -27,7 +27,13 @@ const scene = (id: string, name: string): Scene => ({
   isActive: false,
 });
 
-const handlers = () => ({ action: vi.fn(), show: vi.fn(), quit: vi.fn() });
+const handlers = () => ({
+  action: vi.fn(),
+  show: vi.fn(),
+  quit: vi.fn(),
+  checkForUpdates: vi.fn(),
+  installUpdate: vi.fn(),
+});
 
 const labels = (snapshot: TraySnapshot) =>
   buildTrayMenuTemplate(snapshot, handlers()).map((item) => item.label);
@@ -102,5 +108,41 @@ describe('buildTrayMenuTemplate', () => {
     expect(item?.checked).toBe(true);
     item?.click?.(undefined as never, undefined, undefined as never);
     expect(on.action).toHaveBeenCalledWith({ kind: 'toggleRoom', id: 'room-1' });
+  });
+
+  it('leaves the update item out of a development run', () => {
+    expect(labels({ ...base, update: { state: 'unsupported' } })).not.toContain(
+      'Check for updates…',
+    );
+  });
+
+  it('offers an update check even with no bridge to talk to', () => {
+    expect(labels({ ...base, connected: false, update: { state: 'idle' } })).toEqual([
+      'No connection to the Hue Bridge',
+      undefined,
+      `Open ${PRODUCT_NAME}`,
+      'Check for updates…',
+      'Quit',
+    ]);
+  });
+
+  it('restarts into a downloaded update', () => {
+    const on = handlers();
+    const template = buildTrayMenuTemplate(
+      { ...base, update: { state: 'ready', version: '0.5.0' } },
+      on,
+    );
+
+    template
+      .find((entry) => entry.label === 'Restart to update to 0.5.0')
+      ?.click?.(undefined as never, undefined, undefined as never);
+    expect(on.installUpdate).toHaveBeenCalledOnce();
+    expect(on.checkForUpdates).not.toHaveBeenCalled();
+  });
+
+  it('cannot start a second check while one is running', () => {
+    const template = buildTrayMenuTemplate({ ...base, update: { state: 'checking' } }, handlers());
+
+    expect(template.find((entry) => entry.label === 'Checking for updates…')?.enabled).toBe(false);
   });
 });

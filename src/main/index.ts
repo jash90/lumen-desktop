@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { app, BrowserWindow, dialog, nativeTheme, session, shell } from 'electron';
+import { app, autoUpdater, BrowserWindow, dialog, nativeTheme, net, session, shell } from 'electron';
 import started from 'electron-squirrel-startup';
 
 import type { Action } from '../shared/models';
@@ -22,6 +22,8 @@ import { createSecureStorage } from './storage/SecureStorage';
 import { createSettingsStorage } from './storage/SettingsStorage';
 import { createShortcutRegistrar } from './shortcuts/GlobalShortcuts';
 import { createTray, type TrayController } from './tray/Tray';
+import { feedUrlFor, LATEST_RELEASE_API, updateStrategyFor } from './updater/feed';
+import { createUpdateService } from './updater/UpdateService';
 import { createWidgetBridge, toCredentials } from './widget/WidgetBridge';
 
 if (started) app.quit();
@@ -34,6 +36,12 @@ const isDevelopment = !app.isPackaged;
  */
 let isQuitting = false;
 app.on('before-quit', () => {
+  isQuitting = true;
+});
+// quitAndInstall closes the windows *before* before-quit fires, so without this
+// the close handler would hide the window to the tray and the restart into the
+// new version would never happen.
+autoUpdater.on('before-quit-for-update', () => {
   isQuitting = true;
 });
 
@@ -215,6 +223,27 @@ async function bootstrap(): Promise<void> {
     providers.stop();
   });
 
+  const updates = createUpdateService({
+    strategy: updateStrategyFor(process.platform, app.isPackaged),
+    currentVersion: app.getVersion(),
+    feedUrl: feedUrlFor(process.platform, process.arch, app.getVersion()),
+    updater: autoUpdater,
+    fetchLatestTag: async () => {
+      const response = await net.fetch(LATEST_RELEASE_API, {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
+      const body = (await response.json()) as { tag_name?: unknown };
+      if (typeof body.tag_name !== 'string') throw new Error('release has no tag');
+      return body.tag_name;
+    },
+    openExternal: (url) => shell.openExternal(url),
+    onStatus: (status) => {
+      broadcast(EVENT_CHANNELS.updateStatus, status);
+      tray?.rebuild();
+    },
+  });
+
   const showWindow = (): void => {
     const existing = BrowserWindow.getAllWindows()[0];
     if (existing) {
@@ -228,9 +257,11 @@ async function bootstrap(): Promise<void> {
   tray = createTray({
     snapshot: () => {
       const connected = providers.statuses().some((status) => status.state === 'connected');
-      if (!connected) return { connected, rooms: [], scenes: [], favorites: [] };
+      const update = updates.status();
+      if (!connected) return { connected, rooms: [], scenes: [], favorites: [], update };
       return {
         connected,
+        update,
         rooms: providers.getRooms(),
         scenes: providers.getScenes(),
         favorites: settings.get().favorites,
@@ -239,6 +270,8 @@ async function bootstrap(): Promise<void> {
     run: runAction,
     show: showWindow,
     quit: () => app.quit(),
+    checkForUpdates: () => void updates.check(),
+    installUpdate: () => void updates.install(),
   });
 
   const theme = settings.get().theme;
@@ -254,6 +287,7 @@ async function bootstrap(): Promise<void> {
     pairing,
     storage,
     settings,
+    updates,
   });
 
   createWindow();

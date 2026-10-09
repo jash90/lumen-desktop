@@ -21,6 +21,7 @@ import type { ShortcutRegistrar } from '../shortcuts/GlobalShortcuts';
 import type { SecureStorage } from '../storage/SecureStorage';
 import type { SettingsStorage } from '../storage/SettingsStorage';
 import { applyLoginItem } from '../autostart';
+import type { UpdateService } from '../updater/UpdateService';
 import { args, assertAllChannelsRegistered, broadcast, handle } from './handlers';
 
 export interface IpcContext {
@@ -33,6 +34,7 @@ export interface IpcContext {
   pairing: BridgePairingService;
   storage: SecureStorage;
   settings: SettingsStorage;
+  updates: UpdateService;
 }
 
 /**
@@ -51,6 +53,7 @@ export function registerIpcHandlers(context: IpcContext): void {
     pairing,
     storage,
     settings,
+    updates,
   } = context;
 
   /** Last result of applying the stored shortcuts; see getShortcutConflicts. */
@@ -198,6 +201,11 @@ export function registerIpcHandlers(context: IpcContext): void {
   // Scenes
   handle('getScenes', args.none, () => providers.getScenes());
   handle('activateScene', args.id, ([id]) => providers.activateScene(id));
+
+  // Updates
+  handle('getUpdateStatus', args.none, () => updates.status());
+  handle('checkForUpdates', args.none, () => updates.check());
+  handle('installUpdate', args.none, () => updates.install());
 
   assertAllChannelsRegistered();
 }

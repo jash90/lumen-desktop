@@ -138,6 +138,22 @@ Download the latest release from [Releases](../../releases).
 > **Windows and Linux:** the packaging is configured, but those builds have **not been
 > produced or tested yet** — see [Limitations](#limitations).
 
+### Updates
+
+**Settings → About and updates → Check for updates**, or the same item in the tray menu.
+The app never checks by itself, only when you ask.
+
+| System | What happens |
+|---|---|
+| macOS | The update downloads in the background, then **Restart to update** installs it. Works only in the signed release build. |
+| Windows | The same through Squirrel. It needs the `RELEASES` and `.nupkg` files the release workflow uploads. Not tested yet. |
+| Linux | `.deb` and `.rpm` cannot replace themselves, so the app reports the new version and opens the release page. |
+| `npm start` | No check at all, because there is no installed bundle to replace. |
+
+The check goes through [update.electronjs.org](https://github.com/electron/update.electronjs.org),
+which reads this repository's **published** GitHub Releases. The release workflow creates a
+draft, so **an update reaches users only once the draft is published.**
+
 ### Upgrading from Hue Desktop
 
 The app used to be called Hue Desktop. The rename moves everything the operating system

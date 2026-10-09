@@ -38,6 +38,21 @@ export type PairingState =
   | { status: 'connected'; hub: HubSummary }
   | { status: 'failed'; error: SerializedAppError };
 
+/**
+ * Where the in-app update stands. `ready` means downloaded and waiting for a
+ * restart; `available` is the Linux case, where the app can only point at the
+ * release because a .deb or .rpm cannot replace itself.
+ */
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'unsupported' }
+  | { state: 'checking' }
+  | { state: 'downloading' }
+  | { state: 'ready'; version: string }
+  | { state: 'available'; version: string; url: string }
+  | { state: 'upToDate' }
+  | { state: 'error'; message: string };
+
 /** Allowlist of invokable channels. The preload exposes nothing outside this list. */
 export const INVOKE_CHANNELS = [
   'getVersion',
@@ -70,6 +85,9 @@ export const INVOKE_CHANNELS = [
   'setAutomationEnabled',
   'runAction',
   'getShortcutConflicts',
+  'getUpdateStatus',
+  'checkForUpdates',
+  'installUpdate',
 ] as const;
 
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
@@ -79,6 +97,7 @@ export const EVENT_CHANNELS = {
   roomChanged: 'lumen:roomChanged',
   connectionChanged: 'lumen:connectionChanged',
   pairingState: 'lumen:pairingState',
+  updateStatus: 'lumen:updateStatus',
 } as const;
 
 export const channelName = (channel: InvokeChannel): string => `lumen:${channel}`;
@@ -173,11 +192,18 @@ export interface LumenApi {
    */
   getShortcutConflicts(): Promise<Result<string[]>>;
 
+  // Updates. Checking happens only when asked; progress arrives via onUpdateStatus.
+  getUpdateStatus(): Promise<Result<UpdateStatus>>;
+  checkForUpdates(): Promise<Result<UpdateStatus>>;
+  /** Restarts into a downloaded update, or opens the release page on Linux. */
+  installUpdate(): Promise<Result<void>>;
+
   // Push updates (PRD §50) — renderer only ever learns about these three.
   onLightChanged(listener: (lights: Light[]) => void): Unsubscribe;
   onRoomChanged(listener: (rooms: Room[]) => void): Unsubscribe;
   onConnectionChanged(listener: (statuses: ConnectionStatus[]) => void): Unsubscribe;
   onPairingState(listener: (state: PairingState) => void): Unsubscribe;
+  onUpdateStatus(listener: (status: UpdateStatus) => void): Unsubscribe;
 }
 
 declare global {

@@ -14,6 +14,7 @@ import {
 import { ActionEditor } from '../components/ActionEditor';
 import { AddHub } from '../components/AddHub';
 import { PowerSwitch } from '../components/PowerSwitch';
+import { UpdateCard } from '../components/UpdateCard';
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: 'System',
@@ -164,6 +165,11 @@ export function SettingsPage() {
             onCheckedChange={(launchAtLogin) => updateSettings.mutate({ launchAtLogin })}
           />
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="label-caps px-1">About and updates</h2>
+        <UpdateCard />
       </section>
 
       {hasHomeAssistant && (

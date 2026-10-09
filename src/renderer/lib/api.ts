@@ -35,6 +35,8 @@ export const queryKeys = {
   storageHealth: ['storageHealth'] as const,
   settings: ['settings'] as const,
   shortcutConflicts: ['shortcutConflicts'] as const,
+  version: ['version'] as const,
+  updateStatus: ['updateStatus'] as const,
 };
 
 /** Shared by RoomCard and RoomPage, which used to carry their own copies. */

@@ -1,5 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 
+import type { UpdateStatus } from '../../shared/ipc';
 import type { Action, ResourceRef, Room, Scene } from '../../shared/models';
 import { PRODUCT_NAME } from '../../shared/identity';
 
@@ -15,17 +16,43 @@ export interface TraySnapshot {
   rooms: Room[];
   scenes: Scene[];
   favorites: ResourceRef[];
+  /** Absent, or `unsupported` in a development run, hides the update item. */
+  update?: UpdateStatus;
 }
 
 export interface TrayHandlers {
   action(action: Action): void;
   show(): void;
   quit(): void;
+  checkForUpdates(): void;
+  installUpdate(): void;
 }
 
 /** A menu listing forty lights is useless; these caps keep it glanceable. */
 export const MAX_FAVORITES = 8;
 export const MAX_ROOMS = 6;
+
+/** The update entry, whose label and action follow where the update stands. */
+export function updateMenuItem(
+  update: UpdateStatus | undefined,
+  on: Pick<TrayHandlers, 'checkForUpdates' | 'installUpdate'>,
+): MenuItemConstructorOptions | null {
+  switch (update?.state) {
+    case undefined:
+    case 'unsupported':
+      return null;
+    case 'checking':
+      return { label: 'Checking for updates…', enabled: false };
+    case 'downloading':
+      return { label: 'Downloading update…', enabled: false };
+    case 'ready':
+      return { label: `Restart to update to ${update.version}`, click: on.installUpdate };
+    case 'available':
+      return { label: `Download version ${update.version}…`, click: on.installUpdate };
+    default:
+      return { label: 'Check for updates…', click: on.checkForUpdates };
+  }
+}
 
 export function buildTrayMenuTemplate(
   snapshot: TraySnapshot,
@@ -33,6 +60,8 @@ export function buildTrayMenuTemplate(
 ): MenuItemConstructorOptions[] {
   const open: MenuItemConstructorOptions = { label: `Open ${PRODUCT_NAME}`, click: on.show };
   const quit: MenuItemConstructorOptions = { label: 'Quit', click: on.quit };
+  const update = updateMenuItem(snapshot.update, on);
+  const footer = update ? [open, update, quit] : [open, quit];
 
   // Nothing below this point can be acted on without a bridge, and offering
   // dead switches is worse than offering none.
@@ -40,8 +69,7 @@ export function buildTrayMenuTemplate(
     return [
       { label: 'No connection to the Hue Bridge', enabled: false },
       { type: 'separator' },
-      open,
-      quit,
+      ...footer,
     ];
   }
 
@@ -103,7 +131,7 @@ export function buildTrayMenuTemplate(
     enabled: snapshot.rooms.some((room) => room.isOn),
     click: () => on.action({ kind: 'allOff' }),
   });
-  items.push({ type: 'separator' }, open, quit);
+  items.push({ type: 'separator' }, ...footer);
 
   return items;
 }

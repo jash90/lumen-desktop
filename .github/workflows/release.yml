@@ -80,6 +80,8 @@ jobs:
             out/make/**/*.dmg
             out/make/**/*.zip
             out/make/**/*.exe
+            out/make/**/*.nupkg
+            out/make/**/RELEASES
             out/make/**/*.deb
             out/make/**/*.rpm
           if-no-files-found: error
