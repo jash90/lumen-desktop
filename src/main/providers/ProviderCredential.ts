@@ -1,4 +1,5 @@
 import type { HubSummary } from '../../shared/models';
+import type { TuyaVersion } from '../tuya/TuyaProtocol';
 
 /**
  * What the app has to remember to reach a hub again after a restart.
@@ -52,6 +53,11 @@ export interface TuyaDeviceCredential {
   address: string;
   /** Sixteen characters, issued at pairing. Local control only. */
   localKey: string;
+  /**
+   * Wire protocol. Absent on anything stored before it was recorded, which is
+   * all 3.3 — the only version the app spoke then.
+   */
+  version?: TuyaVersion;
 }
 
 /**

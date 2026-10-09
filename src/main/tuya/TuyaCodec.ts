@@ -89,7 +89,7 @@ export function decryptPayload(ciphertext: Buffer, localKey: string): string {
 }
 
 export function encodeFrame(
-  command: TuyaCommandCode,
+  command: number,
   seq: number,
   plaintext: string,
   localKey: string,

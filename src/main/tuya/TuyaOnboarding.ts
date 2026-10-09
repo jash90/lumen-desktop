@@ -5,7 +5,6 @@ import type {
   TuyaDeviceCredential,
 } from '../providers/ProviderCredential';
 import { dpsPayloadSchema } from './dto';
-import { TuyaCommand } from './TuyaCodec';
 import { classifyDevice, type TuyaDeviceKind } from './TuyaDeviceKind';
 import { openTuyaTransport, type TuyaTransport } from './TuyaTransport';
 
@@ -64,13 +63,11 @@ export async function probeDevices(
           deviceId: device.deviceId,
           address: device.address,
           localKey: device.localKey,
+          ...(device.version ? { version: device.version } : {}),
           onPush: () => undefined,
           onClosed: () => undefined,
         });
-        const reply = await transport.request(TuyaCommand.DP_QUERY, {
-          gwId: device.deviceId,
-          devId: device.deviceId,
-        });
+        const reply = await transport.query();
         const parsed = dpsPayloadSchema.safeParse(JSON.parse(reply));
         return { device, kind: parsed.success ? classifyDevice(parsed.data.dps) : 'unknown' };
       } catch (error) {

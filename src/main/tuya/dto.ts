@@ -31,6 +31,24 @@ export const dpsPayloadSchema = z
 export type DpsPayload = z.infer<typeof dpsPayloadSchema>;
 
 /**
+ * 3.4 and 3.5 nest the data points one level down —
+ * `{"protocol":4,"t":…,"data":{"dps":{…}}}` — where 3.3 puts them at the top.
+ * Lifting them here means everything past the transport sees one shape.
+ */
+export function normaliseDpsText(text: string): string {
+  if (!text.includes('"data"')) return text;
+  try {
+    const body = JSON.parse(text) as { t?: unknown; data?: { dps?: unknown } };
+    if (body.data && typeof body.data.dps === 'object' && body.data.dps !== null) {
+      return JSON.stringify({ dps: body.data.dps, ...(body.t === undefined ? {} : { t: body.t }) });
+    }
+  } catch {
+    /* not JSON; left for the caller to skip */
+  }
+  return text;
+}
+
+/**
  * The UDP announcement a device broadcasts every few seconds.
  *
  * `gwId` is the device id and the only stable identifier — `ip` moves with the

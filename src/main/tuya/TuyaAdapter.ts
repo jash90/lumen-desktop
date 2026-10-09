@@ -8,7 +8,7 @@ import type {
 import type { ProviderRepository } from '../providers/ProviderRepository';
 import { createTuyaApi, type TuyaDeviceHandle } from './TuyaApi';
 import { dpsPayloadSchema, type DpValue } from './dto';
-import { TuyaCommand } from './TuyaCodec';
+import { normaliseVersion } from './TuyaProtocol';
 import { openTuyaTransport, type TuyaTransport } from './TuyaTransport';
 import type { TuyaDiscoveryService } from './TuyaDiscoveryService';
 
@@ -101,6 +101,7 @@ export function createTuyaAdapter(options: TuyaAdapterOptions): ProviderAdapter<
               deviceId: device.deviceId,
               address: device.address,
               localKey: device.localKey,
+              ...(device.version ? { version: device.version } : {}),
               onPush: (text) => {
                 if (!merge(text)) return;
                 const changes = api.applyUpdates([
@@ -111,11 +112,7 @@ export function createTuyaAdapter(options: TuyaAdapterOptions): ProviderAdapter<
               onClosed: onGone,
             });
 
-            const reply = await active.request(TuyaCommand.DP_QUERY, {
-              gwId: device.deviceId,
-              devId: device.deviceId,
-            });
-            merge(reply);
+            merge(await active.query());
 
             if (stopped) {
               active.close();
@@ -130,12 +127,7 @@ export function createTuyaAdapter(options: TuyaAdapterOptions): ProviderAdapter<
             if (!transport) {
               throw new AppError('ResourceUnavailable', `${device.name} is not reachable`);
             }
-            await transport.request(TuyaCommand.CONTROL, {
-              devId: device.deviceId,
-              uid: device.deviceId,
-              t: Math.floor(Date.now() / 1000).toString(),
-              dps: next,
-            });
+            await transport.control(next);
             // The device echoes the new state as a push, but applying it here
             // too means the UI does not wait a round trip to look right.
             dps = { ...dps, ...next };
@@ -204,14 +196,19 @@ export function createTuyaAdapter(options: TuyaAdapterOptions): ProviderAdapter<
       const found = await discovery.discover();
       if (found.length === 0) return null;
 
-      const addressOf = new Map(found.map((device) => [device.deviceId, device.address]));
+      const seen = new Map(found.map((device) => [device.deviceId, device]));
       let changed = false;
 
       const devices = credential.devices.map((device) => {
-        const address = addressOf.get(device.deviceId);
-        if (!address || address === device.address) return device;
+        const match = seen.get(device.deviceId);
+        if (!match) return device;
+        // A firmware update can move a device to a newer protocol as well.
+        const version = normaliseVersion(match.version);
+        if (match.address === device.address && version === (device.version ?? '3.3')) {
+          return device;
+        }
         changed = true;
-        return { ...device, address };
+        return { ...device, address: match.address, version };
       });
 
       if (!changed) return null;
