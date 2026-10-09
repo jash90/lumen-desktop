@@ -12,6 +12,8 @@ import { createBridgePairingService } from './bridge/BridgePairingService';
 import { createHaAdapter } from './homeassistant/HaAdapter';
 import { createTuyaAdapter } from './tuya/TuyaAdapter';
 import { createTuyaDiscoveryService } from './tuya/TuyaDiscoveryService';
+import { networkScanDependencies } from './tuya/TuyaNetworkScan';
+import { createTuyaSetup } from './tuya/TuyaSetup';
 import { createHueAdapter } from './hue/HueAdapter';
 import { createProviderRegistry } from './providers/ProviderRegistry';
 import { createProviderRepository } from './providers/ProviderRepository';
@@ -153,6 +155,10 @@ async function bootstrap(): Promise<void> {
   const repository = createProviderRepository(storage);
   const discovery = createBridgeDiscoveryService(repository);
   const tuyaDiscovery = createTuyaDiscoveryService();
+  const tuyaSetup = createTuyaSetup({
+    fetch: (url, init) => net.fetch(url, init),
+    scan: networkScanDependencies,
+  });
   const pairing = createBridgePairingService(repository, (state) =>
     broadcast(EVENT_CHANNELS.pairingState, state),
   );
@@ -284,6 +290,7 @@ async function bootstrap(): Promise<void> {
     repository,
     discovery,
     tuyaDiscovery,
+    tuyaSetup,
     pairing,
     storage,
     settings,

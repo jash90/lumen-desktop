@@ -6,8 +6,10 @@ import {
   channelName,
   EVENT_CHANNELS,
   INVOKE_CHANNELS,
+  TUYA_REGIONS,
   type InvokeChannel,
   type Result,
+  type TuyaRegion,
 } from '../../shared/ipc';
 
 /**
@@ -106,12 +108,29 @@ export const args = {
             name: z.string().min(1).max(64),
             address: z.string().min(1).max(64),
             // Exactly sixteen: the key is an AES-128 key, and anything else
-            // would fail at the cipher rather than here.
-            localKey: z.string().length(16),
+            // would fail at the cipher rather than here. Absent when the main
+            // process already holds it from the Tuya Cloud.
+            localKey: z.string().length(16).optional(),
+            version: z.string().max(8).optional(),
           }),
         )
         .min(1)
         .max(32),
+    }),
+  ]),
+  tuyaCloud: z.tuple([
+    z.object({
+      region: z.enum(Object.keys(TUYA_REGIONS) as [TuyaRegion, ...TuyaRegion[]]),
+      accessId: z.string().trim().min(1).max(64),
+      accessSecret: z.string().trim().min(1).max(128),
+    }),
+  ]),
+  tuyaScan: z.tuple([
+    z.object({
+      target: z.string().max(64).optional(),
+      keys: z
+        .array(z.object({ deviceId: z.string().min(1).max(64), localKey: z.string().length(16) }))
+        .max(64),
     }),
   ]),
   idAndBoolean: z.tuple([z.string().min(1).max(128), z.boolean()]),

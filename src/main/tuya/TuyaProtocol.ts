@@ -56,6 +56,7 @@ const HEADERLESS: ReadonlySet<number> = new Set([
   SessionCommand.NEGOTIATE_START,
   SessionCommand.NEGOTIATE_RESPONSE,
   SessionCommand.NEGOTIATE_FINISH,
+  NewCommand.REQUEST_DEVICE_INFO,
   0x40,
 ]);
 

@@ -62,6 +62,8 @@ export const INVOKE_CHANNELS = [
   'connectHomeAssistant',
   'discoverTuyaDevices',
   'connectTuya',
+  'fetchTuyaCloudDevices',
+  'scanTuyaNetwork',
   'reconnectHubs',
   'getConnectionStatuses',
   'getStorageHealth',
@@ -108,6 +110,36 @@ export interface DiscoveredTuyaSummary {
   address: string;
   version: string;
   name?: string;
+  /** Already part of the stored Tuya hub. */
+  connected?: boolean;
+}
+
+/** Tuya Cloud data centers; a project lives in exactly one. */
+export const TUYA_REGIONS = {
+  eu: 'Central Europe',
+  'eu-west': 'Western Europe',
+  us: 'Western America',
+  'us-east': 'Eastern America',
+  cn: 'China',
+  in: 'India',
+  sg: 'Singapore',
+} as const;
+
+export type TuyaRegion = keyof typeof TUYA_REGIONS;
+
+/** A device as the Tuya Cloud lists it — without its key, which stays in main. */
+export interface TuyaCloudDeviceSummary {
+  deviceId: string;
+  name: string;
+  productName: string;
+  /** Pre-selection only; the device is still asked what it is on connect. */
+  isLight: boolean;
+}
+
+export interface TuyaScanResult {
+  found: { deviceId: string; address: string; version: string }[];
+  /** Answered on the Tuya port, but to none of the keys tried. */
+  unidentified: string[];
 }
 
 export type Unsubscribe = () => void;
@@ -143,8 +175,34 @@ export interface LumenApi {
    * `skipped` so the form can say which and why.
    */
   connectTuya(input: {
-    devices: { deviceId: string; name: string; address: string; localKey: string }[];
+    devices: {
+      deviceId: string;
+      name: string;
+      address: string;
+      /** Omitted when it came from the Tuya Cloud; main still holds it. */
+      localKey?: string;
+      /** As discovered; absent means 3.3. */
+      version?: string;
+    }[];
   }): Promise<Result<HubSummary & { skipped: { name: string; reason: string }[] }>>;
+  /**
+   * Names and local keys from the user's Tuya IoT project, read once. The keys
+   * stay in the main process; only names come back. The secret is not stored.
+   */
+  fetchTuyaCloudDevices(input: {
+    region: TuyaRegion;
+    accessId: string;
+    accessSecret: string;
+  }): Promise<Result<TuyaCloudDeviceSummary[]>>;
+  /**
+   * Tries addresses instead of waiting for broadcasts: the local network when
+   * `target` is empty, or one address or range. Devices are recognised by the
+   * keys given plus any from the cloud.
+   */
+  scanTuyaNetwork(input: {
+    target?: string;
+    keys: { deviceId: string; localKey: string }[];
+  }): Promise<Result<TuyaScanResult>>;
 
   // Every configured hub is connected at once, so the state is a list rather
   // than one value. No key or token ever crosses this boundary.

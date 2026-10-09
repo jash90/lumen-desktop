@@ -13,6 +13,8 @@ import {
   TUYA_PROVIDER_ID,
 } from '../tuya/TuyaOnboarding';
 import { describeKind } from '../tuya/TuyaDeviceKind';
+import { normaliseVersion } from '../tuya/TuyaProtocol';
+import type { TuyaSetupService } from '../tuya/TuyaSetup';
 import type { ProviderRegistry } from '../providers/ProviderRegistry';
 import { toHubSummary } from '../providers/ProviderCredential';
 import type { ProviderRepository } from '../providers/ProviderRepository';
@@ -31,6 +33,7 @@ export interface IpcContext {
   repository: ProviderRepository;
   discovery: BridgeDiscoveryService;
   tuyaDiscovery: TuyaDiscoveryService;
+  tuyaSetup: TuyaSetupService;
   pairing: BridgePairingService;
   storage: SecureStorage;
   settings: SettingsStorage;
@@ -50,6 +53,7 @@ export function registerIpcHandlers(context: IpcContext): void {
     repository,
     discovery,
     tuyaDiscovery,
+    tuyaSetup,
     pairing,
     storage,
     settings,
@@ -100,20 +104,48 @@ export function registerIpcHandlers(context: IpcContext): void {
         : []
       ).map((device) => [device.deviceId, device.name]),
     );
-    return found.map((device) => ({
-      deviceId: device.deviceId,
-      address: device.address,
-      version: device.version,
-      ...(known.has(device.deviceId) ? { name: known.get(device.deviceId)! } : {}),
-    }));
+    return found.map((device) => {
+      // What the user named it here wins over the vendor app's name.
+      const name = known.get(device.deviceId) ?? tuyaSetup.cloudName(device.deviceId);
+      return {
+        deviceId: device.deviceId,
+        address: device.address,
+        version: device.version,
+        ...(name ? { name } : {}),
+        ...(known.has(device.deviceId) ? { connected: true } : {}),
+      };
+    });
   });
+
+  handle('fetchTuyaCloudDevices', args.tuyaCloud, ([input]) => tuyaSetup.fetchCloud(input));
+
+  handle('scanTuyaNetwork', args.tuyaScan, ([input]) =>
+    tuyaSetup.scan({
+      keys: input.keys,
+      ...(input.target ? { target: input.target } : {}),
+    }),
+  );
 
   handle('connectTuya', args.tuya, async ([input]) => {
     // Ask each device what it is first. Tuya announces an id and nothing else,
     // so a thermometer and a bulb look identical until one of them answers —
     // and storing the thermometer would leave a lamp in the list that no
     // control can move.
-    const probed = await probeDevices(input.devices);
+    // A key typed into the form wins; otherwise the one the cloud returned.
+    const devices = input.devices.map((device) => {
+      const localKey = device.localKey ?? tuyaSetup.cloudKey(device.deviceId);
+      if (!localKey) {
+        throw new AppError('Unauthorized', `no local key for ${device.name}`);
+      }
+      return {
+        deviceId: device.deviceId,
+        name: device.name,
+        address: device.address,
+        localKey,
+        version: normaliseVersion(device.version),
+      };
+    });
+    const probed = await probeDevices(devices);
     const lights = probed.filter((entry) => entry.kind === 'light');
 
     if (lights.length === 0) {

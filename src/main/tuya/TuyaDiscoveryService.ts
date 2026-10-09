@@ -2,14 +2,20 @@ import crypto from 'node:crypto';
 import dgram from 'node:dgram';
 
 import { announcementSchema } from './dto';
+import { localNetworks } from './localNetworks';
+import { decodeGcmFrames, encodeFrame35, NewCommand } from './TuyaProtocol';
 
 /**
  * Finds Tuya devices by listening for the announcements they broadcast.
  *
  * Every few seconds a device shouts its id, address and protocol version onto
  * the local network: in the clear on port 6666 (protocol 3.1) and AES-encrypted
- * on 6667 (3.3 and later) under a key that is the same on every Tuya device
+ * on 6667 (3.3 and 3.4) under a key that is the same on every Tuya device
  * ever made, so it protects nothing and is published in every implementation.
+ *
+ * 3.5 devices are quieter: they answer on port 7000, under AES-GCM with that
+ * same key, when an app broadcasts a request for device info there. So this
+ * sends one every few seconds while it listens.
  *
  * Two things learned the hard way on this network:
  *
@@ -22,7 +28,9 @@ import { announcementSchema } from './dto';
  *     caller decides what it recognises.
  */
 
-const PORTS = [6666, 6667] as const;
+const PORTS = [6666, 6667, 7000] as const;
+const REQUEST_PORT = 7000;
+const REQUEST_INTERVAL_MS = 4_000;
 const DEFAULT_LISTEN_MS = 12_000;
 
 /** Published in every Tuya implementation; it is a format detail, not a secret. */
@@ -43,8 +51,17 @@ export interface TuyaDiscoveryService {
   discover(listenMs?: number): Promise<DiscoveredTuyaDevice[]>;
 }
 
-/** Announcements are plain JSON on 6666 and AES-128-ECB on 6667. */
+/** Announcements are plain JSON on 6666, AES-128-ECB on 6667 and AES-GCM on 7000. */
 export function decodeAnnouncement(frame: Buffer): unknown | null {
+  if (frame.length >= 4 && frame.readUInt32BE(0) === 0x00006699) {
+    try {
+      const [first] = decodeGcmFrames(frame, UDP_KEY, 'detect').frames;
+      // The vendor app pads with NUL bytes now and then.
+      return first ? JSON.parse(first.payload.toString('utf8').replace(/\0+$/, '')) : null;
+    } catch {
+      return null;
+    }
+  }
   if (frame.length < HEADER_BYTES + TRAILER_BYTES) return null;
   if (frame.readUInt32BE(0) !== PREFIX) return null;
 
@@ -120,7 +137,38 @@ export function createTuyaDiscoveryService(): TuyaDiscoveryService {
           }
         }
 
-        const timer = setTimeout(finish, listenMs);
+        // Asks 3.5 devices to speak up. Our own request echoes back on 7000 too;
+        // it has no gwId, so the schema drops it like any other stray packet.
+        const requester = dgram.createSocket('udp4');
+        sockets.push(requester);
+        requester.on('error', () => undefined);
+        const request = (): void => {
+          for (const network of localNetworks()) {
+            const body = Buffer.from(JSON.stringify({ from: 'app', ip: network.address }));
+            const frame = encodeFrame35(NewCommand.REQUEST_DEVICE_INFO, 0, body, UDP_KEY);
+            try {
+              requester.send(frame, REQUEST_PORT, network.broadcast, () => undefined);
+            } catch {
+              // Closed by finish() between ticks; nothing left to ask.
+            }
+          }
+        };
+        requester.bind(0, () => {
+          try {
+            requester.setBroadcast(true);
+            requester.unref();
+            request();
+          } catch {
+            /* no broadcast here; listening alone still finds 3.3 devices */
+          }
+        });
+        const repeat = setInterval(request, REQUEST_INTERVAL_MS);
+        repeat.unref();
+
+        const timer = setTimeout(() => {
+          clearInterval(repeat);
+          finish();
+        }, listenMs);
         timer.unref();
       });
     },

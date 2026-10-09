@@ -26,8 +26,9 @@ no account, no cloud.
 - **Finds a Bridge** — mDNS, `discovery.meethue.com`, the last known address, or a
   manually entered IP; pairs through the physical button and remembers it
 - **Connects to Home Assistant** with its address and a long-lived access token
-- **Finds Tuya devices** by listening for what they broadcast, and drives them straight
-  over the LAN with their local key — no cloud, no hub, works without internet
+- **Finds Tuya devices** by listening for what they broadcast, or by scanning an address
+  range, and drives them straight over the LAN with their local key — protocols 3.3, 3.4
+  and 3.5, no cloud, no hub, works without internet
 - **Controls lights** — on/off, brightness, color temperature, RGB color
 - **Controls rooms** with one grouped request rather than one command per bulb
 - **Activates scenes** saved on the hub, grouped by room
@@ -69,12 +70,21 @@ cloud. It cannot be read out of the device, so getting it means asking the cloud
    Central Europe for most of the EU.
 2. Subscribe the project to *IoT Core* and *Authorization Token Management*.
 3. *Devices → Link App Account* and scan the QR with your app.
-4. `pip install tinytuya` then `python -m tinytuya wizard`, which prints a local key per
-   device.
+4. In *Add a hub → Tuya*, enter the project's **Access ID** and **Access Secret** and
+   choose *Get my devices*. The app reads every device's name and local key, finds the
+   devices on your network and pre-selects the lights.
 
-After that the cloud is never used again — you can revoke the project's key and the app
-carries on. Paste the local keys into *Add a hub → Tuya*; they are stored encrypted like
-every other credential and never leave your machine.
+The Access Secret is used for that one request and not stored. After that the cloud is
+never used again — you can revoke the project's key and the app carries on. The local
+keys are stored encrypted like every other credential and never leave your machine.
+
+Already have keys, from `tinytuya wizard` or elsewhere? Type them into the device rows
+instead; the account step is optional.
+
+A device that does not show up — quiet at that moment, or behind a network that drops
+broadcasts — can be found with **Scan**: it tries every address on the local network, or
+one address or range you type (`192.168.1.40`, `192.168.1.0/24`), and recognises devices
+by their keys.
 
 Re-pairing a device issues a new local key, which the app reports as a lost
 authorisation rather than retrying forever.
@@ -243,7 +253,7 @@ Electron main
       ▼
    ProviderAdapter  (LightingApi: Light · Room · Scene · Automation)
       ├─ Hue      HueClient · HueTransport · HueEventStream   ──HTTPS──▶  Bridge ─▶ 💡
-      ├─ Tuya     TuyaCodec · TuyaTransport (AES, TCP 6668)   ──LAN────▶  💡
+      ├─ Tuya     TuyaProtocol · TuyaTransport (TCP 6668)     ──LAN────▶  💡
       └─ HomeAss. HaClient · HaTransport · HaWebSocket        ──HTTP───▶  HA ─▶ 💡💡💡
 ```
 
@@ -274,10 +284,10 @@ routes by id and logs a warning if two hubs ever do claim the same one.
   [macOS widget](#macos-widget)
 - **Home Assistant is reached with ordinary TLS verification.** A self-signed
   certificate is something to fix on the server, not something this app waves through
-- **Tuya traffic is AES-128-ECB**, which is weak — identical blocks encrypt alike — but
-  it is what protocol 3.3 specifies and a device will not answer anything else. It never
-  leaves the local network. Tuya fixed this in 3.4 and 3.5; both are different protocols
-  rather than options, and are not supported yet
+- **Tuya 3.3 traffic is AES-128-ECB**, which is weak — identical blocks encrypt alike —
+  but it is what that protocol specifies and such a device will not answer anything else.
+  It never leaves the local network. Devices on 3.4 and 3.5 get a per-connection session
+  key, HMAC-SHA256 or AES-GCM, and the app speaks whichever the device announces
 - **TLS is verified, not disabled.** The Bridge presents a certificate issued by a
   private Signify CA (`CN=root-bridge`) which is in no system trust store and carries no
   `subjectAltName` field. The app bundles that CA, trusts **only** it, and replaces the
@@ -301,12 +311,14 @@ routes by id and logs a warning if two hubs ever do claim the same one.
 - **Home Assistant scenes never read as "active".** A scene entity's state is when it was
   last applied, so the hub simply cannot say which one is currently showing.
 - **No Home Assistant discovery yet** — its address is typed in by hand.
-- **Tuya covers protocol 3.3 only**, and offers no scenes, rooms or automations: a device
-  exposes none of those locally, so its lights appear under *Outside rooms*.
+- **Tuya offers no scenes, rooms or automations**: a device exposes none of those
+  locally, so its lights appear under *Outside rooms*. Protocols 3.4 and 3.5 are tested
+  against an independent implementation and a simulated device, not yet against real
+  hardware on those versions.
 - **Tuya devices are not controllable from the macOS widget yet** — they show there as a
   reading. The widget has no client for them.
 - **Tuya discovery needs patience.** Devices announce themselves every few seconds, so a
-  first pass can miss one; search again, or type the address in.
+  first pass can miss one; search again, or scan the network.
 - Control from outside the home network needs v2 — see [Roadmap](#roadmap). A Home
   Assistant reachable from outside already works, at your own configuration.
 - The macOS widget requires **macOS 14 or newer** and is available on macOS only.
@@ -320,7 +332,7 @@ routes by id and logs a warning if two hubs ever do claim the same one.
 | v1.5 | Multiple Bridges, quick actions, automations | ✅ |
 | v2 | Provider abstraction, Home Assistant, several hubs in parallel | ✅ |
 | **v2.5** *(current)* | Native Tuya over the LAN — Spectrum Smart and other rebrands | ✅ |
-| v3 | Tuya in the widget, protocol 3.4/3.5, Hue Remote API | planned |
+| v3 | Tuya in the widget, Hue Remote API | planned |
 
 ### v3 — what has to be settled before it starts
 

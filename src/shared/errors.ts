@@ -16,7 +16,9 @@ export type AppErrorCode =
   | 'NetworkError'
   | 'CertificateError'
   | 'ResourceUnavailable'
-  | 'StorageUnavailable';
+  | 'StorageUnavailable'
+  | 'CloudUnauthorized'
+  | 'CloudPermission';
 
 /** Plain object shape — Error subclasses do not survive Electron's IPC structured clone. */
 export interface SerializedAppError {
@@ -43,6 +45,10 @@ const USER_MESSAGES: Record<AppErrorCode, string> = {
   ResourceUnavailable: 'That light is not available — its hub is not connected.',
   StorageUnavailable:
     'This system provides no secure password storage. The credentials were not saved.',
+  CloudUnauthorized:
+    'Tuya did not accept the Access ID and Secret. Check them, and that the data center matches your project.',
+  CloudPermission:
+    'This Tuya project cannot list devices yet. Link your Smart Life app account to it and make sure IoT Core is enabled.',
 };
 
 export class AppError extends Error {
