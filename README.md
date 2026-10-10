@@ -1,5 +1,7 @@
 <div align="center">
 
+English | [Polski](README.pl.md)
+
 <img src="assets/icon.png" width="128" alt="Lumen Desktop">
 
 # Lumen Desktop
