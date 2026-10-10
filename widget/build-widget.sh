@@ -173,7 +173,10 @@ xcrun appintentsmetadataprocessor \
 test -f "$APPEX/Contents/Resources/Metadata.appintents/extract.actionsdata" \
   || { echo "missing AppIntents metadata — the widget buttons would be dead" >&2; exit 1; }
 
-IDENTITY_NAME="${LUMEN_IDENTITY:-Developer ID Application}"
+# Prefer an explicit SHA-1 (APPLE_SIGNING_IDENTITY, set by scripts/release.sh):
+# with two certificates of the same name, "first match" may not be the one the
+# rest of the bundle was signed with.
+IDENTITY_NAME="${APPLE_SIGNING_IDENTITY:-${LUMEN_IDENTITY:-Developer ID Application}}"
 IDENTITY="$(security find-identity -v -p codesigning \
   | grep "$IDENTITY_NAME" | head -1 | awk '{print $2}')"
 if [ -z "$IDENTITY" ]; then

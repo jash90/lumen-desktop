@@ -99,3 +99,6 @@ widget/.build/
 
 # generated from identity.json at widget build time
 widget/Generated/
+
+# local release output (scripts/release.sh)
+dist/

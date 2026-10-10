@@ -27,11 +27,15 @@ const config: ForgeConfig = {
     appBundleId: BUNDLE_ID,
     appCategoryType: 'public.app-category.utilities',
     // Signing is opt-in so `npm run make` still works on a machine without the
-    // certificate — CI and contributors get an unsigned build, releases get a
-    // signed one.
+    // certificate — contributors get an unsigned build, releases get a signed one.
+    // APPLE_SIGNING_IDENTITY is a SHA-1: the release machine has two identical
+    // Developer ID certificates, and signing by name is ambiguous there. CI has a
+    // single imported certificate, so the name is enough.
     osxSign: process.env.LUMEN_SIGN
       ? {
-          identity: 'Developer ID Application: Bartomiej Zimny (H2X8YGN869)',
+          identity:
+            process.env.APPLE_SIGNING_IDENTITY ||
+            'Developer ID Application: Bartomiej Zimny (H2X8YGN869)',
           optionsForFile: () => ({ entitlements: 'build/entitlements.plist' }),
         }
       : undefined,
