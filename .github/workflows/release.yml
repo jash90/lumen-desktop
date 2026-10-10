@@ -1,8 +1,9 @@
+# Manual fallback — releases are built locally with scripts/release.sh (see RELEASING.md).
+# Run it from the Actions tab on a vX.Y.Z tag ("Use workflow from" → the tag) to get a
+# draft release; on a branch it only builds and uploads workflow artifacts.
 name: Release
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
