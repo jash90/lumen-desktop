@@ -94,7 +94,8 @@ Without platform flags it builds all three. Steps, in order:
    `.deb` and `.rpm`. The npm and Electron download caches are Docker volumes
    (`lumen-desktop-npm-cache`, `lumen-desktop-electron-cache`).
 6. **Windows x64** — the same in `scripts/docker/windows.Dockerfile`
-   (`electronuserland/builder:wine-mono`): Squirrel.Windows needs wine and mono to build
+   (`electronuserland/builder:22-wine-mono-03.25`, Wine 10 — see the Dockerfile for why
+   not the latest tag): Squirrel.Windows needs wine and mono to build
    `Setup.exe`, the `-full.nupkg` and `RELEASES`. The script checks that `RELEASES`
    names the built `.nupkg` with its exact SHA-1 and size — Squirrel and the update feed
    rely on that line.
@@ -149,6 +150,13 @@ real and only skips the tag and the release.
   in Docker Desktop → Settings → Resources.
 - **Linux/Windows build is slow** — it runs under amd64 emulation on Apple Silicon;
   expect several minutes. The first run also downloads the images and fills the caches.
+- **Windows: `anon_mmap_fixed: Assertion … host_page_mask … failed` / `qemu: uncaught
+  target signal 6`** — Wine 11 cannot run Squirrel's 32-bit helpers under qemu-i386 on
+  Apple Silicon. Keep the builder image on Wine 10 (`22-wine-mono-03.25`).
+- **Windows: `Assertion: should not be reached at tramp-amd64.c`** (or an
+  `x86-codegen.h` assertion) — mono's JIT under amd64 emulation. The builder image sets
+  `MONO_ENV_OPTIONS=--interpreter`; keep it. The interpreter is slower, so the Squirrel
+  step takes a few minutes.
 - **`RELEASES SHA-1 does not match`** — the Squirrel output is inconsistent; delete
   `dist/.build/windows` and rebuild Windows.
 - **Tag already exists** — every release needs a new version: `scripts/bump-version.sh`.

@@ -236,7 +236,8 @@ verify_windows() {
   local dir="$BUILD_DIR/windows/make/squirrel.windows/x64"
   [ -f "$dir/RELEASES" ] || die "Windows build produced no RELEASES"
   local sha name size
-  read -r sha name size < <(LC_ALL=C sed $'s/^\xEF\xBB\xBF//' "$dir/RELEASES" | head -1)
+  # The file starts with a UTF-8 BOM and has no trailing newline (read would fail).
+  read -r sha name size < <(LC_ALL=C sed $'s/^\xEF\xBB\xBF//; s/\r$//' "$dir/RELEASES" | head -1) || true
   [ -f "$dir/$name" ] || die "RELEASES names $name, which was not built"
   [ "$(shasum -a 1 "$dir/$name" | awk '{print toupper($1)}')" = "$(tr '[:lower:]' '[:upper:]' <<<"$sha")" ] \
     || die "RELEASES SHA-1 does not match $name"
