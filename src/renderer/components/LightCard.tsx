@@ -8,6 +8,7 @@ import { FavoriteButton } from './FavoriteButton';
 import { PowerSwitch } from './PowerSwitch';
 import { Slider } from './Slider';
 import { rgbToHex } from '../lib/color';
+import { useT } from '../i18n';
 
 /**
  * One bulb, rendered as a flat row inside a room card — the card is the only
@@ -19,6 +20,7 @@ import { rgbToHex } from '../lib/color';
 export function LightCard({ light }: { light: Light }) {
   const setPower = useSetLightPower();
   const setBrightness = useSetLightBrightness();
+  const t = useT();
   const navigate = useUiStore((state) => state.navigate);
 
   const tint = light.color ? rgbToHex(light.color) : 'var(--color-accent)';
@@ -58,15 +60,15 @@ export function LightCard({ light }: { light: Light }) {
             {light.isOn
               ? light.capabilities.dimming
                 ? `${light.brightness}%`
-                : 'On'
-              : 'Off'}
+                : t('light.on')
+              : t('light.off')}
           </span>
         </button>
 
         <FavoriteButton target={{ type: 'light', id: light.id }} label={light.name} />
         <PowerSwitch
           checked={light.isOn}
-          label={`Toggle ${light.name}`}
+          label={t('light.toggleNamed', { name: light.name })}
           onCheckedChange={(on) => setPower.mutate({ id: light.id, on })}
         />
       </div>
@@ -78,7 +80,7 @@ export function LightCard({ light }: { light: Light }) {
           <div>
             <div className="pt-3 pl-10">
               <Slider
-                label="Brightness"
+                label={t('light.brightness')}
                 value={light.brightness}
                 min={1}
                 throttleMs={LIGHT_THROTTLE_MS}

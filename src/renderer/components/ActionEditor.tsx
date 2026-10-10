@@ -9,6 +9,8 @@ import {
   useShortcuts,
   useUpdateSettings,
 } from '../hooks/useLighting';
+import { useT } from '../i18n';
+import type { Translate } from '../../shared/i18n';
 
 /**
  * Editor for quick actions and global shortcuts.
@@ -26,23 +28,24 @@ interface Choice {
 function useChoices(connected: boolean): Choice[] {
   const rooms = useRooms(connected);
   const scenes = useScenes(connected);
+  const t = useT();
 
   return [
-    { label: 'All off', action: { kind: 'allOff' } },
+    { label: t('action.allOff'), action: { kind: 'allOff' } },
     ...(rooms.data ?? []).map((room) => ({
-      label: `Toggle: ${room.name}`,
+      label: t('action.toggleRoom', { name: room.name }),
       action: { kind: 'toggleRoom', id: room.id } as Action,
     })),
     ...(scenes.data ?? []).map((scene) => ({
-      label: `Scene: ${scene.name}`,
+      label: t('action.scene', { name: scene.name }),
       action: { kind: 'activateScene', id: scene.id } as Action,
     })),
   ];
 }
 
-const describe = (action: Action, choices: Choice[]): string =>
+const describe = (action: Action, choices: Choice[], t: Translate): string =>
   choices.find((choice) => JSON.stringify(choice.action) === JSON.stringify(action))?.label ??
-  'Unknown action';
+  t('action.unknown');
 
 /** Turns a keydown into an Electron accelerator string. */
 function acceleratorFrom(event: React.KeyboardEvent): string | null {
@@ -61,6 +64,7 @@ function acceleratorFrom(event: React.KeyboardEvent): string | null {
 }
 
 export function ActionEditor({ connected }: { connected: boolean }) {
+  const t = useT();
   const choices = useChoices(connected);
   const quickActions = useQuickActions();
   const shortcuts = useShortcuts();
@@ -98,7 +102,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
         <select
           value={selected}
           onChange={(event) => setSelected(Number(event.target.value))}
-          aria-label="Action"
+          aria-label={t('action.pickerLabel')}
           className="min-h-9 w-full rounded-row border border-line bg-surface-raised px-2 text-sm focus-visible:focus-ring"
         >
           {choices.map((entry, index) => (
@@ -114,7 +118,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
             onClick={addQuickAction}
             className="min-h-9 flex-1 rounded-row border border-line px-3 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
           >
-            Pin as a button
+            {t('action.pinAsButton')}
           </button>
           <button
             type="button"
@@ -129,7 +133,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
               capturing ? 'border-accent bg-accent/10' : 'border-line hover:bg-line/40'
             }`}
           >
-            {capturing ? 'Press a shortcut…' : 'Assign a shortcut'}
+            {capturing ? t('action.pressShortcut') : t('action.assignShortcut')}
           </button>
         </div>
       </div>
@@ -140,7 +144,7 @@ export function ActionEditor({ connected }: { connected: boolean }) {
             <Row
               key={quickAction.id}
               title={quickAction.label}
-              subtitle="Button on the home screen"
+              subtitle={t('action.quickActionSubtitle')}
               onRemove={() =>
                 update.mutate({
                   quickActions: quickActions.filter((entry) => entry.id !== quickAction.id),
@@ -159,10 +163,10 @@ export function ActionEditor({ connected }: { connected: boolean }) {
               <Row
                 key={shortcut.accelerator}
                 title={shortcut.accelerator}
-                subtitle={describe(shortcut.action, choices)}
+                subtitle={describe(shortcut.action, choices, t)}
                 // A shortcut the OS refused looks identical to a working one
                 // unless it says so.
-                warning={failed ? 'Shortcut taken by another app' : undefined}
+                warning={failed ? t('action.shortcutTaken') : undefined}
                 onRemove={() =>
                   update.mutate({
                     shortcuts: shortcuts.filter(
@@ -190,6 +194,7 @@ function Row({
   warning?: string;
   onRemove(): void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -200,10 +205,10 @@ function Row({
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`Remove ${title}`}
+        aria-label={t('common.removeNamed', { name: title })}
         className="min-h-8 rounded-row px-2 text-sm text-ink-muted transition-colors hover:text-danger focus-visible:focus-ring"
       >
-        Remove
+        {t('common.remove')}
       </button>
     </div>
   );

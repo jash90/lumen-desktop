@@ -3,6 +3,7 @@ import { HexColorPicker } from 'react-colorful';
 import type { RgbColor } from '../../shared/models';
 import { COLOR_PRESETS, hexToRgb, rgbToHex } from '../lib/color';
 import { LIGHT_THROTTLE_MS, useThrottledCommit } from '../hooks/useThrottledCommit';
+import { useT } from '../i18n';
 
 interface ColorPickerProps {
   color: RgbColor | undefined;
@@ -15,19 +16,20 @@ interface ColorPickerProps {
  * bulb has a colour space of its own.
  */
 export function ColorPicker({ color, onCommit }: ColorPickerProps) {
+  const t = useT();
   const hex = color ? rgbToHex(color) : '#ffffff';
   const { throttled, flush } = useThrottledCommit(onCommit, LIGHT_THROTTLE_MS);
 
   return (
     <div className="space-y-3">
-      <span className="label-caps">Kolor</span>
+      <span className="label-caps">{t('light.color')}</span>
 
       <div className="flex flex-wrap gap-2">
         {COLOR_PRESETS.map((preset) => (
           <button
             key={preset}
             type="button"
-            aria-label={`Ustaw kolor ${preset}`}
+            aria-label={t('light.setColor', { color: preset })}
             onClick={() => flush(hexToRgb(preset))}
             aria-pressed={preset.toLowerCase() === hex.toLowerCase()}
             className={`h-9 w-9 rounded-full border border-line transition-transform hover:scale-110 focus-visible:focus-ring ${

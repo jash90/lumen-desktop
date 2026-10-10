@@ -1,5 +1,6 @@
 import type { SerializedAppError } from '../../shared/errors';
 import type { Result } from '../../shared/ipc';
+import { t } from '../../shared/i18n';
 
 /**
  * Every IPC call comes back as a Result. Unwrapping it here means components and
@@ -23,7 +24,7 @@ export async function unwrap<T>(promise: Promise<Result<T>>): Promise<T> {
 }
 
 export const messageOf = (error: unknown): string =>
-  error instanceof UiError ? error.message : 'An unexpected error occurred.';
+  error instanceof UiError ? error.message : t('common.unexpectedError');
 
 export const queryKeys = {
   lights: ['lights'] as const,
@@ -39,7 +40,11 @@ export const queryKeys = {
   updateStatus: ['updateStatus'] as const,
 };
 
-/** Shared by RoomCard and RoomPage, which used to carry their own copies. */
+/**
+ * Shared by RoomCard and RoomPage, which used to carry their own copies. Polish
+ * needs three forms (1 lampa, 2 lampy, 5 lamp), which the dictionary handles
+ * through Intl.PluralRules.
+ */
 export function lightCountLabel(count: number): string {
-  return count === 1 ? '1 light' : `${count} lights`;
+  return t('lights.count', { count });
 }

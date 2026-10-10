@@ -16,6 +16,7 @@ import { LightCard } from '../components/LightCard';
 import { RoomCard } from '../components/RoomCard';
 import { SceneRow } from '../components/SceneRow';
 import { Skeleton } from '../components/Skeleton';
+import { useT } from '../i18n';
 
 /** The dashboard from PRD §7: rooms, each with its lights. */
 export function HomePage({ connected }: { connected: boolean }) {
@@ -23,16 +24,17 @@ export function HomePage({ connected }: { connected: boolean }) {
   const lights = useLights(connected);
   const scenes = useScenes(connected);
   const favorites = useFavorites();
+  const t = useT();
 
   if (rooms.isLoading || lights.isLoading) return <HomeSkeleton />;
 
   if (rooms.isError || lights.isError) {
     return (
       <EmptyState
-        title="Could not load the lights"
-        description="The Hue Bridge did not respond. Check that it is on the same network."
+        title={t('home.loadFailedTitle')}
+        description={t('home.loadFailedDescription')}
         action={{
-          label: 'Try again',
+          label: t('common.tryAgain'),
           onClick: () => {
             void rooms.refetch();
             void lights.refetch();
@@ -68,8 +70,8 @@ export function HomePage({ connected }: { connected: boolean }) {
   if (allLights.length === 0) {
     return (
       <EmptyState
-        title="No lights"
-        description="This Hue Bridge reports no lights. Add them in the Philips Hue app and they will show up here."
+        title={t('home.emptyTitle')}
+        description={t('home.emptyDescription')}
       />
     );
   }
@@ -80,7 +82,7 @@ export function HomePage({ connected }: { connected: boolean }) {
 
       {hasFavorites && (
         <section className="space-y-2">
-          <h2 className="label-caps px-1">Favorites</h2>
+          <h2 className="label-caps px-1">{t('home.favorites')}</h2>
           {favoriteScenes.length > 0 && <SceneRow scenes={favoriteScenes} />}
           {(favoriteRooms.length > 0 || favoriteLights.length > 0) && (
             <div className="card-stack divide-y divide-line">
@@ -105,14 +107,14 @@ export function HomePage({ connected }: { connected: boolean }) {
 
       {zoneScenes.length > 0 && (
         <section className="space-y-2">
-          <h2 className="label-caps px-1">Scenes</h2>
+          <h2 className="label-caps px-1">{t('home.scenes')}</h2>
           <SceneRow scenes={zoneScenes} />
         </section>
       )}
 
       {ungrouped.length > 0 && (
         <section className="space-y-2">
-          <h2 className="label-caps px-1">Outside rooms</h2>
+          <h2 className="label-caps px-1">{t('home.outsideRooms')}</h2>
           <div className="card-stack divide-y divide-line">
             {ungrouped.map((light) => (
               <LightCard key={light.id} light={light} />
@@ -131,6 +133,7 @@ export function HomePage({ connected }: { connected: boolean }) {
 function FavoriteRoomRow({ room }: { room: Room }) {
   const setPower = useSetRoomPower();
   const navigate = useUiStore((state) => state.navigate);
+  const t = useT();
 
   return (
     <div className="group/row flex items-center gap-2 px-3.5 py-3">
@@ -141,13 +144,13 @@ function FavoriteRoomRow({ room }: { room: Room }) {
       >
         <span className="block truncate text-sm font-medium">{room.name}</span>
         <span className="text-xs text-ink-muted">
-          {lightCountLabel(room.lightIds.length)} · room
+          {lightCountLabel(room.lightIds.length)} · {t('room.room')}
         </span>
       </button>
-      <FavoriteButton target={{ type: 'room', id: room.id }} label={`room ${room.name}`} />
+      <FavoriteButton target={{ type: 'room', id: room.id }} label={t('room.labelNamed', { name: room.name })} />
       <PowerSwitch
         checked={room.isOn}
-        label={`Toggle room ${room.name}`}
+        label={t('room.toggleNamed', { name: room.name })}
         onCheckedChange={(on) => setPower.mutate({ id: room.id, on })}
       />
     </div>
@@ -160,8 +163,9 @@ function FavoriteRoomRow({ room }: { room: Room }) {
  * up — that is a transient state, not an error worth its own screen.
  */
 export function HomeSkeleton() {
+  const t = useT();
   return (
-    <div className="space-y-6 px-4 py-4" aria-busy="true" aria-label="Loading lights">
+    <div className="space-y-6 px-4 py-4" aria-busy="true" aria-label={t('home.loadingLights')}>
       {[0, 1, 2].map((card) => (
         <div key={card} className="card-stack">
           <div className="flex items-center gap-3 px-3.5 py-3.5">

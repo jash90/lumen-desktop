@@ -9,6 +9,8 @@ import {
 } from '../../shared/ipc';
 import { parseTarget } from '../../shared/ipRange';
 import { messageOf, unwrap } from '../lib/api';
+import { useT } from '../i18n';
+import type { MessageKey } from '../../shared/i18n';
 import { Skeleton } from './Skeleton';
 
 /**
@@ -52,6 +54,7 @@ export function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
   const [cloud, setCloud] = useState<TuyaCloudDeviceSummary[]>([]);
   const [scan, setScan] = useState<TuyaScanResult | null>(null);
   const queryClient = useQueryClient();
+  const t = useT();
 
   const discovery = useQuery({
     queryKey: ['tuyaDiscovery'],
@@ -90,7 +93,7 @@ export function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
     ): void => {
       const row = byId.get(deviceId) ?? {
         deviceId,
-        name: extra.name ?? 'Tuya device',
+        name: extra.name ?? t('tuya.defaultName'),
         fromCloud: false,
       };
       byId.set(deviceId, {
@@ -110,7 +113,7 @@ export function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
     const rank = (row: Row): number =>
       (row.connected ? 4 : 0) + (row.address ? 0 : 2) + (row.isLight === false ? 1 : 0);
     return [...byId.values()].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
-  }, [cloud, discovery.data, scan]);
+  }, [cloud, discovery.data, scan, t]);
 
   const hasKey = (row: Row): boolean =>
     row.fromCloud || (keys[row.deviceId] ?? '').trim().length === 16;
@@ -165,14 +168,14 @@ export function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
       />
 
       <div className="flex items-center justify-between">
-        <h2 className="label-caps">Devices</h2>
+        <h2 className="label-caps">{t('tuya.devices')}</h2>
         <button
           type="button"
           onClick={() => void discovery.refetch()}
           disabled={searching}
           className={linkButton}
         >
-          {discovery.isFetching ? 'Listening…' : 'Search again'}
+          {discovery.isFetching ? t('tuya.listening') : t('common.searchAgain')}
         </button>
       </div>
 
@@ -189,8 +192,7 @@ export function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
 
       {!searching && rows.length === 0 && (
         <p className="text-sm text-ink-muted">
-          Nothing answered yet. Devices announce themselves every few seconds, so another search
-          often finds one the first missed — or scan the network below.
+          {t('tuya.nothingYet')}
         </p>
       )}
 
@@ -226,13 +228,15 @@ export function TuyaConnect({ onConnected }: { onConnected?: () => void }) {
         className="min-h-9 w-full rounded-row bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 focus-visible:focus-ring disabled:opacity-50"
       >
         {connect.isPending
-          ? 'Connecting…'
-          : `Connect ${ready.length || ''} ${ready.length === 1 ? 'device' : 'devices'}`.trim()}
+          ? t('common.connecting')
+          : ready.length === 0
+            ? t('tuya.connectNone')
+            : t('tuya.connectCount', { count: ready.length })}
       </button>
 
       {skipped.length > 0 && (
         <div className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-          <p className="font-medium">Connected, but not everything is a light</p>
+          <p className="font-medium">{t('tuya.skippedTitle')}</p>
           <ul className="mt-1 space-y-0.5">
             {skipped.map((entry) => (
               <li key={entry.name}>
@@ -265,11 +269,14 @@ function DeviceRow({
   keyValue: string;
   onKey(value: string): void;
 }) {
+  const t = useT();
   const where = row.address
-    ? `${row.address}${row.version ? ` · protocol ${row.version}` : ''}${
-        row.connected ? ' · already connected' : ''
-      }`
-    : 'Not found on this network yet';
+    ? [
+        row.address,
+        ...(row.version ? [t('tuya.protocol', { version: row.version })] : []),
+        ...(row.connected ? [t('tuya.alreadyConnected')] : []),
+      ].join(' · ')
+    : t('tuya.notFoundYet');
 
   return (
     <div className="flex gap-3 px-4 py-3">
@@ -278,7 +285,7 @@ function DeviceRow({
         checked={checked}
         disabled={!row.address}
         onChange={(event) => onChecked(event.target.checked)}
-        aria-label={`Connect ${row.name}`}
+        aria-label={t('tuya.connectNamed', { name: row.name })}
         className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
       />
       <div className="min-w-0 flex-1 space-y-1">
@@ -292,13 +299,13 @@ function DeviceRow({
           {where}
         </span>
         {row.fromCloud ? (
-          <span className="block text-xs text-ink-muted">Key from your Tuya account</span>
+          <span className="block text-xs text-ink-muted">{t('tuya.keyFromAccount')}</span>
         ) : (
           <input
             value={keyValue}
             onChange={(event) => onKey(event.target.value)}
-            placeholder="local key (16 characters)"
-            aria-label={`Local key for ${row.name}`}
+            placeholder={t('tuya.localKeyPlaceholder')}
+            aria-label={t('tuya.localKeyFor', { name: row.name })}
             // Masked like the Home Assistant token: it has no more business
             // being readable over someone's shoulder than any other key.
             type="password"
@@ -330,6 +337,7 @@ function ScanControls({
   error: string | null;
   onScan(target: string): void;
 }) {
+  const t = useT();
   const [target, setTarget] = useState('');
   const invalid = target.trim() !== '' && parseTarget(target) === null;
   const unknown = (result?.unidentified ?? []).filter((address) => !listed.includes(address));
@@ -337,20 +345,17 @@ function ScanControls({
   return (
     <div className="card-stack space-y-2 p-4">
       <p className="text-sm">
-        {missing > 0
-          ? `${missing} ${missing === 1 ? 'device has' : 'devices have'} not been found yet.`
-          : 'Missing a device?'}
+        {missing > 0 ? t('tuya.missingCount', { count: missing }) : t('tuya.missingDevice')}
         <span className="mt-0.5 block text-xs text-ink-muted">
-          Scanning tries every address on this network instead of waiting for devices to announce
-          themselves. Leave the field empty for the whole network, or enter one address or a range.
+          {t('tuya.scanHint')}
         </span>
       </p>
       <div className="flex gap-2">
         <input
           value={target}
           onChange={(event) => setTarget(event.target.value)}
-          placeholder="192.168.1.40 or 192.168.1.0/24"
-          aria-label="Address or range to scan"
+          placeholder={t('tuya.scanPlaceholder')}
+          aria-label={t('tuya.scanTargetLabel')}
           aria-invalid={invalid}
           className={`${inputClass} flex-1 font-mono text-xs`}
         />
@@ -360,19 +365,19 @@ function ScanControls({
           disabled={disabled || invalid}
           className={secondaryButton}
         >
-          {pending ? 'Scanning…' : 'Scan'}
+          {pending ? t('tuya.scanning') : t('tuya.scan')}
         </button>
       </div>
-      {invalid && <p className="text-xs text-danger">Enter an address like 192.168.1.40 or a range.</p>}
+      {invalid && <p className="text-xs text-danger">{t('tuya.invalidTarget')}</p>}
       {result && !pending && (
         <p className="text-xs text-ink-muted">
           {result.found.length > 0
-            ? `Found ${result.found.length} ${result.found.length === 1 ? 'device' : 'devices'} by address.`
+            ? t('tuya.foundByAddress', { count: result.found.length })
             : unknown.length > 0
               ? ''
-              : 'No other devices on this network.'}
+              : t('tuya.noOtherDevices')}
           {unknown.length > 0 &&
-            ` ${unknown.join(', ')} ${unknown.length === 1 ? 'looks' : 'look'} like a Tuya device but answered to none of the keys — fetch your account to identify ${unknown.length === 1 ? 'it' : 'them'}.`}
+            ` ${t('tuya.unidentified', { count: unknown.length, addresses: unknown.join(', ') })}`}
         </p>
       )}
       {error && <p className="text-xs text-danger">{error}</p>}
@@ -387,6 +392,7 @@ function CloudAccount({
   devices: TuyaCloudDeviceSummary[];
   onFetched(devices: TuyaCloudDeviceSummary[]): void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(true);
   const [region, setRegion] = useState<TuyaRegion>('eu');
   const [accessId, setAccessId] = useState('');
@@ -408,16 +414,16 @@ function CloudAccount({
       <div className="card-stack flex items-center gap-3 p-4">
         <span className="min-w-0 flex-1 text-sm">
           {devices.length > 0
-            ? `${devices.length} ${devices.length === 1 ? 'device' : 'devices'} from your Tuya account`
-            : 'Your Tuya account has no devices yet'}
+            ? t('tuya.cloudCount', { count: devices.length })
+            : t('tuya.cloudEmpty')}
           <span className="mt-0.5 block text-xs text-ink-muted">
             {devices.length > 0
-              ? 'Names and local keys are filled in below.'
-              : 'Link your Smart Life app account to the Tuya project, then fetch again.'}
+              ? t('tuya.cloudFilled')
+              : t('tuya.cloudLinkHint')}
           </span>
         </span>
         <button type="button" onClick={() => setOpen(true)} className={secondaryButton}>
-          Change
+          {t('tuya.change')}
         </button>
       </div>
     );
@@ -426,31 +432,25 @@ function CloudAccount({
   return (
     <div className="card-stack space-y-3 p-4">
       <p className="text-sm font-medium">
-        Get local keys from your Tuya account
+        {t('tuya.cloudTitle')}
         <span className="mt-0.5 block text-xs font-normal text-ink-muted">
-          Each device encrypts its traffic with a local key that only Tuya&apos;s cloud knows. A free
-          Tuya IoT project lets this app read the keys once; after that everything stays on your
-          network. You can also skip this and type keys in yourself.
+          {t('tuya.cloudIntro')}
         </span>
       </p>
 
       <details className="text-xs text-ink-muted">
-        <summary className="cursor-pointer text-ink">How do I get an Access ID and Secret?</summary>
+        <summary className="cursor-pointer text-ink">{t('tuya.howTo')}</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-4">
           <li>
-            Sign up at{' '}
+            {t('tuya.step1Before')}{' '}
             <a href="https://iot.tuya.com" target="_blank" rel="noreferrer" className="underline">
               iot.tuya.com
             </a>{' '}
-            and create a Cloud project. Pick the data center your app account uses — Central Europe
-            for most of the EU.
+            {t('tuya.step1After')}
           </li>
-          <li>Add the IoT Core and Authorization Token Management services to it.</li>
-          <li>
-            In the project, open Devices → Link App Account and scan the QR code with the Smart Life
-            or Tuya Smart app.
-          </li>
-          <li>Copy the Access ID and Access Secret from the project&apos;s Overview page.</li>
+          <li>{t('tuya.step2')}</li>
+          <li>{t('tuya.step3')}</li>
+          <li>{t('tuya.step4')}</li>
         </ol>
       </details>
 
@@ -464,12 +464,12 @@ function CloudAccount({
         <select
           value={region}
           onChange={(event) => setRegion(event.target.value as TuyaRegion)}
-          aria-label="Data center"
+          aria-label={t('tuya.dataCenter')}
           className={inputClass}
         >
           {(Object.keys(TUYA_REGIONS) as TuyaRegion[]).map((id) => (
             <option key={id} value={id}>
-              {TUYA_REGIONS[id]}
+              {t(`tuya.region.${id}` as MessageKey)}
             </option>
           ))}
         </select>
@@ -498,11 +498,11 @@ function CloudAccount({
             disabled={!accessId.trim() || !accessSecret.trim() || fetchDevices.isPending}
             className={`${secondaryButton} flex-1`}
           >
-            {fetchDevices.isPending ? 'Fetching…' : 'Get my devices'}
+            {fetchDevices.isPending ? t('tuya.fetching') : t('tuya.getDevices')}
           </button>
           {devices.length > 0 && (
             <button type="button" onClick={() => setOpen(false)} className={secondaryButton}>
-              Cancel
+              {t('common.cancel')}
             </button>
           )}
         </div>

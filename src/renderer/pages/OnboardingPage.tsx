@@ -1,6 +1,7 @@
 import { PRODUCT_NAME } from '../../shared/identity';
 import { AddHub } from '../components/AddHub';
 import { useStorageHealth } from '../hooks/useLighting';
+import { useT } from '../i18n';
 
 /**
  * First-run flow (PRD §5, §22, §40).
@@ -11,13 +12,14 @@ import { useStorageHealth } from '../hooks/useLighting';
  */
 export function OnboardingPage() {
   const health = useStorageHealth();
+  const t = useT();
 
   return (
     <div className="flex h-full flex-col overflow-y-auto px-6 pt-12 pb-8">
       <header className="mb-8">
         <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Connect a Hue Bridge, or a Home Assistant instance for every other brand in the house.
+          {t('onboarding.intro')}
         </p>
       </header>
 
@@ -25,9 +27,9 @@ export function OnboardingPage() {
 
       {health.data?.weak && (
         <p className="mt-6 rounded-card border-l-4 border-amber-500 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-          This system provides no secure password storage
-          {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. Credentials will not be
-          saved and you will have to connect again after a restart.
+          {t('onboarding.weakStorage', {
+            backend: health.data.backend ? ` (backend: ${health.data.backend})` : '',
+          })}
         </p>
       )}
     </div>

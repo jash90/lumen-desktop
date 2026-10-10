@@ -1,10 +1,12 @@
 import type { ResourceRef } from '../../shared/models';
 import { isFavorite, useFavorites, useToggleFavorite } from '../hooks/useLighting';
+import { useT } from '../i18n';
 
 /** Pin toggle shown on rooms, lights and scenes. */
 export function FavoriteButton({ target, label }: { target: ResourceRef; label: string }) {
   const favorites = useFavorites();
   const toggle = useToggleFavorite();
+  const t = useT();
   const pinned = isFavorite(favorites, target);
 
   return (
@@ -12,7 +14,7 @@ export function FavoriteButton({ target, label }: { target: ResourceRef; label: 
       type="button"
       onClick={() => toggle(target)}
       aria-pressed={pinned}
-      aria-label={pinned ? `Unpin ${label} from favorites` : `Pin ${label} to favorites`}
+      aria-label={pinned ? t('favorite.unpin', { label }) : t('favorite.pin', { label })}
       className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm transition-colors focus-visible:focus-ring ${
         pinned ? 'text-accent' : 'text-ink-muted opacity-0 group-hover/row:opacity-100 focus:opacity-100'
       }`}

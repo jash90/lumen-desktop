@@ -2,6 +2,7 @@ import { useAutomations, useSetAutomationEnabled } from '../hooks/useLighting';
 import { EmptyState } from '../components/EmptyState';
 import { PowerSwitch } from '../components/PowerSwitch';
 import { Skeleton } from '../components/Skeleton';
+import { useT } from '../i18n';
 
 /**
  * Automations created in the Philips Hue app.
@@ -13,10 +14,11 @@ import { Skeleton } from '../components/Skeleton';
 export function AutomationsPage({ connected }: { connected: boolean }) {
   const automations = useAutomations(connected);
   const setEnabled = useSetAutomationEnabled();
+  const t = useT();
 
   if (automations.isLoading) {
     return (
-      <div className="space-y-2 px-4 py-4" aria-busy="true" aria-label="Loading automations">
+      <div className="space-y-2 px-4 py-4" aria-busy="true" aria-label={t('automations.loading')}>
         <div className="card-stack divide-y divide-line">
           {[0, 1, 2].map((row) => (
             <div key={row} className="flex items-center gap-3 px-4 py-3">
@@ -34,8 +36,8 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
   if (list.length === 0) {
     return (
       <EmptyState
-        title="No automations"
-        description="Automations are created in the Philips Hue app — they will show up here once you add them."
+        title={t('automations.emptyTitle')}
+        description={t('automations.emptyDescription')}
       />
     );
   }
@@ -43,7 +45,7 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
   return (
     <div className="space-y-3 px-4 py-4 pb-6">
       <p className="px-1 text-xs text-ink-muted">
-        Automations run on the Bridge, even while this app is closed.
+        {t('automations.runOnBridge')}
       </p>
       <div className="card-stack divide-y divide-line">
         {list.map((automation) => (
@@ -51,12 +53,12 @@ export function AutomationsPage({ connected }: { connected: boolean }) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{automation.name}</p>
               <p className="text-xs text-ink-muted">
-                {automation.enabled ? 'Active' : 'Paused'}
+                {automation.enabled ? t('automations.active') : t('automations.paused')}
               </p>
             </div>
             <PowerSwitch
               checked={automation.enabled}
-              label={`Toggle automation ${automation.name}`}
+              label={t('automations.toggleNamed', { name: automation.name })}
               onCheckedChange={(enabled) => setEnabled.mutate({ id: automation.id, enabled })}
             />
           </div>

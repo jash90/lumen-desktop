@@ -12,6 +12,7 @@ import { Slider } from '../components/Slider';
 import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
 import { lightCountLabel } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
+import { useT } from '../i18n';
 
 /** Whole-room control (PRD §9) — one grouped_light request rather than one per bulb. */
 export function RoomPage({ id, connected }: { id: string; connected: boolean }) {
@@ -20,6 +21,7 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
   const setPower = useSetRoomPower();
   const setBrightness = useSetRoomBrightness();
   const scenes = useScenes(connected);
+  const t = useT();
 
   const goHome = useUiStore((state) => state.goHome);
 
@@ -27,9 +29,9 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
   if (!room) {
     return (
       <EmptyState
-        title="Room not found"
-        description="It may have been removed in the Philips Hue app."
-        action={{ label: 'Back to the list', onClick: goHome }}
+        title={t('room.notFoundTitle')}
+        description={t('room.notFoundDescription')}
+        action={{ label: t('common.backToList'), onClick: goHome }}
       />
     );
   }
@@ -43,7 +45,7 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
         <h1 className="text-lg font-semibold tracking-tight">{room.name}</h1>
         <p className="text-sm text-ink-muted">
           {lightCountLabel(roomLights.length)}
-          {!room.supportsGroupControl && ' · controlled one by one'}
+          {!room.supportsGroupControl && ` · ${t('room.oneByOne')}`}
         </p>
       </div>
 
@@ -52,14 +54,14 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
         onClick={() => setPower.mutate({ id: room.id, on: !room.isOn })}
         className="min-h-11 w-full rounded-card bg-accent px-4 text-sm font-semibold text-accent-ink transition-[filter] hover:brightness-105 active:brightness-95 focus-visible:focus-ring"
       >
-        {room.isOn ? 'Turn all off' : 'Turn all on'}
+        {room.isOn ? t('room.turnAllOff') : t('room.turnAllOn')}
       </button>
 
       {(() => {
         const roomScenes = (scenes.data ?? []).filter((scene) => scene.roomId === room.id);
         return roomScenes.length > 0 ? (
           <section className="space-y-2">
-            <h2 className="label-caps px-1">Scenes</h2>
+            <h2 className="label-caps px-1">{t('home.scenes')}</h2>
             <SceneRow scenes={roomScenes} />
           </section>
         ) : null;
@@ -67,7 +69,7 @@ export function RoomPage({ id, connected }: { id: string; connected: boolean }) 
 
       {dimmable && room.isOn && (
         <Slider
-          label="Brightness"
+          label={t('light.brightness')}
           value={room.brightness}
           min={1}
           throttleMs={ROOM_THROTTLE_MS}

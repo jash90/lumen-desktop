@@ -11,6 +11,7 @@ import { PowerSwitch } from '../components/PowerSwitch';
 import { Slider } from '../components/Slider';
 import { LIGHT_THROTTLE_MS } from '../hooks/useThrottledCommit';
 import { useUiStore } from '../stores/uiStore';
+import { useT } from '../i18n';
 
 /**
  * Single bulb detail (PRD §8).
@@ -31,6 +32,7 @@ export function LightPage({
   const setBrightness = useSetLightBrightness();
   const setTemperature = useSetLightTemperature();
   const setColor = useSetLightColor();
+  const t = useT();
 
   const goHome = useUiStore((state) => state.goHome);
 
@@ -39,9 +41,9 @@ export function LightPage({
   if (!light) {
     return (
       <EmptyState
-        title="Light not found"
-        description="It may have been removed in the Philips Hue app."
-        action={{ label: 'Back to the list', onClick: goHome }}
+        title={t('light.notFoundTitle')}
+        description={t('light.notFoundDescription')}
+        action={{ label: t('common.backToList'), onClick: goHome }}
       />
     );
   }
@@ -54,7 +56,7 @@ export function LightPage({
         </h1>
         <PowerSwitch
           checked={light.isOn}
-          label={`Toggle ${light.name}`}
+          label={t('light.toggleNamed', { name: light.name })}
           onCheckedChange={(on) => setPower.mutate({ id: light.id, on })}
         />
       </div>
@@ -62,7 +64,7 @@ export function LightPage({
       <div className="card-stack space-y-5 p-3.5">
         {light.capabilities.dimming && (
           <Slider
-            label="Brightness"
+            label={t('light.brightness')}
             value={light.brightness}
             min={1}
             disabled={!light.isOn}
@@ -75,13 +77,17 @@ export function LightPage({
 
         {light.capabilities.colorTemperature && (
           <Slider
-            label="Color temperature"
+            label={t('light.temperature')}
             value={light.colorTemperature ?? 50}
             disabled={!light.isOn}
             throttleMs={LIGHT_THROTTLE_MS}
             trackGradient="linear-gradient(90deg,#ffb46b,#fff5e8,#cfe4ff)"
             formatValue={(value) =>
-              value < 34 ? 'Warm' : value > 66 ? 'Cool' : 'Neutral'
+              value < 34
+                ? t('light.warm')
+                : value > 66
+                  ? t('light.cool')
+                  : t('light.neutral')
             }
             onCommit={(temperature) =>
               setTemperature.mutate({ id: light.id, temperature })
@@ -100,7 +106,7 @@ export function LightPage({
           !light.capabilities.colorTemperature &&
           !light.capabilities.color && (
             <p className="text-sm text-ink-muted">
-              This light only supports on/off.
+              {t('light.onOffOnly')}
             </p>
           )}
       </div>
