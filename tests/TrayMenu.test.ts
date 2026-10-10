@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PRODUCT_NAME } from '../src/shared/identity';
 
@@ -8,6 +8,7 @@ import {
   type TraySnapshot,
 } from '../src/main/tray/menu';
 import type { Room, Scene } from '../src/shared/models';
+import { setLocale } from '../src/shared/i18n';
 
 const room = (id: string, name: string, isOn = true): Room => ({
   id,
@@ -144,5 +145,22 @@ describe('buildTrayMenuTemplate', () => {
     const template = buildTrayMenuTemplate({ ...base, update: { state: 'checking' } }, handlers());
 
     expect(template.find((entry) => entry.label === 'Checking for updates…')?.enabled).toBe(false);
+  });
+});
+
+describe('buildTrayMenuTemplate in Polish', () => {
+  afterEach(() => setLocale('en'));
+
+  it('follows the process locale', () => {
+    setLocale('pl');
+    const rooms = Array.from({ length: MAX_ROOMS + 2 }, (_, index) =>
+      room(`room-${index}`, `Room ${index}`),
+    );
+    const result = labels({ ...base, rooms, update: { state: 'idle' } });
+    expect(result).toContain('Pokoje');
+    expect(result).toContain('Pozostałe pokoje (2)…');
+    expect(result).toContain('Wyłącz wszystko');
+    expect(result).toContain('Sprawdź aktualizacje…');
+    expect(result.slice(-3)).toEqual([`Otwórz ${PRODUCT_NAME}`, 'Sprawdź aktualizacje…', 'Zakończ']);
   });
 });

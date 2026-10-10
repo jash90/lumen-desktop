@@ -5,6 +5,8 @@
  * narrowed to one of these codes plus a message a user can act on.
  */
 
+import { t } from './i18n';
+
 export type AppErrorCode =
   | 'BridgeNotFound'
   | 'BridgeOffline'
@@ -29,27 +31,10 @@ export interface SerializedAppError {
 /*
  * Codes only the Hue adapter can raise still name the bridge — the link-button
  * ceremony and the pinned certificate are facts about that hardware. The rest
- * say "hub", because any provider can produce them.
+ * say "hub", because any provider can produce them. The texts live in the
+ * i18n dictionaries under `error.<code>`, in the language of the main process.
  */
-const USER_MESSAGES: Record<AppErrorCode, string> = {
-  BridgeNotFound: 'No Hue Bridge found on the network.',
-  BridgeOffline: 'Could not connect to the hub.',
-  PairingRequired: 'Press the button on the Hue Bridge to connect this app.',
-  PairingTimeout: 'The button on the Hue Bridge was not pressed in time.',
-  Unauthorized: 'This app lost access to the hub. Connect it again.',
-  RequestFailed: 'The hub rejected the request.',
-  UnsupportedCapability: 'This light does not support that feature.',
-  NetworkError: 'Network problem. Check the connection to your home Wi-Fi.',
-  CertificateError:
-    'Could not verify the identity of the Hue Bridge. The connection was aborted.',
-  ResourceUnavailable: 'That light is not available — its hub is not connected.',
-  StorageUnavailable:
-    'This system provides no secure password storage. The credentials were not saved.',
-  CloudUnauthorized:
-    'Tuya did not accept the Access ID and Secret. Check them, and that the data center matches your project.',
-  CloudPermission:
-    'This Tuya project cannot list devices yet. Link your Smart Life app account to it and make sure IoT Core is enabled.',
-};
+const userMessage = (code: AppErrorCode): string => t(`error.${code}`);
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
@@ -60,7 +45,7 @@ export class AppError extends Error {
     super(detail ? `${code}: ${detail}` : code, options);
     this.name = 'AppError';
     this.code = code;
-    this.userMessage = USER_MESSAGES[code];
+    this.userMessage = userMessage(code);
   }
 
   toJSON(): SerializedAppError {
@@ -78,9 +63,9 @@ export function isAppError(value: unknown): value is AppError {
  */
 export function toSerializedError(value: unknown): SerializedAppError {
   if (isAppError(value)) return value.toJSON();
-  return { code: 'RequestFailed', message: USER_MESSAGES.RequestFailed };
+  return { code: 'RequestFailed', message: userMessage('RequestFailed') };
 }
 
 export function userMessageFor(code: AppErrorCode): string {
-  return USER_MESSAGES[code];
+  return userMessage(code);
 }

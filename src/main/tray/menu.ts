@@ -3,6 +3,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import type { UpdateStatus } from '../../shared/ipc';
 import type { Action, ResourceRef, Room, Scene } from '../../shared/models';
 import { PRODUCT_NAME } from '../../shared/identity';
+import { t } from '../../shared/i18n';
 
 /**
  * Builds the tray menu template.
@@ -42,15 +43,21 @@ export function updateMenuItem(
     case 'unsupported':
       return null;
     case 'checking':
-      return { label: 'Checking for updates…', enabled: false };
+      return { label: t('tray.checkingUpdates'), enabled: false };
     case 'downloading':
-      return { label: 'Downloading update…', enabled: false };
+      return { label: t('tray.downloadingUpdate'), enabled: false };
     case 'ready':
-      return { label: `Restart to update to ${update.version}`, click: on.installUpdate };
+      return {
+        label: t('tray.restartToUpdate', { version: update.version }),
+        click: on.installUpdate,
+      };
     case 'available':
-      return { label: `Download version ${update.version}…`, click: on.installUpdate };
+      return {
+        label: t('tray.downloadVersion', { version: update.version }),
+        click: on.installUpdate,
+      };
     default:
-      return { label: 'Check for updates…', click: on.checkForUpdates };
+      return { label: t('tray.checkForUpdates'), click: on.checkForUpdates };
   }
 }
 
@@ -58,8 +65,11 @@ export function buildTrayMenuTemplate(
   snapshot: TraySnapshot,
   on: TrayHandlers,
 ): MenuItemConstructorOptions[] {
-  const open: MenuItemConstructorOptions = { label: `Open ${PRODUCT_NAME}`, click: on.show };
-  const quit: MenuItemConstructorOptions = { label: 'Quit', click: on.quit };
+  const open: MenuItemConstructorOptions = {
+    label: t('tray.open', { product: PRODUCT_NAME }),
+    click: on.show,
+  };
+  const quit: MenuItemConstructorOptions = { label: t('tray.quit'), click: on.quit };
   const update = updateMenuItem(snapshot.update, on);
   const footer = update ? [open, update, quit] : [open, quit];
 
@@ -67,7 +77,7 @@ export function buildTrayMenuTemplate(
   // dead switches is worse than offering none.
   if (!snapshot.connected) {
     return [
-      { label: 'No connection to the Hue Bridge', enabled: false },
+      { label: t('tray.noConnection'), enabled: false },
       { type: 'separator' },
       ...footer,
     ];
@@ -88,7 +98,7 @@ export function buildTrayMenuTemplate(
     .slice(0, MAX_FAVORITES);
 
   if (favoriteRooms.length > 0 || favoriteScenes.length > 0) {
-    items.push({ label: 'Favorites', enabled: false });
+    items.push({ label: t('home.favorites'), enabled: false });
     for (const room of favoriteRooms) {
       items.push({
         label: room.name,
@@ -108,7 +118,7 @@ export function buildTrayMenuTemplate(
 
   const shownRooms = snapshot.rooms.slice(0, MAX_ROOMS);
   if (shownRooms.length > 0) {
-    items.push({ label: 'Rooms', enabled: false });
+    items.push({ label: t('tray.rooms'), enabled: false });
     for (const room of shownRooms) {
       items.push({
         label: room.name,
@@ -119,7 +129,7 @@ export function buildTrayMenuTemplate(
     }
     if (snapshot.rooms.length > shownRooms.length) {
       items.push({
-        label: `Other rooms (${snapshot.rooms.length - shownRooms.length})…`,
+        label: t('tray.otherRooms', { count: snapshot.rooms.length - shownRooms.length }),
         click: on.show,
       });
     }
@@ -127,7 +137,7 @@ export function buildTrayMenuTemplate(
   }
 
   items.push({
-    label: 'All off',
+    label: t('action.allOff'),
     enabled: snapshot.rooms.some((room) => room.isOn),
     click: () => on.action({ kind: 'allOff' }),
   });

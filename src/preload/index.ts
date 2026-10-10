@@ -4,9 +4,11 @@ import {
   channelName,
   EVENT_CHANNELS,
   INVOKE_CHANNELS,
+  LOCALE_CHANNEL,
   type LumenApi,
   type Unsubscribe,
 } from '../shared/ipc';
+import { DEFAULT_LOCALE, isLocale } from '../shared/i18n/locale';
 
 /**
  * The only bridge between renderer and main (PRD §16, §33).
@@ -31,8 +33,11 @@ function subscribe<T>(channel: string, listener: (payload: T) => void): Unsubscr
   };
 }
 
+const locale: unknown = ipcRenderer.sendSync(LOCALE_CHANNEL);
+
 const api = {
   ...invoke,
+  locale: isLocale(locale) ? locale : DEFAULT_LOCALE,
   onLightChanged: (listener) => subscribe(EVENT_CHANNELS.lightChanged, listener),
   onRoomChanged: (listener) => subscribe(EVENT_CHANNELS.roomChanged, listener),
   onConnectionChanged: (listener) => subscribe(EVENT_CHANNELS.connectionChanged, listener),

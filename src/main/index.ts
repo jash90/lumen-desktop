@@ -1,9 +1,20 @@
 import path from 'node:path';
-import { app, autoUpdater, BrowserWindow, dialog, nativeTheme, net, session, shell } from 'electron';
+import {
+  app,
+  autoUpdater,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeTheme,
+  net,
+  session,
+  shell,
+} from 'electron';
 import started from 'electron-squirrel-startup';
 
 import type { Action } from '../shared/models';
-import { EVENT_CHANNELS } from '../shared/ipc';
+import { EVENT_CHANNELS, LOCALE_CHANNEL } from '../shared/ipc';
+import { getLocale, resolveLocale, setLocale, t } from '../shared/i18n';
 import { PRODUCT_NAME } from '../shared/identity';
 import { createActionRunner } from './actions/ActionRunner';
 import { startedHidden } from './autostart';
@@ -127,14 +138,31 @@ function applyContentSecurityPolicy(): void {
   });
 }
 
+/**
+ * Picks the UI language once, before anything renders text. The OS language
+ * list wins; an explicit `--lang=pl` (Chromium's own switch) overrides it, which
+ * is also the easiest way to try the Polish UI on an English system.
+ */
+function applyLocale(): void {
+  const tags = app.commandLine.hasSwitch('lang')
+    ? [app.getLocale()]
+    : [...app.getPreferredSystemLanguages(), app.getLocale()];
+  setLocale(resolveLocale(tags));
+  // Answered synchronously: the preload script asks before the first render.
+  ipcMain.on(LOCALE_CHANNEL, (event) => {
+    event.returnValue = getLocale();
+  });
+}
+
 void app.whenReady().then(async () => {
   try {
+    applyLocale();
     await bootstrap();
   } catch (error) {
     // A failure here used to leave Electron alive with no window at all.
     console.error('[startup] failed:', error);
     dialog.showErrorBox(
-      `${PRODUCT_NAME} could not start`,
+      t('app.startFailed', { product: PRODUCT_NAME }),
       error instanceof Error ? error.message : String(error),
     );
     app.quit();
