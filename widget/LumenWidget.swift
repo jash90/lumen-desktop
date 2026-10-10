@@ -195,7 +195,9 @@ struct SmallView: View {
                 + Text("/\(snapshot.lightsTotal)")
                 .font(.system(size: 20, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
-            Text(snapshot.lightsOn == 1 ? "light on" : "lights on")
+            // Plural rules live in Localizable.stringsdict: Polish needs three
+            // forms (lampa włączona / lampy włączone / lamp włączonych).
+            Text("lights_on \(snapshot.lightsOn)")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

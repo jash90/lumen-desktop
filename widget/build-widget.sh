@@ -98,6 +98,9 @@ cat > "$APPEX/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <!-- Without this list macOS shows the development region only, even with a
+       pl.lproj sitting in Resources. -->
+  <key>CFBundleLocalizations</key><array><string>en</string><string>pl</string></array>
   <key>CFBundleDisplayName</key><string>$PRODUCT_NAME</string>
   <key>CFBundleExecutable</key><string>$NAME</string>
   <key>CFBundleIdentifier</key><string>$WIDGET_ID</string>
@@ -148,6 +151,23 @@ cat > "$BUILD/entitlements.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+# Translations: SwiftUI looks string literals up in Localizable.strings(dict),
+# and macOS reads the permission prompt from InfoPlist.strings. Copied before
+# the AppIntents step and codesign so the signature covers them. The prompt
+# names the product, which only identity.json knows.
+mkdir -p "$APPEX/Contents/Resources"
+for LPROJ in "$ROOT"/widget/Localization/*.lproj; do
+  DEST="$APPEX/Contents/Resources/$(basename "$LPROJ")"
+  mkdir -p "$DEST"
+  for FILE in "$LPROJ"/*; do
+    OUT="$DEST/$(basename "$FILE")"
+    sed "s/__PRODUCT_NAME__/$PRODUCT_NAME/g" "$FILE" > "$OUT"
+    # Fails the build on a stray quote rather than shipping a widget whose
+    # strings silently fall back to their keys.
+    plutil -convert binary1 "$OUT"
+  done
+done
 
 # AppIntents metadata — the bundle the system reads to learn that ToggleRoomIntent
 # and ToggleAllIntent exist. Xcode runs this as a build phase; assembling by hand
