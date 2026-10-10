@@ -144,15 +144,16 @@ Pobierz najnowsze wydanie z [Releases](../../releases).
 
 | System | Plik |
 |---|---|
-| macOS (Apple Silicon) | `Lumen Desktop-<wersja>-arm64.dmg` |
-| Windows | `Lumen Desktop-<wersja> Setup.exe` |
+| macOS (Apple Silicon) | `Lumen.Desktop-<wersja>-arm64.dmg` |
+| Windows | `Lumen.Desktop-<wersja>.Setup.exe` |
 | Linux | `.deb` / `.rpm` |
 
 > **macOS:** wydania są podpisane certyfikatem Developer ID i notaryzowane przez Apple,
 > więc otwierają się bez ostrzeżeń Gatekeepera.
 
-> **Windows i Linux:** pakowanie jest skonfigurowane, ale te wersje **nie zostały jeszcze
-> zbudowane ani przetestowane**; zobacz [Ograniczenia](#ograniczenia).
+> **Windows i Linux:** te wersje są budowane przy każdym wydaniu (od 0.6.0), ale **nie
+> zostały jeszcze przetestowane na prawdziwych komputerach z Windowsem ani Linuksem**;
+> zobacz [Ograniczenia](#ograniczenia).
 
 ### Aktualizacje
 
@@ -162,13 +163,14 @@ w zasobniku. Aplikacja nigdy nie sprawdza aktualizacji sama, tylko na Twoją pro
 | System | Co się dzieje |
 |---|---|
 | macOS | Aktualizacja pobiera się w tle, a **Restart to update** ją instaluje. Działa tylko w podpisanej wersji wydaniowej. |
-| Windows | To samo przez Squirrel. Potrzebuje plików `RELEASES` i `.nupkg`, które wgrywa proces wydania. Jeszcze nieprzetestowane. |
+| Windows | To samo przez Squirrel. Potrzebuje plików `RELEASES` i `.nupkg`, które wgrywa każde wydanie. Jeszcze nieprzetestowane. |
 | Linux | Pakiety `.deb` i `.rpm` nie potrafią same się podmienić, więc aplikacja informuje o nowej wersji i otwiera stronę wydania. |
 | `npm start` | Brak sprawdzania, bo nie ma zainstalowanego pakietu do podmiany. |
 
 Sprawdzanie odbywa się przez [update.electronjs.org](https://github.com/electron/update.electronjs.org),
-który czyta **opublikowane** wydania GitHub tego repozytorium. Proces wydania tworzy
-szkic, więc **aktualizacja dociera do użytkowników dopiero po opublikowaniu szkicu.**
+który czyta **opublikowane** wydania GitHub tego repozytorium. Wydania publikuje
+`scripts/release.sh` (zobacz [RELEASING.md](RELEASING.md)), a **aktualizacje docierają do
+użytkowników tylko przez opublikowane wydania, nie przez szkice.**
 
 ### Przejście z Hue Desktop
 
@@ -195,8 +197,7 @@ Co najmniej jeden hub, dowolny albo oba:
 **Tuya (w tym Spectrum Smart i inne marki pod inną nazwą)**
 - Urządzenie w tej samej sieci 2,4 GHz; to nie są urządzenia 5 GHz
 - Jego klucz lokalny, pozyskany jednorazowo (zobacz [Urządzenia Tuya](#urządzenia-tuya))
-- Protokół 3.3. Firmware mówiący w 3.4 lub 3.5 negocjuje klucz sesji i nie jest jeszcze
-  obsługiwany
+- Protokół 3.3, 3.4 lub 3.5; aplikacja mówi tym, który ogłasza urządzenie
 
 **Home Assistant**
 - Osiągalna instancja i długoterminowy token dostępu
@@ -224,14 +225,14 @@ HUE_BRIDGE_IP=192.168.1.42 npm test
 HA_BASE_URL=http://homeassistant.local:8123 HA_TOKEN=<long-lived> npm test
 ```
 
-Podpisana i notaryzowana wersja na macOS, z widżetem:
+Wydania są budowane lokalnie na Macu, dla wszystkich trzech platform, jednym skryptem:
+podpisana i notaryzowana wersja na macOS z widżetem oraz pakiety dla Windowsa i Linuksa
+budowane w Dockerze. Jednorazową konfigurację i pełną procedurę opisuje
+[RELEASING.md](RELEASING.md).
 
 ```bash
-LUMEN_SIGN=1 \
-APPLE_API_KEY_PATH=~/private_keys/AuthKey_XXXXXXXX.p8 \
-APPLE_API_KEY_ID=XXXXXXXX \
-APPLE_API_ISSUER=<issuer-uuid> \
-npm run make
+scripts/ci.sh                  # lint, typecheck i testy, te same sprawdzenia co przy wydaniu
+scripts/release.sh --dry-run   # buduje, podpisuje i weryfikuje wszystkie artefakty bez publikowania
 ```
 
 Rozszerzenie widżetu jest kompilowane zwykłym `swiftc` i ręcznie składane w `.appex`
@@ -304,7 +305,7 @@ kiedykolwiek zgłoszą to samo.
 
 ## Ograniczenia
 
-- **Zweryfikowane tylko na macOS.** CI buduje pakiety dla Windowsa i Linuksa, więc kompilują
+- **Zweryfikowane tylko na macOS.** Każde wydanie buduje pakiety dla Windowsa i Linuksa, więc kompilują
   się i pakują poprawnie, ale nikt jeszcze żadnego z nich nie zainstalował ani nie
   uruchomił.
 - **mDNS nie przechodzi między podsieciami**, przez VPN-y ani przez niektóre punkty
