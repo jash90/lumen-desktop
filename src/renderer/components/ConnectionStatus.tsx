@@ -1,10 +1,12 @@
 import type { ConnectionStatus as Status } from '../../shared/models';
+import type { MessageKey } from '../../shared/i18n';
+import { useT } from '../i18n';
 
-const LABELS: Record<Status['state'], string> = {
-  connected: 'Connected',
-  connecting: 'Connecting…',
-  reconnecting: 'Retrying…',
-  disconnected: 'Disconnected',
+const LABELS: Record<Status['state'], MessageKey> = {
+  connected: 'status.connected',
+  connecting: 'status.connecting',
+  reconnecting: 'status.reconnecting',
+  disconnected: 'status.disconnected',
 };
 
 const DOT_CLASSES: Record<Status['state'], string> = {
@@ -24,6 +26,7 @@ const SEVERITY: Status['state'][] = ['disconnected', 'reconnecting', 'connecting
  * reads exactly as it did before.
  */
 export function ConnectionStatusBadge({ statuses }: { statuses: readonly Status[] }) {
+  const t = useT();
   const worst = [...statuses].sort(
     (a, b) => SEVERITY.indexOf(a.state) - SEVERITY.indexOf(b.state),
   )[0];
@@ -38,7 +41,7 @@ export function ConnectionStatusBadge({ statuses }: { statuses: readonly Status[
       role="status"
     >
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${DOT_CLASSES[state]}`} />
-      {LABELS[state]}
+      {t(LABELS[state])}
       {statuses.length > 1 && ` ${connected}/${statuses.length}`}
       {state === 'reconnecting' && retrySeconds !== null && ` (${retrySeconds} s)`}
     </span>

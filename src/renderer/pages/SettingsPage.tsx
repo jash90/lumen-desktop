@@ -15,18 +15,20 @@ import { ActionEditor } from '../components/ActionEditor';
 import { AddHub } from '../components/AddHub';
 import { PowerSwitch } from '../components/PowerSwitch';
 import { UpdateCard } from '../components/UpdateCard';
+import { useT } from '../i18n';
+import type { MessageKey } from '../../shared/i18n';
 
-const THEME_LABELS: Record<ThemePreference, string> = {
-  system: 'System',
-  light: 'Light',
-  dark: 'Dark',
+const THEME_LABELS: Record<ThemePreference, MessageKey> = {
+  system: 'settings.theme.system',
+  light: 'settings.theme.light',
+  dark: 'settings.theme.dark',
 };
 
-const STATE_LABELS: Record<ConnectionState, string> = {
-  connected: 'connected',
-  connecting: 'connecting…',
-  reconnecting: 'retrying…',
-  disconnected: 'offline',
+const STATE_LABELS: Record<ConnectionState, MessageKey> = {
+  connected: 'settings.hubState.connected',
+  connecting: 'settings.hubState.connecting',
+  reconnecting: 'settings.hubState.reconnecting',
+  disconnected: 'settings.hubState.disconnected',
 };
 
 const STATE_DOTS: Record<ConnectionState, string> = {
@@ -39,6 +41,7 @@ const STATE_DOTS: Record<ConnectionState, string> = {
 /** Settings from PRD §29, minus the startup/tray options which are P1. */
 export function SettingsPage() {
   const [adding, setAdding] = useState(false);
+  const t = useT();
   const statuses = useConnectionStatuses();
   const anyConnected = useAnyConnected();
   const settings = useSettings();
@@ -59,10 +62,10 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6 px-4 py-4 pb-6">
-      <h1 className="px-1 text-lg font-semibold tracking-tight">Settings</h1>
+      <h1 className="px-1 text-lg font-semibold tracking-tight">{t('nav.settings')}</h1>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Hubs</h2>
+        <h2 className="label-caps px-1">{t('settings.hubs')}</h2>
         {known.length > 0 ? (
           <div className="card-stack divide-y divide-line">
             {known.map((entry) => {
@@ -79,24 +82,26 @@ export function SettingsPage() {
                     </span>
                     <span className="block truncate pl-3.5 text-xs text-ink-muted">
                       {entry.address}
-                      {entry.swVersion ? ` · firmware ${entry.swVersion}` : ''}
-                      {` · ${STATE_LABELS[state]}`}
+                      {entry.swVersion
+                        ? ` · ${t('settings.firmware', { version: entry.swVersion })}`
+                        : ''}
+                      {` · ${t(STATE_LABELS[state])}`}
                     </span>
                   </span>
                   <button
                     type="button"
                     onClick={() => removeHub.mutate(entry.id)}
-                    aria-label={`Remove ${entry.name}`}
+                    aria-label={t('common.removeNamed', { name: entry.name })}
                     className="min-h-8 rounded-row px-2 text-sm text-ink-muted transition-colors hover:text-danger focus-visible:focus-ring"
                   >
-                    Remove
+                    {t('common.remove')}
                   </button>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-sm text-ink-muted">No hub connected.</p>
+          <p className="text-sm text-ink-muted">{t('settings.noHub')}</p>
         )}
 
         <div className="flex gap-2">
@@ -105,7 +110,7 @@ export function SettingsPage() {
             onClick={() => reconnect.mutate()}
             className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
           >
-            Reconnect all
+            {t('settings.reconnectAll')}
           </button>
           <button
             type="button"
@@ -113,7 +118,7 @@ export function SettingsPage() {
             aria-expanded={adding}
             className="min-h-9 flex-1 rounded-row border border-line px-4 text-sm transition-colors hover:bg-line/40 focus-visible:focus-ring"
           >
-            {adding ? 'Cancel' : 'Add a hub'}
+            {adding ? t('common.cancel') : t('settings.addHub')}
           </button>
         </div>
 
@@ -125,7 +130,7 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Appearance</h2>
+        <h2 className="label-caps px-1">{t('settings.appearance')}</h2>
         <div className="flex gap-2">
           {(Object.keys(THEME_LABELS) as ThemePreference[]).map((theme) => (
             <button
@@ -139,55 +144,52 @@ export function SettingsPage() {
                   : 'border-line text-ink-muted hover:text-ink'
               }`}
             >
-              {THEME_LABELS[theme]}
+              {t(THEME_LABELS[theme])}
             </button>
           ))}
         </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Quick actions and shortcuts</h2>
+        <h2 className="label-caps px-1">{t('settings.quickActions')}</h2>
         <ActionEditor connected={anyConnected} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">Startup</h2>
+        <h2 className="label-caps px-1">{t('settings.startup')}</h2>
         <div className="card-stack flex items-center gap-3 p-4">
           <span className="min-w-0 flex-1 text-sm">
-            Launch at login
+            {t('settings.launchAtLogin')}
             <span className="mt-0.5 block text-xs text-ink-muted">
-              The app starts in the background, available from the menu bar.
+              {t('settings.launchAtLoginHint')}
             </span>
           </span>
           <PowerSwitch
             checked={settings.data?.launchAtLogin ?? false}
-            label="Launch at login"
+            label={t('settings.launchAtLogin')}
             onCheckedChange={(launchAtLogin) => updateSettings.mutate({ launchAtLogin })}
           />
         </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="label-caps px-1">About and updates</h2>
+        <h2 className="label-caps px-1">{t('settings.about')}</h2>
         <UpdateCard />
       </section>
 
       {hasHomeAssistant && (
         <section className="space-y-3">
-          <h2 className="label-caps px-1">Widget</h2>
+          <h2 className="label-caps px-1">{t('settings.widget')}</h2>
           <div className="card-stack flex items-center gap-3 p-4">
             <span className="min-w-0 flex-1 text-sm">
-              Let the widget control Home Assistant
+              {t('settings.widgetHa')}
               <span className="mt-0.5 block text-xs text-ink-muted">
-                The widget works while the app is closed, so it needs its own copy of the access
-                token in a file outside the keychain. That token grants your whole Home Assistant —
-                locks and cameras included — not just the lighting. Left off, the widget still shows
-                these rooms but cannot switch them.
+                {t('settings.widgetHaHint')}
               </span>
             </span>
             <PowerSwitch
               checked={settings.data?.exportHomeAssistantToWidget ?? false}
-              label="Let the widget control Home Assistant"
+              label={t('settings.widgetHa')}
               onCheckedChange={(exportHomeAssistantToWidget) =>
                 updateSettings.mutate({ exportHomeAssistantToWidget })
               }
@@ -198,11 +200,11 @@ export function SettingsPage() {
 
       {health.data?.weak && (
         <section className="rounded-card border-l-4 border-amber-500 bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400">
-          <p className="font-medium">Weak credential protection</p>
+          <p className="font-medium">{t('settings.weakTitle')}</p>
           <p className="mt-1">
-            This system provides no full password storage
-            {health.data.backend ? ` (backend: ${health.data.backend})` : ''}. The application key is
-            stored with minimal protection — consider installing GNOME Keyring or KWallet.
+            {t('settings.weakBody', {
+              backend: health.data.backend ? ` (backend: ${health.data.backend})` : '',
+            })}
           </p>
         </section>
       )}

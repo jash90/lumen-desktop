@@ -1,5 +1,6 @@
 import type { HubSummary } from '../../shared/models';
 import type { TuyaVersion } from '../tuya/TuyaProtocol';
+import { t } from '../../shared/i18n';
 
 /**
  * What the app has to remember to reach a hub again after a restart.
@@ -80,11 +81,15 @@ export interface TuyaCredential {
 export type ProviderCredential = HueCredential | HomeAssistantCredential | TuyaCredential;
 
 export function toHubSummary(credential: ProviderCredential): HubSummary {
+  // The Tuya hub's name and "address" are fixed labels the app wrote itself
+  // rather than anything the user typed, so they are shown in the UI language
+  // instead of the language they happened to be stored in.
+  const tuya = credential.kind === 'tuya';
   return {
     id: credential.id,
     kind: credential.kind,
-    name: credential.name,
-    address: credential.address,
+    name: tuya ? t('hub.tuyaName') : credential.name,
+    address: tuya ? t('hub.tuyaAddress') : credential.address,
     modelId: credential.kind === 'hue' ? credential.modelId : undefined,
     swVersion: credential.kind === 'hue' ? credential.swVersion : undefined,
   };

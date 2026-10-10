@@ -10,6 +10,7 @@ import { RoomPage } from './pages/RoomPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useUiStore } from './stores/uiStore';
 import { PRODUCT_NAME } from '../shared/identity';
+import { useT } from './i18n';
 
 /**
  * Shell and routing (PRD §6, §7).
@@ -19,6 +20,7 @@ import { PRODUCT_NAME } from '../shared/identity';
  */
 export function App() {
   useLightingEvents();
+  const t = useT();
 
   const statuses = useConnectionStatuses();
   const hubs = useHubs();
@@ -49,10 +51,10 @@ export function App() {
           <button
             type="button"
             onClick={goHome}
-            aria-label="Back"
+            aria-label={t('common.back')}
             className="-ml-1.5 flex min-h-8 items-center gap-0.5 rounded-full px-2 text-sm font-medium text-ink transition-colors hover:bg-line/50 focus-visible:focus-ring"
           >
-            <span aria-hidden>‹</span> Back
+            <span aria-hidden>‹</span> {t('common.back')}
           </button>
         ) : (
           <span className="text-sm font-semibold tracking-tight">{PRODUCT_NAME}</span>
@@ -66,9 +68,9 @@ export function App() {
         {!connected && view.name !== 'settings' ? (
           allDown ? (
             <EmptyState
-              title="No hub reachable"
-              description="Check that your hub is powered on and on the same network as this computer."
-              action={{ label: 'Open settings', onClick: () => navigate({ name: 'settings' }) }}
+              title={t('app.noHubTitle')}
+              description={t('app.noHubDescription')}
+              action={{ label: t('app.openSettings'), onClick: () => navigate({ name: 'settings' }) }}
             />
           ) : (
             <HomeSkeleton />
@@ -91,19 +93,19 @@ export function App() {
           [
             {
               key: 'home',
-              label: 'Home',
+              label: t('nav.home'),
               active: view.name !== 'settings' && view.name !== 'automations',
               onClick: goHome,
             },
             {
               key: 'automations',
-              label: 'Automations',
+              label: t('nav.automations'),
               active: view.name === 'automations',
               onClick: () => navigate({ name: 'automations' }),
             },
             {
               key: 'settings',
-              label: 'Settings',
+              label: t('nav.settings'),
               active: view.name === 'settings',
               onClick: () => navigate({ name: 'settings' }),
             },

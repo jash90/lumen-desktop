@@ -8,6 +8,7 @@
  */
 
 import type { SerializedAppError } from './errors';
+import type { Locale } from './i18n/locale';
 import type {
   Action,
   Automation,
@@ -104,6 +105,13 @@ export const EVENT_CHANNELS = {
 
 export const channelName = (channel: InvokeChannel): string => `lumen:${channel}`;
 
+/**
+ * Synchronous, answered once by the preload script before the UI renders: the
+ * first frame has to be in the right language, and an async round trip would
+ * flash English at a Polish user.
+ */
+export const LOCALE_CHANNEL = 'lumen:locale';
+
 /** What discovery can say about a device before anyone has its local key. */
 export interface DiscoveredTuyaSummary {
   deviceId: string;
@@ -149,6 +157,9 @@ export type Unsubscribe = () => void;
  * no ipcRenderer, no Node primitives, no application key.
  */
 export interface LumenApi {
+  /** UI language the main process picked from the system preferences. */
+  locale: Locale;
+
   getVersion(): Promise<Result<string>>;
 
   // Hubs

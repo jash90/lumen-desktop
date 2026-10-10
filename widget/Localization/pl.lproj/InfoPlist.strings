@@ -1,0 +1,3 @@
+/* Permission prompts. __PRODUCT_NAME__ is replaced from identity.json by
+   widget/build-widget.sh when the bundle is assembled. */
+"NSLocalNetworkUsageDescription" = "__PRODUCT_NAME__ łączy się z hubami oświetlenia w Twojej sieci lokalnej, aby pokazać i zmienić stan oświetlenia.";

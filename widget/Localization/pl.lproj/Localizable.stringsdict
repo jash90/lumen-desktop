@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- "Light on" / "lights on" under the count on the small widget. The number
+       is drawn separately, so the variants carry only the words. -->
+  <key>lights_on %lld</key>
+  <dict>
+    <key>NSStringLocalizedFormatKey</key><string>%#@lights@</string>
+    <key>lights</key>
+    <dict>
+      <key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string>
+      <key>NSStringFormatValueTypeKey</key><string>lld</string>
+      <key>one</key><string>lampa włączona</string>
+      <key>few</key><string>lampy włączone</string>
+      <key>many</key><string>lamp włączonych</string>
+      <key>other</key><string>lampy włączone</string>
+    </dict>
+  </dict>
+</dict>
+</plist>

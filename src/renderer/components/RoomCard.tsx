@@ -3,6 +3,7 @@ import { ROOM_THROTTLE_MS } from '../hooks/useThrottledCommit';
 import { useHubLabels, useSetRoomBrightness, useSetRoomPower } from '../hooks/useLighting';
 import { lightCountLabel } from '../lib/api';
 import { useUiStore } from '../stores/uiStore';
+import { useT } from '../i18n';
 import { FavoriteButton } from './FavoriteButton';
 import { LightCard } from './LightCard';
 import { PowerSwitch } from './PowerSwitch';
@@ -22,6 +23,7 @@ interface RoomCardProps {
 export function RoomCard({ room, lights }: RoomCardProps) {
   const setPower = useSetRoomPower();
   const setBrightness = useSetRoomBrightness();
+  const t = useT();
   const navigate = useUiStore((state) => state.navigate);
   // Empty unless more than one hub is connected, so a single-hub house sees no
   // labelling it does not need.
@@ -42,7 +44,7 @@ export function RoomCard({ room, lights }: RoomCardProps) {
               <h2 className="truncate text-base font-semibold">{room.name}</h2>
               <span className="text-xs text-ink-muted">
                 {lightCountLabel(lights.length)}
-                {onCount > 0 && ` · ${onCount} on`}
+                {onCount > 0 && ` · ${t('room.onCount', { count: onCount })}`}
                 {hubName && ` · ${hubName}`}
               </span>
             </span>
@@ -53,10 +55,10 @@ export function RoomCard({ room, lights }: RoomCardProps) {
               ›
             </span>
           </button>
-          <FavoriteButton target={{ type: 'room', id: room.id }} label={`room ${room.name}`} />
+          <FavoriteButton target={{ type: 'room', id: room.id }} label={t('room.labelNamed', { name: room.name })} />
           <PowerSwitch
             checked={room.isOn}
-            label={`Toggle room ${room.name}`}
+            label={t('room.toggleNamed', { name: room.name })}
             onCheckedChange={(on) => setPower.mutate({ id: room.id, on })}
           />
         </div>
@@ -66,7 +68,7 @@ export function RoomCard({ room, lights }: RoomCardProps) {
             <div>
               <div className="pt-3">
                 <Slider
-                  label="Room brightness"
+                  label={t('room.brightness')}
                   value={room.brightness}
                   min={1}
                   throttleMs={ROOM_THROTTLE_MS}

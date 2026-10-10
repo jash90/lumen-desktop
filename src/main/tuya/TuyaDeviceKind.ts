@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n';
 import { Dp, type DpValue } from './dto';
 
 /**
@@ -57,12 +58,12 @@ export function classifyDevice(dps: Record<string, DpValue>): TuyaDeviceKind {
 export function describeKind(kind: TuyaDeviceKind): string {
   switch (kind) {
     case 'light':
-      return 'light';
+      return t('tuya.kind.light');
     case 'switch':
-      return 'a switch or socket, not a light';
+      return t('tuya.kind.switch');
     case 'sensor':
-      return 'a sensor — it reports readings and cannot be switched';
+      return t('tuya.kind.sensor');
     default:
-      return 'not recognisable as a light';
+      return t('tuya.kind.unknown');
   }
 }

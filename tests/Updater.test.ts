@@ -11,7 +11,7 @@ import {
 } from '../src/main/updater/feed';
 import {
   createUpdateService,
-  UPDATE_CHECK_FAILED,
+  updateCheckFailedMessage,
   type SquirrelUpdater,
 } from '../src/main/updater/UpdateService';
 
@@ -118,7 +118,7 @@ describe('UpdateService with Squirrel', () => {
     const { service, updater } = setup('squirrel');
     await service.check();
     updater.emit('error', new Error('Could not get code signature for running application'));
-    expect(service.status()).toEqual({ state: 'error', message: UPDATE_CHECK_FAILED });
+    expect(service.status()).toEqual({ state: 'error', message: updateCheckFailedMessage() });
   });
 
   it('survives an unsigned build throwing from setFeedURL', async () => {
@@ -127,7 +127,7 @@ describe('UpdateService with Squirrel', () => {
     updater.setFeedURL.mockImplementation(() => {
       throw new Error('Could not get code signature');
     });
-    expect(await service.check()).toEqual({ state: 'error', message: UPDATE_CHECK_FAILED });
+    expect(await service.check()).toEqual({ state: 'error', message: updateCheckFailedMessage() });
   });
 
   it('pushes every change to the listener', async () => {
@@ -167,7 +167,7 @@ describe('UpdateService on Linux', () => {
   it('reports a failed request instead of throwing', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { service } = setup('manual', () => Promise.reject(new Error('ENOTFOUND')));
-    expect(await service.check()).toEqual({ state: 'error', message: UPDATE_CHECK_FAILED });
+    expect(await service.check()).toEqual({ state: 'error', message: updateCheckFailedMessage() });
   });
 });
 

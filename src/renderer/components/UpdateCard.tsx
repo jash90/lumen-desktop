@@ -5,9 +5,14 @@ import {
   useInstallUpdate,
   useUpdateStatus,
 } from '../hooks/useUpdates';
+import { useT } from '../i18n';
+import type { Translate } from '../../shared/i18n';
 
 /** What the line under the version says, and what the button does. */
-function describe(status: UpdateStatus | undefined): {
+function describe(
+  status: UpdateStatus | undefined,
+  t: Translate,
+): {
   detail: string;
   button: string;
   action: 'check' | 'install' | null;
@@ -15,40 +20,40 @@ function describe(status: UpdateStatus | undefined): {
   switch (status?.state) {
     case 'unsupported':
       return {
-        detail: 'Updates are available only in the installed app.',
-        button: 'Check for updates',
+        detail: t('update.unsupported'),
+        button: t('update.check'),
         action: null,
       };
     case 'checking':
-      return { detail: 'Looking for a newer version…', button: 'Checking…', action: null };
+      return { detail: t('update.lookingDetail'), button: t('update.checkingButton'), action: null };
     case 'downloading':
       return {
-        detail: 'A new version was found and is downloading.',
-        button: 'Downloading…',
+        detail: t('update.downloadingDetail'),
+        button: t('update.downloadingButton'),
         action: null,
       };
     case 'ready':
       return {
-        detail: `Version ${status.version} is ready to install.`,
-        button: 'Restart to update',
+        detail: t('update.readyDetail', { version: status.version }),
+        button: t('update.restartButton'),
         action: 'install',
       };
     case 'available':
       return {
-        detail: `Version ${status.version} is available on the releases page.`,
-        button: `Download ${status.version}`,
+        detail: t('update.availableDetail', { version: status.version }),
+        button: t('update.downloadButton', { version: status.version }),
         action: 'install',
       };
     case 'upToDate':
       return {
-        detail: 'You have the latest version.',
-        button: 'Check for updates',
+        detail: t('update.upToDate'),
+        button: t('update.check'),
         action: 'check',
       };
     case 'error':
-      return { detail: status.message, button: 'Try again', action: 'check' };
+      return { detail: status.message, button: t('common.tryAgain'), action: 'check' };
     default:
-      return { detail: '', button: 'Check for updates', action: 'check' };
+      return { detail: '', button: t('update.check'), action: 'check' };
   }
 }
 
@@ -57,14 +62,15 @@ export function UpdateCard() {
   const status = useUpdateStatus();
   const check = useCheckForUpdates();
   const install = useInstallUpdate();
+  const t = useT();
 
-  const { detail, button, action } = describe(status.data);
+  const { detail, button, action } = describe(status.data, t);
   const busy = check.isPending || install.isPending;
 
   return (
     <div className="card-stack flex items-center gap-3 p-4">
       <span className="min-w-0 flex-1 text-sm">
-        Version {version.data ?? '…'}
+        {t('update.version', { version: version.data ?? '…' })}
         {detail && (
           <span
             role="status"

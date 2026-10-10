@@ -1,0 +1,15 @@
+/* Widget strings. Keys are the English source text SwiftUI looks up; the
+   placeholders follow String(format:) — %lld is an integer. */
+
+/* App intent titles and parameters, shown in Shortcuts and the widget editor. */
+"Toggle room" = "Przełącz pokój";
+"Toggle all lights" = "Przełącz całe oświetlenie";
+"Room" = "Pokój";
+"Hub" = "Hub";
+"On" = "Włącz";
+
+/* Widget views. */
+"No connection" = "Brak połączenia";
+"No rooms" = "Brak pokoi";
+"+%lld more" = "+%lld więcej";
+"The state of the lighting in your home." = "Stan oświetlenia w Twoim domu.";

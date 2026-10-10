@@ -1,5 +1,6 @@
 import type { UpdateStatus } from '../../shared/ipc';
 import { isNewer, RELEASES_PAGE, type UpdateStrategy } from './feed';
+import { t } from '../../shared/i18n';
 
 /**
  * Checks for and installs app updates, but only when asked — there is no
@@ -42,7 +43,8 @@ export interface UpdateService {
   install(): Promise<void>;
 }
 
-export const UPDATE_CHECK_FAILED = 'Could not check for updates. Try again later.';
+/** Read at failure time, so it follows the process locale. */
+export const updateCheckFailedMessage = (): string => t('update.checkFailed');
 
 const stripV = (version: string): string => version.replace(/^v/, '');
 
@@ -61,7 +63,7 @@ export function createUpdateService(deps: UpdateServiceDependencies): UpdateServ
     // The raw message (a signature error, ENOTFOUND) means nothing to a user;
     // it goes to the log and the UI gets something to act on.
     console.error('[updater] check failed:', error);
-    return set({ state: 'error', message: UPDATE_CHECK_FAILED });
+    return set({ state: 'error', message: updateCheckFailedMessage() });
   };
 
   if (deps.strategy === 'squirrel') {
