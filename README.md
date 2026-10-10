@@ -1,5 +1,7 @@
 <div align="center">
 
+English | [Polski](README.pl.md)
+
 <img src="assets/icon.png" width="128" alt="Lumen Desktop">
 
 # Lumen Desktop
@@ -138,15 +140,16 @@ Download the latest release from [Releases](../../releases).
 
 | System | File |
 |---|---|
-| macOS (Apple Silicon) | `Lumen Desktop-<version>-arm64.dmg` |
-| Windows | `Lumen Desktop-<version> Setup.exe` |
+| macOS (Apple Silicon) | `Lumen.Desktop-<version>-arm64.dmg` |
+| Windows | `Lumen.Desktop-<version>.Setup.exe` |
 | Linux | `.deb` / `.rpm` |
 
 > **macOS:** releases are signed with a Developer ID certificate and notarized by Apple,
 > so they open without Gatekeeper warnings.
 
-> **Windows and Linux:** the packaging is configured, but those builds have **not been
-> produced or tested yet** — see [Limitations](#limitations).
+> **Windows and Linux:** these builds are produced for every release (since 0.6.0), but
+> they have **not been tested on real Windows or Linux machines yet** — see
+> [Limitations](#limitations).
 
 ### Updates
 
@@ -156,13 +159,14 @@ The app never checks by itself, only when you ask.
 | System | What happens |
 |---|---|
 | macOS | The update downloads in the background, then **Restart to update** installs it. Works only in the signed release build. |
-| Windows | The same through Squirrel. It needs the `RELEASES` and `.nupkg` files the release workflow uploads. Not tested yet. |
+| Windows | The same through Squirrel. It needs the `RELEASES` and `.nupkg` files every release uploads. Not tested yet. |
 | Linux | `.deb` and `.rpm` cannot replace themselves, so the app reports the new version and opens the release page. |
 | `npm start` | No check at all, because there is no installed bundle to replace. |
 
 The check goes through [update.electronjs.org](https://github.com/electron/update.electronjs.org),
-which reads this repository's **published** GitHub Releases. The release workflow creates a
-draft, so **an update reaches users only once the draft is published.**
+which reads this repository's **published** GitHub Releases. Releases are published by
+`scripts/release.sh` (see [RELEASING.md](RELEASING.md)), and **updates reach users only
+through published, non-draft releases.**
 
 ### Upgrading from Hue Desktop
 
@@ -189,8 +193,7 @@ At least one hub — either or both:
 **Tuya (including Spectrum Smart and other rebrands)**
 - The device on the same 2.4 GHz network — these are not 5 GHz devices
 - Its local key, obtained once (see [Tuya devices](#tuya-devices))
-- Protocol 3.3. Firmware speaking 3.4 or 3.5 negotiates a session key and is not
-  supported yet
+- Protocol 3.3, 3.4 or 3.5 — the app speaks whichever the device announces
 
 **Home Assistant**
 - A reachable instance, and a long-lived access token
@@ -218,18 +221,17 @@ HUE_BRIDGE_IP=192.168.1.42 npm test
 HA_BASE_URL=http://homeassistant.local:8123 HA_TOKEN=<long-lived> npm test
 ```
 
-A signed and notarized macOS build, widget included:
+Releases are built locally on a Mac, for all three platforms, by one script: a signed and
+notarized macOS build with the widget, plus the Windows and Linux packages built in Docker.
+See [RELEASING.md](RELEASING.md) for the one-time setup and the full procedure.
 
 ```bash
-LUMEN_SIGN=1 \
-APPLE_API_KEY_PATH=~/private_keys/AuthKey_XXXXXXXX.p8 \
-APPLE_API_KEY_ID=XXXXXXXX \
-APPLE_API_ISSUER=<issuer-uuid> \
-npm run make
+scripts/ci.sh                  # lint, typecheck and tests, the same checks a release runs
+scripts/release.sh --dry-run   # build, sign and verify every artifact without publishing
 ```
 
 The widget extension is built with plain `swiftc` and assembled into an `.appex` by hand
-(`widget/build-widget.sh`) — there is no Xcode project, because it is a single Swift file
+(`widget/build-widget.sh`) — there is no Xcode project, because it is a handful of Swift files
 and an `.appex` is just a bundle with an `Info.plist` and a binary. The whole build is
 reproducible from the command line. If you fork this, edit `identity.json` — the bundle
 identifier, the App Group and the Team ID all derive from it, on both the Electron and the
@@ -297,7 +299,7 @@ routes by id and logs a warning if two hubs ever do claim the same one.
 
 ## Limitations
 
-- **Verified on macOS only.** CI builds the Windows and Linux packages, so they compile
+- **Verified on macOS only.** Every release builds the Windows and Linux packages, so they compile
   and package cleanly — but nobody has installed or run either of them.
 - **mDNS does not cross subnets**, VPNs, or some access points. When the Bridge sits on a
   different subnet than the computer, cloud discovery or a manually entered IP address
